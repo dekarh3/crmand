@@ -96,6 +96,13 @@
           </property>
          </widget>
         </item>
+        <item>
+         <widget class="QCheckBox" name="chbShowClear">
+          <property name="text">
+           <string>---</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
       <item>

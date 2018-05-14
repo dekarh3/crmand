@@ -63,8 +63,8 @@ def get_credentials():
         print('Storing credentials to ' + credential_path)
     return credentials
 
-
-def refresh():
+q = '''
+def refresh_contacts():
     """Shows basic usage of the People API.
 
     Creates a People API service object and outputs the name if
@@ -134,7 +134,7 @@ def refresh():
     return contacts
 
 # Добавляем массив стадий из контактов
-def refresh_stages():
+def refresh_stages(contacts):
     all_stages = ALL_STAGES_CONST
     for i, contact in enumerate(contacts):
         has = False
@@ -144,85 +144,124 @@ def refresh_stages():
         if not has:
             all_stages.append(contact['stage'])
     return all_stages
-
+'''
 
 class MainWindowSlots(Ui_Form):   # Определяем функции, которые будем вызывать в слотах
 
     def setupUi(self, form):
         Ui_Form.setupUi(self,form)
 
-        self.fillconfig = read_config(filename='mNote.ini', section='fill')
-        self.messages = read_config(filename='mNote.ini', section='messages')
-        self.webconfig = read_config(filename='mNote.ini', section='web')
-
-        self.drv = webdriver.Firefox()  # Инициализация драйвера
-        self.drv.implicitly_wait(5)  # Неявное ожидание - ждать ответа на каждый запрос до 5 сек
-
-        dbconfig = read_config(filename='mNote.ini', section='mysql')
-        self.dbconn = MySQLConnection(**dbconfig)  # Открываем БД из конфиг-файла
-        self.id_all = []
+        self.contacts = []
+        self.refresh_contacts()
+        self.all_stages = []
+        self.refresh_stages()
         self.id_tek = 0
-        self.mamba_id = {}
-#        self.mamba_id_tek = ''
-        self.msg_id = {}
-#        self.msg_id_tek = ''
-        self.t_people = {}
-        self.t_link = {}
-        self.html = {}
-        self.foto = {}
-        self.fotos_count = {}
-        self.names = {}
-        self.ages = {}
-        self.chk_educ = False
-        self.chk_child = False
-        self.chk_home = False
-        self.chk_baryg = False
-        self.chk_marr = False
-        self.chk_dist = False
-        self.history = ''
-        self.histories = {}
-        self.stLinkFrom = 2
-        self.cbLinkFrom.addItems(LINK)
-        self.cbLinkFrom.setCurrentIndex(self.stLinkFrom)
-        self.stLinkTo = 7
-        self.cbLinkTo.addItems(LINK)
-        self.cbLinkTo.setCurrentIndex(self.stLinkTo)
-        self.stPeopleFrom = 6
-        self.cbPeopleFrom.addItems(PEOPLE)
-        self.cbPeopleFrom.setCurrentIndex(self.stPeopleFrom)
-        self.stPeopleTo = 9
-        self.cbPeopleTo.addItems(PEOPLE)
-        self.cbPeopleTo.setCurrentIndex(self.stPeopleTo)
-        self.stStatus = 0
-        self.cbStatus.addItems(ONLINE)
-        self.cbStatus.setCurrentIndex(self.stStatus)
-        self.cbPeople.addItems(PEOPLE)
-        self.cbPeople.setCurrentIndex(0)
-        self.cbLink.addItems(LINK)
-        self.cbLink.setCurrentIndex(6)
-        self.cbHTML.addItems(ISHTML)
-        self.cbHTML.setCurrentIndex(2)
-        self.setup_tableWidget()
-        self.myTimer = QTimer()
-        self.myTimer.start(300000)
-        self.refresh_started = False
+        self.show_clear = True
+        self.stStageFrom = 0
+        self.cbStageFrom.addItems(self.all_stages)
+        self.cbStageFrom.setCurrentIndex(self.stStageFrom)
+        self.stStageTo = len(self.all_stages) - 1
+        self.cbStageTo.addItems(self.all_stages)
+        self.cbStageTo.setCurrentIndex(self.stStageTo)
+        self.cbStage.addItems(self.all_stages)
+        self.setup_twGroups()
+#        self.myTimer = QTimer()
+#        self.myTimer.start(300000)
+#        self.refresh_started = False
 
         return
+
+    def refresh_contacts(self):
+        credentials = get_credentials()
+        http = credentials.authorize(httplib2.Http())
+        service = discovery.build('people', 'v1', http=http,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+
+        # Вытаскиваем названия групп
+        serviceg = discovery.build('contactGroups', 'v1', http=http,
+                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        resultsg = serviceg.contactGroups().list(pageSize=200).execute()
+        groups = {}
+        groups_reverse = {}
+        contactGroups = resultsg.get('contactGroups', [])
+        for i, contactGroup in enumerate(contactGroups):
+            groups[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
+            groups_reverse[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
+
+        # Контакты
+        results = service.people().connections() \
+            .list(
+            resourceName='people/me',
+            pageSize=200,
+            personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                         'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                         'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                         'residences,skills,taglines,urls,userDefined') \
+            .execute()
+        connections = results.get('connections', [])
+        self.contacts = []
+        for i, connection in enumerate(connections):
+            contact = {}
+            name = ''
+            onames = connection.get('names', [])
+            if len(onames) > 0:
+                name = onames[0].get('displayName')
+            contact['fio'] = name
+            biographie = ''
+            obiographies = connection.get('biographies', [])
+            if len(obiographies) > 0:
+                biographie = obiographies[0].get('value')
+            contact['note'] = biographie
+            phones = []
+            ophones = connection.get('phoneNumbers', [])
+            if len(ophones) > 0:
+                for ophone in ophones:
+                    phones.append(ophone.get('canonicalForm'))
+            contact['phones'] = phones
+            memberships = []
+            omemberships = connection.get('memberships', [])
+            if len(omemberships) > 0:
+                for omembership in omemberships:
+                    memberships.append(groups[omembership['contactGroupMembership']['contactGroupId']])
+            contact['groups'] = memberships
+            stage = '---'
+            ostages = connection.get('userDefined', [])
+            if len(ostages) > 0:
+                for ostage in ostages:
+                    if ostage['key'].lower() == 'stage':
+                        stage = ostage['value'].lower()
+            contact['stage'] = stage
+            self.contacts.append(contact)
+        return
+
+    # Добавляем массив стадий из контактов
+    def refresh_stages(self):
+        self.all_stages = ALL_STAGES_CONST
+        for i, contact in enumerate(self.contacts):
+            has = False
+            for all_stage in self.all_stages:
+                if all_stage == contact['stage']:
+                    has = True
+            if not has:
+                self.all_stages.append(contact['stage'])
+        return
+
+# !!!!!!!!!!!!!!!! доделал до сюда
 
     def click_pbPeopleFilter(self):  # Применить фильтр
         a = self.leFilter.text()
         if a[:4] == 'http':
             self.leFilter.setText(self.convert_mamba_id(a))
-        self.setup_tableWidget()
+        self.setup_twGroups()
         return
 
     def click_cbHTML(self):
-        self.setup_tableWidget()
+        self.setup_twGroups()
         return
 
-    def setup_tableWidget(self):
-        self.tableWidget.setColumnCount(0)
-        self.tableWidget.setRowCount(0)        # Кол-во строк из таблицы
+    def setup_twGroups(self):
+        self.twGroups.setColumnCount(0)
+        self.twGroups.setRowCount(0)        # Кол-во строк из таблицы
         self.dbconn.connect()
         read_cursor = self.dbconn.cursor()
         sql_append = ''
@@ -253,8 +292,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             read_cursor.execute(sql, (self.stLinkFrom, self.stLinkTo, self.stPeopleFrom, self.stPeopleTo))
 
         rows = read_cursor.fetchall()
-        self.tableWidget.setColumnCount(3)             # Устанавливаем кол-во колонок
-        self.tableWidget.setRowCount(len(rows))        # Кол-во строк из таблицы
+        self.twGroups.setColumnCount(3)             # Устанавливаем кол-во колонок
+        self.twGroups.setRowCount(len(rows))        # Кол-во строк из таблицы
         self.id_all = []
         self.histories = {}
         self.foto = {}
@@ -313,36 +352,36 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 elif j == len(row) - 10:
                     q = 0                                     # сообщения не показывает, с...
                 elif j == len(row) - 11:
-                    self.tableWidget.setItem(i, j, QTableWidgetItem(str(cell)))
+                    self.twGroups.setItem(i, j, QTableWidgetItem(str(cell)))
                     self.ages[self.id_tek] = str(cell)
                 elif j == len(row) - 12:
-                    self.tableWidget.setItem(i, j, QTableWidgetItem(str(cell)))
+                    self.twGroups.setItem(i, j, QTableWidgetItem(str(cell)))
                     self.names[self.id_tek] = str(cell)
                 else:
-                    self.tableWidget.setItem(i, j, QTableWidgetItem(str(cell)))
+                    self.twGroups.setItem(i, j, QTableWidgetItem(str(cell)))
             i += 1
-        self.tableWidget.setRowCount(len(self.id_all))        # Обрезаем кол-во строк с учетом фильтров
+        self.twGroups.setRowCount(len(self.id_all))        # Обрезаем кол-во строк с учетом фильтров
 
         if len(self.id_all) > 0:
             self.id_tek = self.id_all[0]
 #        self.mamba_id_tek = self.mamba_id[self.id_tek]
 #        self.msg_id_tek = self.msg_id[self.id_tek]
         # Устанавливаем заголовки таблицы
-        self.tableWidget.setHorizontalHeaderLabels(["Активность", "Имя", "Возраст"])
+        self.twGroups.setHorizontalHeaderLabels(["Активность", "Имя", "Возраст"])
 
         # Устанавливаем выравнивание на заголовки
-        self.tableWidget.horizontalHeaderItem(0).setTextAlignment(Qt.AlignCenter)
-        self.tableWidget.horizontalHeaderItem(1).setTextAlignment(Qt.AlignCenter)
-        self.tableWidget.horizontalHeaderItem(2).setTextAlignment(Qt.AlignCenter)
+        self.twGroups.horizontalHeaderItem(0).setTextAlignment(Qt.AlignCenter)
+        self.twGroups.horizontalHeaderItem(1).setTextAlignment(Qt.AlignCenter)
+        self.twGroups.horizontalHeaderItem(2).setTextAlignment(Qt.AlignCenter)
 
         # делаем ресайз колонок по содержимому
-        self.tableWidget.resizeColumnsToContents()
-        self.click_tableWidget()
+        self.twGroups.resizeColumnsToContents()
+        self.click_twGroups()
         return
 
-    def click_tableWidget(self, index=None):
+    def click_twGroups(self, index=None):
         if index == None:
-            index = self.tableWidget.model().index(0, 0)
+            index = self.twGroups.model().index(0, 0)
         else:
             self.updateHistory()
         if index.row() < 0:
@@ -396,7 +435,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.tableFotos.setRowCount(1)
         self.tableFotos.setColumnCount(count)
         for i in range(1, count + 1):
-            self.tableFotos.setItem(0, i-1, QTableWidgetItem(str(i)))
+            self.tableFotos.setItem(0, i-1, QtwGroupsItem(str(i)))
         self.tableFotos.resizeColumnsToContents()
 
     def click_label_3(self, index=None):
@@ -436,27 +475,27 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def click_cbLinkFrom(self):
         self.stLinkFrom = self.cbLinkFrom.currentIndex()
-        self.setup_tableWidget()
+        self.setup_twGroups()
         return
 
     def click_cbLinkTo(self):
         self.stLinkTo = self.cbLinkTo.currentIndex()
-        self.setup_tableWidget()
+        self.setup_twGroups()
         return
 
     def click_cbStatus(self):
         self.stStatus = self.cbStatus.currentIndex()
-        self.setup_tableWidget()
+        self.setup_twGroups()
         return
 
     def click_cbPeopleFrom(self):
         self.stPeopleFrom = self.cbPeopleFrom.currentIndex()
-        self.setup_tableWidget()
+        self.setup_twGroups()
         return
 
     def click_cbPeopleTo(self):
         self.stPeopleTo = self.cbPeopleTo.currentIndex()
-        self.setup_tableWidget()
+        self.setup_twGroups()
 
     def updateHistory(self):
         current = self.textEdit.toPlainText()
@@ -792,7 +831,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 write_cursor.executemany(sql, statuses)
                 self.dbconn.commit()
             else:                              # Если нет ни одного в онлайне - выходим
-                self.setup_tableWidget()
+                self.setup_twGroups()
                 self.myTimer.start(300000)
                 return
             outs = []
@@ -808,7 +847,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 #                i_tek = 0
             q=0
         q = 0
-        self.setup_tableWidget()
+        self.setup_twGroups()
         self.myTimer.start(300000)
         return
 
