@@ -242,7 +242,7 @@
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
-       <widget class="QPushButton" name="pbRefresh">
+       <widget class="QPushButton" name="pbRedo">
         <property name="minimumSize">
          <size>
           <width>100</width>

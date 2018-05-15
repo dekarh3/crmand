@@ -23,27 +23,14 @@ class MainWindow(MainWindowSlots):
 
     # Подключаем слоты к виджетам (для каждого действия, которое надо обработать - свой слот)
     def connect_slots(self):
-        self.tableWidget.clicked.connect(self.click_tableWidget)
-        self.cbLinkFrom.activated[str].connect(self.click_cbLinkFrom)
-        self.cbLinkTo.activated[str].connect(self.click_cbLinkTo)
-        self.cbStatus.activated[str].connect(self.click_cbStatus)
-        self.cbPeopleFrom.activated[str].connect(self.click_cbPeopleFrom)
-        self.cbPeopleTo.activated[str].connect(self.click_cbPeopleTo)
-        self.cbLink.activated[str].connect(self.click_cbLink)
-        self.cbPeople.activated[str].connect(self.click_cbPeople)
         self.pbPeopleFilter.clicked.connect(self.click_pbPeopleFilter)
-        self.pbReLogin.clicked.connect(self.click_pbReLogin)
-        self.pbRefresh.clicked.connect(self.click_pbRefresh)
-#        self.pbRefresh.clicked.connect(self.refreshing)
-        self.pbScan.clicked.connect(self.click_pbScan)
-        self.pbToAnketa.clicked.connect(self.click_pbToAnketa)
-        self.pbToMessage.clicked.connect(self.click_pbToMessage)
-        self.pbGetHTML.clicked.connect(self.click_pbGetHTML)
-        self.cbHTML.activated[str].connect(self.click_cbHTML)
-        self.myTimer.timeout.connect(self.refreshing)
-        self.tableFotos.clicked.connect(self.click_tableFotos)
-        self.tableFotos.customContextMenuRequested.connect(self.click_label_3)
-#        self.label_3.mouseDoubleClickEvent.connect(self.click_label_3)
+        self.twGroups.clicked.connect(self.click_twGroups)
+        self.twFIO.clicked.connect(self.click_twFIO)
+        self.twCalls.clicked.connect(self.click_twCalls)
+        self.cbStage.activated[str].connect(self.click_cbStage)
+        self.pbRedo.clicked.connect(self.click_pbRedo)
+#        self.twCalls.customContextMenuRequested.connect(self.click_label_3)
+
         return None
 
 if __name__ == '__main__':
