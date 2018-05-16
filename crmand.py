@@ -24,6 +24,7 @@ class MainWindow(MainWindowSlots):
     # Подключаем слоты к виджетам (для каждого действия, которое надо обработать - свой слот)
     def connect_slots(self):
         self.pbPeopleFilter.clicked.connect(self.click_pbPeopleFilter)
+        self.pbRedo.clicked.connect(self.click_pbRedo)
         self.twGroups.clicked.connect(self.click_twGroups)
         self.twFIO.clicked.connect(self.click_twFIO)
         self.twCalls.clicked.connect(self.click_twCalls)

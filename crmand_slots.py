@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import httplib2
 import os
+from string import digits
 
 from apiclient import discovery                             # Механизм запроса данных
 from oauth2client import client
@@ -24,9 +25,9 @@ try:
 except ImportError:
     flags = None
 
-from lib import unique
+from lib import unique, l, s, fine_phone
 
-ALL_STAGES_CONST = ['проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
+ALL_STAGES_CONST = ['проводник', 'своим скажет', 'прошел', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
                     'секретарь передаст', 'отправил сообщен', 'нет на месте', 'недозвон', 'недоступен', '---',
                     'нет контактов', 'не занимаюсь', 'не понимает', 'не верит', 'рыпу']
 
@@ -112,7 +113,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         results = service.people().connections() \
             .list(
             resourceName='people/me',
-            pageSize=200,
+            pageSize=1000,
             personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                          'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                          'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
@@ -125,7 +126,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             name = ''
             onames = connection.get('names', [])
             if len(onames) > 0:
-                name = onames[0].get('displayName')
+                if onames[0].get('familyName'):
+                    name += onames[0].get('familyName').title() + ' '
+                if onames[0].get('givenName'):
+                    name += onames[0].get('givenName').title() + ' '
+                if onames[0].get('middleName'):
+                    name += onames[0].get('middleName').title()
             contact['fio'] = name
             biographie = ''
             obiographies = connection.get('biographies', [])
@@ -152,6 +158,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         stage = ostage['value'].lower()
             contact['stage'] = stage
             self.contacts.append(contact)
+
         return
 
     # Добавляем массив стадий из контактов
@@ -170,6 +177,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_pbPeopleFilter(self):  # Кнопка фильтр
+#        self.refresh_contacts()  # Перезагрузка контактов из gmail
         self.setup_twGroups()
         return
 
@@ -178,8 +186,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.twGroups.setRowCount(0)        # Кол-во строк из таблицы
         groups = []
         for contact in self.contacts:      # !!!!!!!!!!!!!!!! Добавить фильтры !!!!!!!!!!!!!!!
-            for group in contact['groups']:
-                groups.append(group)
+            has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
+            has_phone = False
+            for phone in contact['phones']:
+                if str(l(phone)).find(str(l(self.lePhone.text()))) > -1:
+                    has_phone = True
+            has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
+            if has_FIO and has_phone and has_note:
+                for group in contact['groups']:
+                    groups.append(group)
         self.groups = sorted(unique(groups))
 
         self.twGroups.setColumnCount(1)             # Устанавливаем кол-во колонок
@@ -207,13 +222,31 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def setup_twFIO(self):
         self.contacts_filtered = []
-        for contact in self.contacts:      # !!!!!!!!!!!!!!!! Добавить фильтры !!!!!!!!!!!!!!!
+        contacts_f = []
+        cs = {}
+        i = 0
+        for contact in self.contacts:
+            has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
+            has_phone = False
+            tel = self.lePhone.text()
+            tel = ''.join([char for char in tel if char in digits])
+            for phone in contact['phones']:
+                if str(l(phone)).find(tel) > -1:
+                    has_phone = True
+            has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
+            has_group = False
             for group in contact['groups']:
                 if group == self.group_cur:
-                    self.contacts_filtered.append(contact)
-                    break
+                    has_group = True
+            if has_FIO and has_phone and has_note and has_group:
+                contacts_f.append(contact)
+                cs[contact['fio']] = i
+                i += 1
+#        sorted(cs.items(), key=lambda item: item[0])          # Хитровычурная сортирвка с исп. sorted()
+        for kk, i in sorted(cs.items(), key=lambda item: item[0]):
+            self.contacts_filtered.append(contacts_f[i])
         self.twFIO.setColumnCount(1)                              # Устанавливаем кол-во колонок
-        self.twFIO.setRowCount(len(self.contacts_filtered))        # Кол-во строк из таблицы
+        self.twFIO.setRowCount(len(self.contacts_filtered))       # Кол-во строк из таблицы
         for i, contact in enumerate(self.contacts_filtered):
             self.twFIO.setItem(i-1, 1, QTableWidgetItem(contact['fio']))
         # Устанавливаем заголовки таблицы
@@ -232,6 +265,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             return None
         self.teNote.setText(self.contacts_filtered[index.row()]['note'])
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[index.row()]['stage']])
+        if len(self.contacts_filtered[index.row()]['phones']) > 0:
+            phones = fine_phone(self.contacts_filtered[index.row()]['phones'][0])
+            for i, phone in enumerate(self.contacts_filtered[index.row()]['phones']):
+                if i == 0:
+                    continue
+                phones += ', ' + fine_phone(phone)
+        self.lbPhone.setText(phones)
         self.FIO_cur = self.contacts_filtered[index.row()]['fio']
         self.FIO_cur_id = index.row()
         self.setup_twCalls()
@@ -267,7 +307,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         q=0
 
     def click_pbRedo(self):
-        q=0
+        self.refresh_contacts()  # Перезагрузка контактов из gmail
+        self.setup_twGroups()
         q4 = """
         
     def click_label_3(self, index=None):
