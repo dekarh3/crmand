@@ -17,6 +17,9 @@ __pycache__
 in
 out
 fotos
+Incoming
+Outgoing
+InOut
 # Ignore (generated) html files,
 #*.html
 # except foo.html which is maintained by hand.

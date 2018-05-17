@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import httplib2
+from subprocess import Popen, PIPE
 import os
 from string import digits
 
@@ -25,7 +26,7 @@ try:
 except ImportError:
     flags = None
 
-from lib import unique, l, s, fine_phone
+from lib import unique, l, s, fine_phone, format_phone
 
 ALL_STAGES_CONST = ['проводник', 'своим скажет', 'прошел', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
                     'секретарь передаст', 'отправил сообщен', 'нет на месте', 'недозвон', 'недоступен', '---',
@@ -90,8 +91,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.cbStageTo.addItems(self.all_stages)
         self.cbStageTo.setCurrentIndex(self.stStageTo)
         self.cbStage.addItems(self.all_stages)
+        self.calls = []
+        calls = os.listdir('./InOut')
+        calls_amr = [x for x in calls if x.endswith('.amr')]
+        calls_wav = [x for x in calls if x.endswith('.wav')]
+        calls_mp3 = [x for x in calls if x.endswith('.mp3')]
+        self.calls = calls_amr + calls_mp3 +calls_wav
+        self.calls_ids = []
         self.setup_twGroups()
-
         return
 
     def refresh_contacts(self):
@@ -242,8 +249,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 contacts_f.append(contact)
                 cs[contact['fio']] = i
                 i += 1
-#        sorted(cs.items(), key=lambda item: item[0])          # Хитровычурная сортирвка с исп. sorted()
-        for kk, i in sorted(cs.items(), key=lambda item: item[0]):
+        for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Хитровычурная сортирвка с исп. sorted()
             self.contacts_filtered.append(contacts_f[i])
         self.twFIO.setColumnCount(1)                              # Устанавливаем кол-во колонок
         self.twFIO.setRowCount(len(self.contacts_filtered))       # Кол-во строк из таблицы
@@ -265,6 +271,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             return None
         self.teNote.setText(self.contacts_filtered[index.row()]['note'])
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[index.row()]['stage']])
+        phones = ''
         if len(self.contacts_filtered[index.row()]['phones']) > 0:
             phones = fine_phone(self.contacts_filtered[index.row()]['phones'][0])
             for i, phone in enumerate(self.contacts_filtered[index.row()]['phones']):
@@ -274,35 +281,47 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.lbPhone.setText(phones)
         self.FIO_cur = self.contacts_filtered[index.row()]['fio']
         self.FIO_cur_id = index.row()
+        self.calls_ids = []
+        for i, call in enumerate(self.calls):
+            for phone in self.contacts_filtered[index.row()]['phones']:
+                if format_phone(call.split(']_[')[1]) == format_phone(phone):
+                    self.calls_ids.append(i)
         self.setup_twCalls()
         return
 
     def setup_twCalls(self):
-        q1 = """
-        mamba_id = self.mamba_id[self.id_tek]
-        name = self.names[self.id_tek]
-        count = self.fotos_count[self.id_tek]
-        self.tableFotos.setColumnCount(0)
-        self.tableFotos.setRowCount(1)
-        self.tableFotos.setColumnCount(count)
-        for i in range(1, count + 1):
-            self.tableFotos.setItem(0, i-1, QtwGroupsItem(str(i)))
-        self.tableFotos.resizeColumnsToContents()
-        """
+        self.twCalls.setColumnCount(0)
+        self.twCalls.setRowCount(1)
+        count = len(self.calls_ids)
+        self.twCalls.setColumnCount(count)
+        cs = {}
+        for call_id in self.calls_ids:
+            a = self.calls[call_id]
+            t = datetime(l(a.split(']_[')[2][6:]), l(a.split(']_[')[2][3:5]), l(a.split(']_[')[2][:2]),
+                         l(a.split(']_[')[3][:2]), l(a.split(']_[')[3][3:5]), l(a.split(']_[')[3][6:8]))
+            cs[t] = call_id
+        calls_ids_buff = []
+        for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Хитровычурная сортирвка с исп. sorted()
+            calls_ids_buff.append(i)
+        self.calls_ids = calls_ids_buff
+        for i, call_id in enumerate(self.calls_ids):
+            a = self.calls[call_id]
+            t = datetime(l(a.split(']_[')[2][6:]), l(a.split(']_[')[2][3:5]), l(a.split(']_[')[2][:2]),
+                         l(a.split(']_[')[3][:2]), l(a.split(']_[')[3][3:5]), l(a.split(']_[')[3][6:8]))
+            self.twCalls.setItem(0, i, QTableWidgetItem(t.strftime('%d.%m.%y %H:%M')))
+        self.twCalls.resizeColumnsToContents()
 
     def click_twCalls(self, index=None):
-        q2 = """ 
-        if index == None or index.row() < 0 or index.row() > 0 or index.column() < 0:
-            index = self.tableFotos.model().index(0, 0)
-        proc = Popen('nomacs ' + 'photos/'+ self.mamba_id[self.id_tek] + '_' + s(self.names[self.id_tek]).replace(' ','') +
-                     s(self.ages[self.id_tek]) + '_' + '{0:02d}'.format(index.column()+1) + '.jpg', shell=True,
-                     stdout=PIPE, stderr=PIPE)
+        audios = ''
+        for i, call_id in enumerate(self.calls_ids):
+            audios += 'InOut/' + self.calls[call_id] + ' '
+        proc = Popen('gnome-mplayer --single_instance ' + audios, shell=True, stdout=PIPE, stderr=PIPE)
         proc.wait()  # дождаться выполнения
         res = proc.communicate()  # получить tuple('stdout', 'stderr')
         if proc.returncode:
             print(res[1])
             print('result:', res[0])
-        """
+
     def click_cbStage(self):
         q=0
 

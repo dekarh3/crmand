@@ -307,22 +307,22 @@
     </widget>
    </item>
    <item>
-    <widget class="QTableView" name="twCalls">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
+    <widget class="QTableWidget" name="twCalls">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
-       <height>40</height>
+       <height>45</height>
       </size>
      </property>
      <property name="horizontalScrollBarPolicy">
       <enum>Qt::ScrollBarAlwaysOn</enum>
      </property>
+     <attribute name="horizontalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
     </widget>
    </item>
    <item>
