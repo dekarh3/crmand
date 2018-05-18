@@ -19,7 +19,7 @@ ALL_STAGES_CONST = ['проводник', 'своим скажет', 'довер
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
-SCOPES = 'https://www.googleapis.com/auth/contacts.readonly'
+SCOPES = 'https://www.googleapis.com/auth/contacts' #.readonly'       #!!!!!!!!!!!!!!!!!!!!!!!!! read-only !!!!!!!!!!!
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'People API Python Quickstart'
 
@@ -60,8 +60,6 @@ def main():
     """
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
-    service = discovery.build('people', 'v1', http=http,
-                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
 
 # Вытаскиваем названия групп
     serviceg = discovery.build('contactGroups', 'v1', http=http,
@@ -75,11 +73,13 @@ def main():
         groups_reverse[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
 
 # Контакты
+    service = discovery.build('people', 'v1', http=http,
+                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
     results = service.people().connections()\
         .list(
             resourceName='people/me',
-            pageSize=200,
-            personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+            pageSize=1000,
+            personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                          'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                          'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
                          'residences,skills,taglines,urls,userDefined')\
@@ -129,7 +129,23 @@ def main():
         if not has:
             all_stages.append(contact['stage'])
 
+    test_conection = {}
+    for i, connection in enumerate(connections):
+        onames = connection.get('names', [])
+        if len(onames) > 0:
+            if onames[0].get('familyName'):
+                if onames[0].get('familyName') == 'Никуличев':
+                    test_conection = connection
 
+# Обновление контакта
+    service = discovery.build('people', 'v1', http=http,
+                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+    resultsc = service.people().updateContact(
+        resourceName='people/c8823897120253004672',     #!!!! Каждый раз проверять-менять
+        updatePersonFields='userDefined',
+        body=test_conection).execute()
+
+    q=0
     q=0
 
 
