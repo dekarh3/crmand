@@ -199,7 +199,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if str(l(phone)).find(str(l(self.lePhone.text()))) > -1:
                     has_phone = True
             has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
-            if has_FIO and has_phone and has_note:
+            has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
+                        and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
+            if has_FIO and has_phone and has_note and has_stage:
                 for group in contact['groups']:
                     groups.append(group)
         self.groups = sorted(unique(groups))
@@ -245,7 +247,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             for group in contact['groups']:
                 if group == self.group_cur:
                     has_group = True
-            if has_FIO and has_phone and has_note and has_group:
+            has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
+                        and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
+            if has_FIO and has_phone and has_note and has_group and has_stage:
                 contacts_f.append(contact)
                 cs[contact['fio']] = i
                 i += 1
