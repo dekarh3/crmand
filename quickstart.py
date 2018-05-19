@@ -136,6 +136,15 @@ def main():
             if onames[0].get('familyName'):
                 if onames[0].get('familyName') == 'Никуличев':
                     test_conection = connection
+    test = {}
+#    test['userDefined'] = test_conection['userDefined']
+    test['userDefined'] = [{'value':'не верит', 'key':'stage'}]
+#    test['etag'] = test_conection['etag']
+#    test['metadata'] = {'sources':[{'etag':'#/5KVuC33k7o='}]}
+#    test['metadata'] = {'sources':[{}]}
+#    test['metadata']['sources'][0]['id'] = test_conection['metadata']['sources'][0]['id']
+#    test['metadata']['sources'][0]['etag'] = test_conection['metadata']['sources'][0]['etag']
+#    test['metadata']['sources'][0]['type'] = test_conection['metadata']['sources'][0]['type']
 
 # Обновление контакта
     service = discovery.build('people', 'v1', http=http,
@@ -143,7 +152,7 @@ def main():
     resultsc = service.people().updateContact(
         resourceName='people/c8823897120253004672',     #!!!! Каждый раз проверять-менять
         updatePersonFields='userDefined',
-        body=test_conection).execute()
+        body=test).execute()
 
     q=0
     q=0

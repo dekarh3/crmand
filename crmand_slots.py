@@ -103,12 +103,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def refresh_contacts(self):
         credentials = get_credentials()
-        http = credentials.authorize(httplib2.Http())
-        service = discovery.build('people', 'v1', http=http,
+        self.http = credentials.authorize(httplib2.Http())
+        service = discovery.build('people', 'v1', http=self.http,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
 
         # Вытаскиваем названия групп
-        serviceg = discovery.build('contactGroups', 'v1', http=http,
+        serviceg = discovery.build('contactGroups', 'v1', http=self.http,
                                    discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsg = serviceg.contactGroups().list(pageSize=200).execute()
         groups = {}
@@ -164,6 +164,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     if ostage['key'].lower() == 'stage':
                         stage = ostage['value'].lower()
             contact['stage'] = stage
+            contact['etag'] = connection['etag']
+            contact['resourceName'] = connection['resourceName']
             self.contacts.append(contact)
 
         return
@@ -234,7 +236,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contacts_f = []
         cs = {}
         i = 0
-        for contact in self.contacts:
+        for ind, contact in enumerate(self.contacts):
             has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
             has_phone = False
             tel = self.lePhone.text()
@@ -251,6 +253,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
             if has_FIO and has_phone and has_note and has_group and has_stage:
                 contacts_f.append(contact)
+                contacts_f[i]['contact_ind'] = ind
                 cs[contact['fio']] = i
                 i += 1
         for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Хитровычурная сортирвка с исп. sorted()
@@ -327,7 +330,24 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             print('result:', res[0])
 
     def click_cbStage(self):
-        q=0
+        buf_contact = {}
+        buf_contact['userDefined'] = [{}]
+        buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
+        buf_contact['userDefined'][0]['key'] = 'stage'
+        buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
+# Обновление контакта
+        service = discovery.build('people', 'v1', http=self.http,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        resultsc = service.people().updateContact(
+            resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+            updatePersonFields='userDefined',
+            body=buf_contact).execute()
+        self.contacts_filtered[self.FIO_cur_id]['etag'] = resultsc['etag']
+        self.contacts_filtered[self.FIO_cur_id]['userDefined'][0]['value'] = resultsc['userDefined'][0]['value']
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['etag'] = resultsc['etag']
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['userDefined'][0]['value'] = resultsc['userDefined'][0]['value']
+#        click_twFIO(self, index=None) где взять индекс???
+        return
 
     def click_pbRedo(self):
         self.refresh_contacts()  # Перезагрузка контактов из gmail
