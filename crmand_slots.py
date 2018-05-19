@@ -28,7 +28,7 @@ except ImportError:
 
 from lib import unique, l, s, fine_phone, format_phone
 
-ALL_STAGES_CONST = ['проводник', 'своим скажет', 'прошел', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
+ALL_STAGES_CONST = ['проводник', 'своим скажет', 'работаем', 'отработали', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
                     'секретарь передаст', 'отправил сообщен', 'нет на месте', 'недозвон', 'недоступен', '---',
                     'когда получится','нет контактов', 'не занимаюсь', 'не понимает', 'не верит', 'рыпу']
 
@@ -149,7 +149,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             ophones = connection.get('phoneNumbers', [])
             if len(ophones) > 0:
                 for ophone in ophones:
-                    phones.append(ophone.get('canonicalForm'))
+                    if ophone:
+                        if ophone.get('canonicalForm'):
+                            phones.append(format_phone(ophone.get('canonicalForm')))
+                        else:
+                            phones.append(format_phone(ophone.get('value')))
             contact['phones'] = phones
             memberships = []
             omemberships = connection.get('memberships', [])
