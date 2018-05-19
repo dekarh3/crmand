@@ -30,7 +30,7 @@ from lib import unique, l, s, fine_phone, format_phone
 
 ALL_STAGES_CONST = ['проводник', 'своим скажет', 'прошел', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
                     'секретарь передаст', 'отправил сообщен', 'нет на месте', 'недозвон', 'недоступен', '---',
-                    'нет контактов', 'не занимаюсь', 'не понимает', 'не верит', 'рыпу']
+                    'когда получится','нет контактов', 'не занимаюсь', 'не понимает', 'не верит', 'рыпу']
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
