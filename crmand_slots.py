@@ -343,10 +343,21 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             updatePersonFields='userDefined',
             body=buf_contact).execute()
         self.contacts_filtered[self.FIO_cur_id]['etag'] = resultsc['etag']
-        self.contacts_filtered[self.FIO_cur_id]['userDefined'][0]['value'] = resultsc['userDefined'][0]['value']
+        self.contacts_filtered[self.FIO_cur_id]['stage'] = resultsc['userDefined'][0]['value']
         self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['etag'] = resultsc['etag']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['userDefined'][0]['value'] = resultsc['userDefined'][0]['value']
-#        click_twFIO(self, index=None) где взять индекс???
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['stage']  = resultsc['userDefined'][0]['value']
+# обновляем информацию о контакте
+        self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
+        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
+        phones = ''
+        if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
+            phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
+            for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
+                if i == 0:
+                    continue
+                phones += ', ' + fine_phone(phone)
+        self.lbPhone.setText(phones)
+        self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
         return
 
     def click_pbRedo(self):
