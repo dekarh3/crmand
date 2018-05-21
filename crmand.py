@@ -25,11 +25,11 @@ class MainWindow(MainWindowSlots):
     def connect_slots(self):
         self.pbPeopleFilter.clicked.connect(self.click_pbPeopleFilter)
         self.pbRedo.clicked.connect(self.click_pbRedo)
+        self.pbSave.clicked.connect(self.click_pbSave)
         self.twGroups.clicked.connect(self.click_twGroups)
         self.twFIO.clicked.connect(self.click_twFIO)
         self.twCalls.clicked.connect(self.click_twCalls)
         self.cbStage.activated[str].connect(self.click_cbStage)
-        self.pbRedo.clicked.connect(self.click_pbRedo)
 #        self.twCalls.customContextMenuRequested.connect(self.click_label_3)
 
         return None

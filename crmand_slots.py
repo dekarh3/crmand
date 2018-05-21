@@ -30,7 +30,7 @@ from lib import unique, l, s, fine_phone, format_phone
 
 ALL_STAGES_CONST = ['проводник', 'своим скажет', 'работаем', 'отработали', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
                     'секретарь передаст', 'отправил сообщен', 'нет на месте', 'недозвон', 'недоступен', '---',
-                    'когда получится','нет контактов', 'не занимаюсь', 'не понимает', 'не верит', 'рыпу']
+                    'когда получится','нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'не верит', 'рыпу']
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
@@ -289,7 +289,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if i == 0:
                     continue
                 phones += ', ' + fine_phone(phone)
-        self.lbPhone.setText(phones)
+        self.lePhones.setText(phones)
         self.FIO_cur = self.contacts_filtered[index.row()]['fio']
         self.FIO_cur_id = index.row()
         self.calls_ids = []
@@ -360,13 +360,43 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if i == 0:
                     continue
                 phones += ', ' + fine_phone(phone)
-        self.lbPhone.setText(phones)
+        self.lePhones.setText(phones)
         self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
         return
 
     def click_pbRedo(self):
         self.refresh_contacts()  # Перезагрузка контактов из gmail
         self.setup_twGroups()
+        return
+
+    def click_pbSave(self):
+        buf_contact = {}
+        buf_contact['biographies'] = [{}]
+        buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
+        buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
+        # Обновление контакта
+        service = discovery.build('people', 'v1', http=self.http,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        resultsc = service.people().updateContact(
+            resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+            updatePersonFields='biographies',
+            body=buf_contact).execute()
+        self.contacts_filtered[self.FIO_cur_id]['etag'] = resultsc['etag']
+        self.contacts_filtered[self.FIO_cur_id]['note'] = resultsc['biographies'][0]['value']
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['etag'] = resultsc['etag']
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['note'] = resultsc['biographies'][0]['value']
+        # обновляем информацию о контакте
+        self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
+        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
+        phones = ''
+        if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
+            phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
+            for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
+                if i == 0:
+                    continue
+                phones += ', ' + fine_phone(phone)
+        self.lePhones.setText(phones)
+        self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
         q4 = """
         
     def click_label_3(self, index=None):
