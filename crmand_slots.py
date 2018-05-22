@@ -28,7 +28,7 @@ except ImportError:
 
 from lib import unique, l, s, fine_phone, format_phone
 
-ALL_STAGES_CONST = ['проводник', 'своим скажет', 'работаем', 'отработали', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
+ALL_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
                     'секретарь передаст', 'отправил сообщен', 'нет на месте', 'недозвон', 'недоступен', '---',
                     'когда получится','нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'не верит', 'рыпу']
 
@@ -168,6 +168,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     if ostage['key'].lower() == 'stage':
                         stage = ostage['value'].lower()
             contact['stage'] = stage
+            town = ''
+            oaddresses = connection.get('addresses', [])
+            if len(oaddresses) > 0:
+                town = oaddresses[0].get('formattedValue')
+            contact['town'] = town
+            email = ''
+            oemailAddresses = connection.get('emailAddresses', [])
+            if len(oemailAddresses) > 0:
+                for oemailAddress in oemailAddresses:
+                    if oemailAddress:
+                        email += oemailAddresses[0].get('value') + ' '
+            contact['email'] = email
             contact['etag'] = connection['etag']
             contact['resourceName'] = connection['resourceName']
             self.contacts.append(contact)
@@ -297,6 +309,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             for phone in self.contacts_filtered[index.row()]['phones']:
                 if format_phone(call.split(']_[')[1]) == format_phone(phone):
                     self.calls_ids.append(i)
+        self.leTown.setText(self.contacts_filtered[index.row()]['town'])
+        self.leEmail.setText(self.contacts_filtered[index.row()]['email'])
         self.setup_twCalls()
         return
 
@@ -362,6 +376,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 phones += ', ' + fine_phone(phone)
         self.lePhones.setText(phones)
         self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
+        self.leTown.setText(self.contacts_filtered[index.row()]['town'])
+        self.leEmail.setText(self.contacts_filtered[index.row()]['email'])
         return
 
     def click_pbRedo(self):
@@ -397,6 +413,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 phones += ', ' + fine_phone(phone)
         self.lePhones.setText(phones)
         self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
+        self.leTown.setText(self.contacts_filtered[index.row()]['town'])
+        self.leEmail.setText(self.contacts_filtered[index.row()]['email'])
         q4 = """
         
     def click_label_3(self, index=None):
