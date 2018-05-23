@@ -131,15 +131,21 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for i, connection in enumerate(connections):
             contact = {}
             name = ''
+            iof = ''
             onames = connection.get('names', [])
             if len(onames) > 0:
                 if onames[0].get('familyName'):
                     name += onames[0].get('familyName').title() + ' '
                 if onames[0].get('givenName'):
                     name += onames[0].get('givenName').title() + ' '
+                    iof +=  onames[0].get('givenName').title() + ' '
                 if onames[0].get('middleName'):
                     name += onames[0].get('middleName').title()
+                    iof += onames[0].get('middleName').title() + ' '
+                if onames[0].get('familyName'):
+                    iof += onames[0].get('familyName').title() + ' '
             contact['fio'] = name
+            contact['iof'] = iof
             biographie = ''
             obiographies = connection.get('biographies', [])
             if len(obiographies) > 0:
@@ -182,6 +188,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact['email'] = email
             contact['etag'] = connection['etag']
             contact['resourceName'] = connection['resourceName']
+            urls = []
+            ourls = connection.get('urls', [])
+            if len(ourls) > 0:
+                for ourl in ourls:
+                    urls.append(ourl['value'])
+            contact['urls'] = urls
             self.contacts.append(contact)
 
         return
@@ -216,6 +228,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             for phone in contact['phones']:
                 if str(l(phone)).find(str(l(self.lePhone.text()))) > -1:
                     has_phone = True
+            if not self.chbHasPhone.isChecked():
+                has_phone = True
             has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
             has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
                         and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
@@ -260,6 +274,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             for phone in contact['phones']:
                 if str(l(phone)).find(tel) > -1:
                     has_phone = True
+            if not self.chbHasPhone.isChecked():
+                has_phone = True
             has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
             has_group = False
             for group in contact['groups']:
@@ -311,6 +327,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     self.calls_ids.append(i)
         self.leTown.setText(self.contacts_filtered[index.row()]['town'])
         self.leEmail.setText(self.contacts_filtered[index.row()]['email'])
+        self.leIOF.setText(self.contacts_filtered[index.row()]['iof'])
+        urls = ''
+        for url in self.contacts_filtered[index.row()]['urls']:
+            urls += url + ' '
+        self.leUrls.setText(urls)
         self.setup_twCalls()
         return
 
@@ -376,8 +397,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 phones += ', ' + fine_phone(phone)
         self.lePhones.setText(phones)
         self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
-        self.leTown.setText(self.contacts_filtered[index.row()]['town'])
-        self.leEmail.setText(self.contacts_filtered[index.row()]['email'])
+        self.leTown.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
+        self.leEmail.setText(self.contacts_filtered[self.FIO_cur_id]['email'])
+        self.leIOF.setText(self.contacts_filtered[self.FIO_cur_id]['iof'])
+        urls = ''
+        for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
+            urls += url + ' '
+        self.leUrls.setText(urls)
         return
 
     def click_pbRedo(self):
@@ -413,8 +439,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 phones += ', ' + fine_phone(phone)
         self.lePhones.setText(phones)
         self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
-        self.leTown.setText(self.contacts_filtered[index.row()]['town'])
-        self.leEmail.setText(self.contacts_filtered[index.row()]['email'])
+        self.leTown.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
+        self.leEmail.setText(self.contacts_filtered[self.FIO_cur_id]['email'])
+        self.leIOF.setText(self.contacts_filtered[self.FIO_cur_id]['iof'])
+        urls = ''
+        for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
+            urls += url + ' '
+        self.leUrls.setText(urls)
         q4 = """
         
     def click_label_3(self, index=None):
