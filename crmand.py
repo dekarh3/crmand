@@ -30,6 +30,7 @@ class MainWindow(MainWindowSlots):
         self.twFIO.clicked.connect(self.click_twFIO)
         self.twCalls.clicked.connect(self.click_twCalls)
         self.cbStage.activated[str].connect(self.click_cbStage)
+        self.deCalendar.dateChanged.connect(self.change_deCalendar)
 #        self.twCalls.customContextMenuRequested.connect(self.click_label_3)
 
         return None

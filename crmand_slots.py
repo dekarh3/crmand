@@ -99,6 +99,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.calls = calls_amr + calls_mp3 +calls_wav
         self.calls_ids = []
         self.setup_twGroups()
+        self.changed = True
         return
 
     def refresh_contacts(self):
@@ -168,12 +169,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     memberships.append(groups[omembership['contactGroupMembership']['contactGroupId']])
             contact['groups'] = memberships
             stage = '---'
+            calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
             ostages = connection.get('userDefined', [])
             if len(ostages) > 0:
                 for ostage in ostages:
                     if ostage['key'].lower() == 'stage':
                         stage = ostage['value'].lower()
+                    if ostage['key'].lower() == 'calendar':
+                        calendar = ostage['value']
             contact['stage'] = stage
+            contact['calendar'] = calendar
             town = ''
             oaddresses = connection.get('addresses', [])
             if len(oaddresses) > 0:
@@ -308,6 +313,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             index = self.twFIO.model().index(0, 0)
         if index.row() < 0:
             return None
+# обновляем информацию о контакте
+        self.changed = False
         self.teNote.setText(self.contacts_filtered[index.row()]['note'])
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[index.row()]['stage']])
         phones = ''
@@ -332,7 +339,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for url in self.contacts_filtered[index.row()]['urls']:
             urls += url + ' '
         self.leUrls.setText(urls)
+        ca = self.contacts_filtered[index.row()]['calendar'].split('.')
+        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
         self.setup_twCalls()
+        self.changed = True
         return
 
     def setup_twCalls(self):
@@ -369,12 +379,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             print('result:', res[0])
 
     def click_cbStage(self):
+        if not self.changed:
+            return
         buf_contact = {}
-        buf_contact['userDefined'] = [{}]
+        buf_contact['userDefined'] = [{},{}]
         buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
         buf_contact['userDefined'][0]['key'] = 'stage'
+        buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
+        buf_contact['userDefined'][1]['key'] = 'calendar'
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
-# Обновление контакта
+        # Обновление контакта
         service = discovery.build('people', 'v1', http=self.http,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsc = service.people().updateContact(
@@ -383,9 +397,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             body=buf_contact).execute()
         self.contacts_filtered[self.FIO_cur_id]['etag'] = resultsc['etag']
         self.contacts_filtered[self.FIO_cur_id]['stage'] = resultsc['userDefined'][0]['value']
+        self.contacts_filtered[self.FIO_cur_id]['calendar'] = resultsc['userDefined'][1]['value']
         self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['etag'] = resultsc['etag']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['stage']  = resultsc['userDefined'][0]['value']
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['stage'] = resultsc['userDefined'][0]['value']
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['calendar'] = resultsc['userDefined'][1]['value']
 # обновляем информацию о контакте
+        self.changed = False
         self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
         phones = ''
@@ -404,6 +421,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
             urls += url + ' '
         self.leUrls.setText(urls)
+        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
+        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
+        self.changed = True
         return
 
     def click_pbRedo(self):
@@ -427,7 +447,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts_filtered[self.FIO_cur_id]['note'] = resultsc['biographies'][0]['value']
         self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['etag'] = resultsc['etag']
         self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['note'] = resultsc['biographies'][0]['value']
-        # обновляем информацию о контакте
+# обновляем информацию о контакте
+        self.changed = False
         self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
         phones = ''
@@ -446,6 +467,57 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
             urls += url + ' '
         self.leUrls.setText(urls)
+        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
+        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
+        self.changed = True
+        return
+
+    def change_deCalendar(self):
+        if not self.changed:
+            return
+        buf_contact = {}
+        buf_contact['userDefined'] = [{},{}]
+        buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
+        buf_contact['userDefined'][0]['key'] = 'stage'
+        buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
+        buf_contact['userDefined'][1]['key'] = 'calendar'
+        buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
+        # Обновление контакта
+        service = discovery.build('people', 'v1', http=self.http,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        resultsc = service.people().updateContact(
+            resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+            updatePersonFields='userDefined',
+            body=buf_contact).execute()
+        self.contacts_filtered[self.FIO_cur_id]['etag'] = resultsc['etag']
+        self.contacts_filtered[self.FIO_cur_id]['stage'] = resultsc['userDefined'][0]['value']
+        self.contacts_filtered[self.FIO_cur_id]['calendar'] = resultsc['userDefined'][1]['value']
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['etag'] = resultsc['etag']
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['stage'] = resultsc['userDefined'][0]['value']
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['calendar'] = resultsc['userDefined'][1]['value']
+# обновляем информацию о контакте
+        self.changed = False
+        self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
+        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
+        phones = ''
+        if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
+            phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
+            for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
+                if i == 0:
+                    continue
+                phones += ', ' + fine_phone(phone)
+        self.lePhones.setText(phones)
+        self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
+        self.leTown.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
+        self.leEmail.setText(self.contacts_filtered[self.FIO_cur_id]['email'])
+        self.leIOF.setText(self.contacts_filtered[self.FIO_cur_id]['iof'])
+        urls = ''
+        for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
+            urls += url + ' '
+        self.leUrls.setText(urls)
+        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
+        self.deCalendar.setDate(QDate(int(ca[2]), int(ca[1]), int(ca[0])))
+        self.changed = True
         q4 = """
         
     def click_label_3(self, index=None):

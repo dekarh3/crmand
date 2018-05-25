@@ -284,6 +284,13 @@
        </spacer>
       </item>
       <item>
+       <widget class="QDateEdit" name="deCalendar">
+        <property name="calendarPopup">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="pbSave">
         <property name="minimumSize">
          <size>
