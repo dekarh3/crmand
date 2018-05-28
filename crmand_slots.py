@@ -7,6 +7,7 @@ from string import digits
 from dateutil.parser import parse
 
 from apiclient import discovery                             # Механизм запроса данных
+from googleapiclient import errors
 from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
@@ -106,6 +107,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.refresh_contacts()
         self.all_stages = []
         self.all_stages_reverce = {}
+        self.events = {}
         credentials_con = get_credentials_con()
         self.http_con = credentials_con.authorize(Http())
         credentials_cal = get_credentials_cal()
@@ -562,6 +564,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
             updatePersonFields='biographies,userDefined',
             body=buf_contact).execute()
+        cal_cancel = False
+        if self.contacts_filtered[self.FIO_cur_id]['calendar'] == self.deCalendar.date().toString("dd.MM.yyyy"):  #
+            cal_cancel = True
         self.changed = False
         # обновляем информацию о контакте и карточку
         self.refresh_contact()
@@ -569,22 +574,67 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.changed = True
 
 # Календарь
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
-        now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-        now = datetime(2010, 1, 1, 0, 0).isoformat() + 'Z'
-        events_result = service_cal.events().list(
+        if cal_cancel or self.deCalendar.date() < datetime.today().date():
+            return         # Если Дата не изменилась или поставили дату меньшую сегодняшней - ничего не изменяем
+
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
+        now = datetime(2016, 1, 1, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
+        calendars_result = service_cal.events().list(
             calendarId='primary',
             timeMin=now,
             maxResults=2000,
             singleEvents=True,
             orderBy='startTime'
         ).execute()
-        events = events_result.get('items', [])
-        has_event = False
-        for event in events:
-            start = event['start'].get('dateTime', event['start'].get('date'))
-            print(start, event['summary'])
+        calendars = calendars_result.get('items', [])
+        self.events = {}
+        for calendar in calendars:                                                          # Переводим в удобную форму
+            event = {}
+            event['id'] = calendar['id']
+            event['start'] = {'dateTime' : datetime.combine(datetime.strptime(self.contacts_filtered[self.FIO_cur_id]['calendar'],
+                            '%d.%m.%Y').date(),datetime.strptime('16:00','%H:%M').time()).isoformat() + 'Z'}
+            event['end'] = {'dateTime' : datetime.combine(datetime.strptime(self.contacts_filtered[self.FIO_cur_id]['calendar'],
+                            '%d.%m.%Y').date(),datetime.strptime('16:15','%H:%M').time()).isoformat() + 'Z'}
+            event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+            phones = ''
+            if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
+                phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
+                for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
+                    if i == 0:
+                        continue
+                    phones += ', ' + fine_phone(phone)
+            event['description'] = phones
+            event['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
+                               self.contacts_filtered[self.FIO_cur_id]['stage']
+            self.events[calendar['id']] = event
 
+        try:                                                    # есть такой event - update'им
+            event = self.events[self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]]
+            calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \
+                .execute()
+        except KeyError:                                # нет такого event'а - создаем
+            event = {}
+            event['id'] = self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]
+            event['start'] = {'dateTime' : datetime.combine(datetime.strptime(self.contacts_filtered[self.FIO_cur_id]['calendar'],
+                            '%d.%m.%Y').date(),datetime.strptime('16:00','%H:%M').time()).isoformat() + 'Z'}
+            event['end'] = {'dateTime' : datetime.combine(datetime.strptime(self.contacts_filtered[self.FIO_cur_id]['calendar'],
+                            '%d.%m.%Y').date(),datetime.strptime('16:15','%H:%M').time()).isoformat() + 'Z'}
+            event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+            phones = ''
+            if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
+                phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
+                for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
+                    if i == 0:
+                        continue
+                    phones += ', ' + fine_phone(phone)
+            event['description'] = phones
+            event['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
+                               self.contacts_filtered[self.FIO_cur_id]['stage']
+            self.events[self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]] = event
+            calendar_result = service_cal.events().insert(
+                calendarId='primary',
+                body=event
+            ).execute()
         return
 
     def change_deCalendar(self):                          # выключил из-за глюков deCalendar
