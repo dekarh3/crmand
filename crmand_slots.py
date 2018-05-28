@@ -1,9 +1,10 @@
 from __future__ import print_function
 
-import httplib2
+from httplib2 import Http
 from subprocess import Popen, PIPE
 import os
 from string import digits
+from dateutil.parser import parse
 
 from apiclient import discovery                             # Механизм запроса данных
 from oauth2client import client
@@ -34,12 +35,13 @@ ALL_STAGES_CONST = ['работаем', 'отработали', 'проводн�
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
-SCOPES = 'https://www.googleapis.com/auth/contacts.readonly'
+SCOPES_CON = 'https://www.googleapis.com/auth/contacts' #.readonly'       #!!!!!!!!!!!!!!!!!!!!!!!!! read-only !!!!!!!!!!!
+SCOPES_CAL = 'https://www.googleapis.com/auth/calendar'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'People API Python Quickstart'
 
 
-def get_credentials():
+def get_credentials_con():
     """Gets valid user credentials from storage.
 
     If nothing has been stored, or if the stored credentials are invalid,
@@ -58,8 +60,28 @@ def get_credentials():
     store = Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
-        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
+        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES_CON)
         flow.user_agent = APPLICATION_NAME
+        if flags:
+            credentials = tools.run_flow(flow, store, flags)
+        else: # Needed only for compatibility with Python 2.6
+            credentials = tools.run(flow, store)
+        print('Storing credentials to ' + credential_path)
+    return credentials
+
+def get_credentials_cal():
+    home_dir = os.path.expanduser('~')
+    credential_dir = os.path.join(home_dir, '.credentials')
+    if not os.path.exists(credential_dir):
+        os.makedirs(credential_dir)
+    credential_path = os.path.join(credential_dir,
+                                   'calendar.googleapis.com-python-quickstart.json')
+
+    store = Storage(credential_path)
+    credentials = store.get()
+    if not credentials or credentials.invalid:
+        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES_CAL)
+        flow.user_agent = APPLICATION_NAME + 'and test'
         if flags:
             credentials = tools.run_flow(flow, store, flags)
         else: # Needed only for compatibility with Python 2.6
@@ -74,13 +96,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts = []
         self.contacts_filtered = []
         self.groups = []
+        self.groups_resourcenames = {}
         self.group_cur = ''
         self.group_cur_id = 0
+        self.group_saved_id = 0
         self.FIO_cur = ''
         self.FIO_cur_id = 0
+        self.FIO_saved_id = 0
         self.refresh_contacts()
         self.all_stages = []
         self.all_stages_reverce = {}
+        credentials_con = get_credentials_con()
+        self.http_con = credentials_con.authorize(Http())
+        credentials_cal = get_credentials_cal()
+        self.http_cal = credentials_cal.authorize(Http())
         self.refresh_stages()
         self.id_tek = 0
         self.show_clear = True
@@ -92,7 +121,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.cbStageTo.setCurrentIndex(self.stStageTo)
         self.cbStage.addItems(self.all_stages)
         self.calls = []
-        calls = os.listdir('./InOut')
+        calls = []
+        calls_in = os.listdir('Incoming')
+        for call in calls_in:
+            calls.append('Incoming/'+ call)
+        calls_out = os.listdir('Outgoing')
+        for call in calls_out:
+            calls.append('Outgoing/'+ call)
         calls_amr = [x for x in calls if x.endswith('.amr')]
         calls_wav = [x for x in calls if x.endswith('.wav')]
         calls_mp3 = [x for x in calls if x.endswith('.mp3')]
@@ -102,26 +137,26 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.changed = True
         return
 
-    def refresh_contacts(self):
-        credentials = get_credentials()
-        self.http = credentials.authorize(httplib2.Http())
-        service = discovery.build('people', 'v1', http=self.http,
+    def refresh_contacts(self):                             # Обновляем все контакты из гугля
+        credentials_con = get_credentials_con()
+        self.http_con = credentials_con.authorize(Http())
+        service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
 
         # Вытаскиваем названия групп
-        serviceg = discovery.build('contactGroups', 'v1', http=self.http,
+        serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
                                    discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsg = serviceg.contactGroups().list(pageSize=200).execute()
-        groups = {}
+        self.groups_resourcenames = {}
         contactGroups = resultsg.get('contactGroups', [])
         for i, contactGroup in enumerate(contactGroups):
-            groups[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
+            self.groups_resourcenames[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
 
         # Контакты
         results = service.people().connections() \
             .list(
             resourceName='people/me',
-            pageSize=1000,
+            pageSize=2000,
             personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                          'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                          'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
@@ -166,7 +201,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             omemberships = connection.get('memberships', [])
             if len(omemberships) > 0:
                 for omembership in omemberships:
-                    memberships.append(groups[omembership['contactGroupMembership']['contactGroupId']])
+                    memberships.append(self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
             contact['groups'] = memberships
             stage = '---'
             calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
@@ -200,11 +235,124 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     urls.append(ourl['value'])
             contact['urls'] = urls
             self.contacts.append(contact)
-
         return
 
-    # Добавляем массив стадий из контактов
-    def refresh_stages(self):
+    def refresh_contact(self):                                              # Обновляем текущий контакт из гугля
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        result = service.people().get(
+            resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+            personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                         'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                         'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                         'residences,skills,taglines,urls,userDefined') \
+            .execute()
+        connection = result
+        contact = {}
+        name = ''
+        iof = ''
+        onames = connection.get('names', [])
+        if len(onames) > 0:
+            if onames[0].get('familyName'):
+                name += onames[0].get('familyName').title() + ' '
+            if onames[0].get('givenName'):
+                name += onames[0].get('givenName').title() + ' '
+                iof +=  onames[0].get('givenName').title() + ' '
+            if onames[0].get('middleName'):
+                name += onames[0].get('middleName').title()
+                iof += onames[0].get('middleName').title() + ' '
+            if onames[0].get('familyName'):
+                iof += onames[0].get('familyName').title() + ' '
+        contact['fio'] = name
+        contact['iof'] = iof
+        biographie = ''
+        obiographies = connection.get('biographies', [])
+        if len(obiographies) > 0:
+            biographie = obiographies[0].get('value')
+        contact['note'] = biographie
+        phones = []
+        ophones = connection.get('phoneNumbers', [])
+        if len(ophones) > 0:
+            for ophone in ophones:
+                if ophone:
+                    if ophone.get('canonicalForm'):
+                        phones.append(format_phone(ophone.get('canonicalForm')))
+                    else:
+                        phones.append(format_phone(ophone.get('value')))
+        contact['phones'] = phones
+        memberships = []
+        omemberships = connection.get('memberships', [])
+        if len(omemberships) > 0:
+            for omembership in omemberships:
+                memberships.append(self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
+        contact['groups'] = memberships
+        stage = '---'
+        calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+        ostages = connection.get('userDefined', [])
+        if len(ostages) > 0:
+            for ostage in ostages:
+                if ostage['key'].lower() == 'stage':
+                    stage = ostage['value'].lower()
+                if ostage['key'].lower() == 'calendar':
+                    calendar = ostage['value']
+        contact['stage'] = stage
+        contact['calendar'] = calendar
+        town = ''
+        oaddresses = connection.get('addresses', [])
+        if len(oaddresses) > 0:
+            town = oaddresses[0].get('formattedValue')
+        contact['town'] = town
+        email = ''
+        oemailAddresses = connection.get('emailAddresses', [])
+        if len(oemailAddresses) > 0:
+            for oemailAddress in oemailAddresses:
+                if oemailAddress:
+                    email += oemailAddresses[0].get('value') + ' '
+        contact['email'] = email
+        contact['etag'] = connection['etag']
+        contact['resourceName'] = connection['resourceName']
+        urls = []
+        ourls = connection.get('urls', [])
+        if len(ourls) > 0:
+            for ourl in ourls:
+                urls.append(ourl['value'])
+        contact['urls'] = urls
+        ind = self.contacts_filtered[self.FIO_cur_id]['contact_ind']
+        self.contacts_filtered[self.FIO_cur_id] = contact
+        self.contacts_filtered[self.FIO_cur_id]['contact_ind'] = ind
+        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']] = contact
+        return
+
+    def refresh_card(self):                                                     # Обновляем поля в карточке
+        self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
+        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
+        phones = ''
+        if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
+            phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
+            for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
+                if i == 0:
+                    continue
+                phones += ', ' + fine_phone(phone)
+        self.lePhones.setText(phones)
+        self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
+        self.calls_ids = []
+        for i, call in enumerate(self.calls):
+            for phone in self.contacts_filtered[self.FIO_cur_id]['phones']:
+                if format_phone(call.split(']_[')[1]) == format_phone(phone):
+                    self.calls_ids.append(i)
+        self.leTown.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
+        self.leEmail.setText(self.contacts_filtered[self.FIO_cur_id]['email'])
+        self.leIOF.setText(self.contacts_filtered[self.FIO_cur_id]['iof'])
+        urls = ''
+        for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
+            urls += url + ' '
+        self.leUrls.setText(urls)
+        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
+        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
+        self.setup_twCalls()
+
+
+    def refresh_stages(self):          # Добавляем в стандатные стадии стадии из контактов
         self.all_stages = ALL_STAGES_CONST
         for i, all_stage in enumerate(self.all_stages):
             self.all_stages_reverce[all_stage] = i
@@ -259,6 +407,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_twGroups(self, index=None):
         if index == None:
             index = self.twGroups.model().index(0, 0)
+            self.twGroups.setCurrentIndex(index)
+        if self.group_saved_id:
+            index = self.twGroups.model().index(self.group_saved_id, 0)
+            self.twGroups.setCurrentIndex(index)
+            self.group_saved_id = 0
         if index.row() < 0:
             return None
         self.group_cur = self.groups[index.row()]
@@ -311,37 +464,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_twFIO(self, index=None):
         if index == None:
             index = self.twFIO.model().index(0, 0)
+            self.twFIO.setCurrentIndex(index)
+        if self.FIO_saved_id:
+            index = self.twFIO.model().index(self.FIO_saved_id, 0)
+            self.twFIO.setCurrentIndex(index)
+            self.FIO_saved_id = 0
         if index.row() < 0:
             return None
-# обновляем информацию о контакте
         self.changed = False
-        self.teNote.setText(self.contacts_filtered[index.row()]['note'])
-        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[index.row()]['stage']])
-        phones = ''
-        if len(self.contacts_filtered[index.row()]['phones']) > 0:
-            phones = fine_phone(self.contacts_filtered[index.row()]['phones'][0])
-            for i, phone in enumerate(self.contacts_filtered[index.row()]['phones']):
-                if i == 0:
-                    continue
-                phones += ', ' + fine_phone(phone)
-        self.lePhones.setText(phones)
-        self.FIO_cur = self.contacts_filtered[index.row()]['fio']
+        # обновляем информацию о контакте и карточку
         self.FIO_cur_id = index.row()
-        self.calls_ids = []
-        for i, call in enumerate(self.calls):
-            for phone in self.contacts_filtered[index.row()]['phones']:
-                if format_phone(call.split(']_[')[1]) == format_phone(phone):
-                    self.calls_ids.append(i)
-        self.leTown.setText(self.contacts_filtered[index.row()]['town'])
-        self.leEmail.setText(self.contacts_filtered[index.row()]['email'])
-        self.leIOF.setText(self.contacts_filtered[index.row()]['iof'])
-        urls = ''
-        for url in self.contacts_filtered[index.row()]['urls']:
-            urls += url + ' '
-        self.leUrls.setText(urls)
-        ca = self.contacts_filtered[index.row()]['calendar'].split('.')
-        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
-        self.setup_twCalls()
+        self.refresh_contact()
+        self.refresh_card()
         self.changed = True
         return
 
@@ -370,7 +504,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_twCalls(self, index=None):
         audios = ''
         for i, call_id in enumerate(self.calls_ids):
-            audios += 'InOut/' + self.calls[call_id] + ' '
+            audios +=  self.calls[call_id] + ' '
         proc = Popen('gnome-mplayer --single_instance ' + audios, shell=True, stdout=PIPE, stderr=PIPE)
         proc.wait()  # дождаться выполнения
         res = proc.communicate()  # получить tuple('stdout', 'stderr')
@@ -387,93 +521,78 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['userDefined'][0]['key'] = 'stage'
         buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
         buf_contact['userDefined'][1]['key'] = 'calendar'
+        buf_contact['biographies'] = [{}]
+        buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
         # Обновление контакта
-        service = discovery.build('people', 'v1', http=self.http,
+        service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsc = service.people().updateContact(
             resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
-            updatePersonFields='userDefined',
+            updatePersonFields='biographies,userDefined',
             body=buf_contact).execute()
-        self.contacts_filtered[self.FIO_cur_id]['etag'] = resultsc['etag']
-        self.contacts_filtered[self.FIO_cur_id]['stage'] = resultsc['userDefined'][0]['value']
-        self.contacts_filtered[self.FIO_cur_id]['calendar'] = resultsc['userDefined'][1]['value']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['etag'] = resultsc['etag']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['stage'] = resultsc['userDefined'][0]['value']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['calendar'] = resultsc['userDefined'][1]['value']
-# обновляем информацию о контакте
         self.changed = False
-        self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
-        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
-        phones = ''
-        if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
-            phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
-            for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
-                if i == 0:
-                    continue
-                phones += ', ' + fine_phone(phone)
-        self.lePhones.setText(phones)
-        self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
-        self.leTown.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
-        self.leEmail.setText(self.contacts_filtered[self.FIO_cur_id]['email'])
-        self.leIOF.setText(self.contacts_filtered[self.FIO_cur_id]['iof'])
-        urls = ''
-        for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
-            urls += url + ' '
-        self.leUrls.setText(urls)
-        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
-        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
+        # обновляем информацию о контакте и карточку
+        self.refresh_contact()
+        self.refresh_card()
         self.changed = True
         return
 
     def click_pbRedo(self):
+        self.group_saved_id = self.group_cur_id
+        self.FIO_saved_id = self.FIO_cur_id
         self.refresh_contacts()  # Перезагрузка контактов из gmail
         self.setup_twGroups()
         return
 
     def click_pbSave(self):
         buf_contact = {}
+        buf_contact['userDefined'] = [{},{}]
+        buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
+        buf_contact['userDefined'][0]['key'] = 'stage'
+        buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
+        buf_contact['userDefined'][1]['key'] = 'calendar'
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
         # Обновление контакта
-        service = discovery.build('people', 'v1', http=self.http,
+        service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsc = service.people().updateContact(
             resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
-            updatePersonFields='biographies',
+            updatePersonFields='biographies,userDefined',
             body=buf_contact).execute()
-        self.contacts_filtered[self.FIO_cur_id]['etag'] = resultsc['etag']
-        self.contacts_filtered[self.FIO_cur_id]['note'] = resultsc['biographies'][0]['value']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['etag'] = resultsc['etag']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['note'] = resultsc['biographies'][0]['value']
-# обновляем информацию о контакте
         self.changed = False
-        self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
-        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
-        phones = ''
-        if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
-            phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
-            for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
-                if i == 0:
-                    continue
-                phones += ', ' + fine_phone(phone)
-        self.lePhones.setText(phones)
-        self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
-        self.leTown.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
-        self.leEmail.setText(self.contacts_filtered[self.FIO_cur_id]['email'])
-        self.leIOF.setText(self.contacts_filtered[self.FIO_cur_id]['iof'])
-        urls = ''
-        for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
-            urls += url + ' '
-        self.leUrls.setText(urls)
-        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
-        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
+        # обновляем информацию о контакте и карточку
+        self.refresh_contact()
+        self.refresh_card()
         self.changed = True
+
+# Календарь
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+        now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+        now = datetime(2010, 1, 1, 0, 0).isoformat() + 'Z'
+        events_result = service_cal.events().list(
+            calendarId='primary',
+            timeMin=now,
+            maxResults=2000,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        events = events_result.get('items', [])
+        has_event = False
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            print(start, event['summary'])
+
         return
 
-    def change_deCalendar(self):
+    def change_deCalendar(self):                          # выключил из-за глюков deCalendar
+#        self.deCalendar.setCalendarPopup(False)
         if not self.changed:
+            return
+        print(self.deCalendar.date().toString("dd.MM.yyyy"), self.contacts_filtered[self.FIO_cur_id]['calendar'])
+        if self.deCalendar.date().toString("dd.MM.yyyy") == self.contacts_filtered[self.FIO_cur_id]['calendar']:
             return
         buf_contact = {}
         buf_contact['userDefined'] = [{},{}]
@@ -481,43 +600,25 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['userDefined'][0]['key'] = 'stage'
         buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
         buf_contact['userDefined'][1]['key'] = 'calendar'
+        buf_contact['biographies'] = [{}]
+        buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
         # Обновление контакта
-        service = discovery.build('people', 'v1', http=self.http,
+        service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsc = service.people().updateContact(
             resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
-            updatePersonFields='userDefined',
+            updatePersonFields='biographies,userDefined',
             body=buf_contact).execute()
-        self.contacts_filtered[self.FIO_cur_id]['etag'] = resultsc['etag']
-        self.contacts_filtered[self.FIO_cur_id]['stage'] = resultsc['userDefined'][0]['value']
-        self.contacts_filtered[self.FIO_cur_id]['calendar'] = resultsc['userDefined'][1]['value']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['etag'] = resultsc['etag']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['stage'] = resultsc['userDefined'][0]['value']
-        self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']]['calendar'] = resultsc['userDefined'][1]['value']
-# обновляем информацию о контакте
+        print(resultsc['userDefined'][0]['value'], resultsc['userDefined'][1]['value'])
         self.changed = False
-        self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
-        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
-        phones = ''
-        if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
-            phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
-            for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
-                if i == 0:
-                    continue
-                phones += ', ' + fine_phone(phone)
-        self.lePhones.setText(phones)
-        self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
-        self.leTown.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
-        self.leEmail.setText(self.contacts_filtered[self.FIO_cur_id]['email'])
-        self.leIOF.setText(self.contacts_filtered[self.FIO_cur_id]['iof'])
-        urls = ''
-        for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
-            urls += url + ' '
-        self.leUrls.setText(urls)
-        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
-        self.deCalendar.setDate(QDate(int(ca[2]), int(ca[1]), int(ca[0])))
+        # обновляем информацию о контакте и карточку
+        self.refresh_contact()
+        self.refresh_card()
         self.changed = True
+        return
+
+    def qwe(self):
         q4 = """
         
     def click_label_3(self, index=None):
