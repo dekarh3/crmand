@@ -500,7 +500,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             a = self.calls[call_id]
             t = datetime(l(a.split(']_[')[2][6:]), l(a.split(']_[')[2][3:5]), l(a.split(']_[')[2][:2]),
                          l(a.split(']_[')[3][:2]), l(a.split(']_[')[3][3:5]), l(a.split(']_[')[3][6:8]))
-            self.twCalls.setItem(0, i, QTableWidgetItem(t.strftime('%d.%m.%y %H:%M')))
+            self.twCalls.setItem(0, i, QTableWidgetItem(t.strftime('%d.%m.%y %H:%M') + '#'
+                                                            + s(l(a.split(']_[')[1]))[9:]))
         self.twCalls.resizeColumnsToContents()
 
     def click_twCalls(self, index=None):
