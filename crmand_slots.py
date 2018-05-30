@@ -150,9 +150,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                    discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsg = serviceg.contactGroups().list(pageSize=200).execute()
         self.groups_resourcenames = {}
+        self.groups_resourcenames_reversed = {}
         contactGroups = resultsg.get('contactGroups', [])
         for i, contactGroup in enumerate(contactGroups):
             self.groups_resourcenames[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
+            self.groups_resourcenames_reversed[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
 
         # Контакты
         results = service.people().connections() \
@@ -668,6 +670,70 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.refresh_card()
         self.changed = True
         return
+
+    def click_clbCreateContact(self):
+        buf_contact = {'names': [{
+#                                  'displayNameLastFirst': 'Проба',
+                                  'familyName': 'Фамильев',
+                                  'givenName' : 'Имен',
+                                  'middleName': 'Отчиевич'
+#                                  'displayName': 'Проб Пробович Пробов'
+                                 }],
+#                       'memberships': [{'contactGroupMembership': {'contactGroupId': '3d51972a8dd4cb8f'}}],
+                       'urls': [{'value': 'https://www.avito.ru/astrahan/doma_dachi_kottedzhi/dom_510_m_na_uchastke_10_sot._1594305219',
+                                 'type': 'profile',
+#                                 'formattedType': 'Profile'
+                                 }],
+                       'phoneNumbers': [{'value': '+79998887766',
+                                         'type': 'mobile',
+#                                         'canonicalForm': '+79996004381',
+#                                         'formattedType': 'Mobile'
+                                         }],
+                       'emailAddresses': [{'value': 'aa@a.com',
+                                           'type': 'home',
+#                                           'formattedType': 'Home'
+                                           }],
+                       'addresses': [{
+#                                      'formattedType': 'Home',
+#                                      'formattedValue': 'Волгоград',
+                                      'streetAddress': 'Волгоград',
+                                      'type': 'home'}]
+                       }
+        # Создаем контакт
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        resultsc = service.people().createContact(body=buf_contact).execute()
+        # Добавляем в текущую группу
+        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+        resultsg = service.contactGroups().members().modify(
+            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+            body= group_body
+        ).execute()
+
+        q=0
+
+
+    def click_clbGoURL1(self):
+        if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 0:
+            if len(self.contacts_filtered[self.FIO_cur_id]['urls'][0]) > 5:
+                proc = Popen('firefox --new-tab ' + self.contacts_filtered[self.FIO_cur_id]['urls'][0],
+                             shell=True, stdout=PIPE, stderr=PIPE)
+                proc.wait()  # дождаться выполнения
+                res = proc.communicate()  # получить tuple('stdout', 'stderr')
+                if proc.returncode:
+                    print(res[1])
+                    print('result:', res[0])
+
+    def click_clbGoURL2(self):
+        if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 1:
+            if len(self.contacts_filtered[self.FIO_cur_id]['urls'][1]) > 5:
+                proc = Popen('firefox --new-tab ' + self.contacts_filtered[self.FIO_cur_id]['urls'][1],
+                             shell=True, stdout=PIPE, stderr=PIPE)
+                proc.wait()  # дождаться выполнения
+                res = proc.communicate()  # получить tuple('stdout', 'stderr')
+                if proc.returncode:
+                    print(res[1])
+                    print('result:', res[0])
 
     def qwe(self):
         q4 = """
