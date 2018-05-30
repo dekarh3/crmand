@@ -784,8 +784,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             body= group_body
         ).execute()
         resultsg = service.contactGroups().members().modify(
-            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-            body= {'resourceNamesToAdd': [], 'resourceNamesToRemove': ['contactGroups/myContacts']}
+            resourceName='contactGroups/myContacts',
+            body= {'resourceNamesToAdd': [], 'resourceNamesToRemove': [resultsc['resourceName']]}
         ).execute()
 
         q=0
