@@ -336,7 +336,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
                 if i == 0:
                     continue
-                phones += ', ' + fine_phone(phone)
+                phones += ' ' + fine_phone(phone)
         self.lePhones.setText(phones)
         self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
         self.calls_ids = []
@@ -560,12 +560,53 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
+        givenName = ''
+        middleName = ''
+        familyName = ''
+        if self.leIOF.text():
+            if len(self.leIOF.text().strip().split(' ')) > 2:
+                givenName = self.leIOF.text().strip().split(' ')[0]
+                middleName = self.leIOF.text().strip().split(' ')[1]
+                for i, name in enumerate(self.leIOF.text().strip().split(' ')):
+                    if i > 1:
+                        familyName += name + ' '
+            elif len(self.leIOF.text().strip().split(' ')) == 2:
+                givenName = self.leIOF.text().strip().split(' ')[0]
+                familyName = self.leIOF.text().strip().split(' ')[1]
+            elif len(self.leIOF.text().strip().split(' ')) == 1:
+                givenName = self.leIOF.text().strip().split(' ')[0]
+        familyName = familyName.strip()
+        buf_contact['names'] = [{'familyName': familyName,
+                                  'givenName' : givenName,
+                                  'middleName': middleName}]
+        if self.leUrls.text():
+            buf_contact['urls'] = []
+            if len(self.leUrls.text().strip().split(' ')) > 0:
+                for i, url in enumerate(self.leUrls.text().strip().split(' ')):
+                    if url.strip() != '':
+                        buf_contact['urls'].append({'value': url})
+        if self.lePhones.text():
+            buf_contact['phoneNumbers'] = []
+            if len(self.lePhones.text().strip().split(' ')) > 0:
+                for i, phone in enumerate(self.lePhones.text().strip().split(' ')):
+                    if phone.strip() != '':
+                        buf_contact['phoneNumbers'].append({'value': fine_phone(phone)})
+
+        if self.leEmail.text():
+            buf_contact['emailAddresses'] = []
+            if len(self.leEmail.text().strip().split(' ')) > 0:
+                for i, email in enumerate(self.leEmail.text().strip().split(' ')):
+                    if email.strip() != '' and len(email.split('@')) > 0:
+                        buf_contact['emailAddresses'].append({'value': email})
+        if self.leTown.text():
+            if len(self.leTown.text().strip()) > 0:
+                buf_contact['addresses'] = [{'streetAddress': self.leTown.text().strip()}]
         # Обновление контакта
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsc = service.people().updateContact(
             resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
-            updatePersonFields='biographies,userDefined',
+            updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
             body=buf_contact).execute()
         cal_cancel = False
         if self.contacts_filtered[self.FIO_cur_id]['calendar'] == self.deCalendar.date().toString("dd.MM.yyyy"):  #
@@ -575,7 +616,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.refresh_contact()
         self.refresh_card()
         self.changed = True
-
 # Календарь
         if cal_cancel or self.deCalendar.date() < datetime.today().date():
             return         # Если Дата не изменилась или поставили дату меньшую сегодняшней - ничего не изменяем
@@ -672,33 +712,49 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_clbCreateContact(self):
-        buf_contact = {'names': [{
-#                                  'displayNameLastFirst': 'Проба',
-                                  'familyName': 'Фамильев',
-                                  'givenName' : 'Имен',
-                                  'middleName': 'Отчиевич'
-#                                  'displayName': 'Проб Пробович Пробов'
-                                 }],
-#                       'memberships': [{'contactGroupMembership': {'contactGroupId': '3d51972a8dd4cb8f'}}],
-                       'urls': [{'value': 'https://www.avito.ru/astrahan/doma_dachi_kottedzhi/dom_510_m_na_uchastke_10_sot._1594305219',
-                                 'type': 'profile',
-#                                 'formattedType': 'Profile'
-                                 }],
-                       'phoneNumbers': [{'value': '+79998887766',
-                                         'type': 'mobile',
-#                                         'canonicalForm': '+79996004381',
-#                                         'formattedType': 'Mobile'
-                                         }],
-                       'emailAddresses': [{'value': 'aa@a.com',
-                                           'type': 'home',
-#                                           'formattedType': 'Home'
-                                           }],
-                       'addresses': [{
-#                                      'formattedType': 'Home',
-#                                      'formattedValue': 'Волгоград',
-                                      'streetAddress': 'Волгоград',
-                                      'type': 'home'}]
-                       }
+        buf_contact = {}
+        givenName = ''
+        middleName = ''
+        familyName = ''
+        if self.leIOF.text():
+            if len(self.leIOF.text().strip().split(' ')) > 2:
+                givenName = self.leIOF.text().strip().split(' ')[0]
+                middleName = self.leIOF.text().strip().split(' ')[1]
+                for i, name in enumerate(self.leIOF.text().strip().split(' ')):
+                    if i > 1:
+                        familyName += name + ' '
+            elif len(self.leIOF.text().strip().split(' ')) == 2:
+                givenName = self.leIOF.text().strip().split(' ')[0]
+                familyName = self.leIOF.text().strip().split(' ')[1]
+            elif len(self.leIOF.text().strip().split(' ')) == 1:
+                givenName = self.leIOF.text().strip().split(' ')[0]
+        familyName = familyName.strip()
+        buf_contact['names'] = [{'familyName': familyName,
+                                  'givenName' : givenName,
+                                  'middleName': middleName}]
+        if self.leUrls.text():
+            buf_contact['urls'] = []
+            if len(self.leUrls.text().strip().split(' ')) > 0:
+                for i, url in enumerate(self.leUrls.text().strip().split(' ')):
+                    if url.strip() != '':
+                        buf_contact['urls'].append({'value': url})
+        if self.lePhones.text():
+            buf_contact['phoneNumbers'] = []
+            if len(self.lePhones.text().strip().split(' ')) > 0:
+                for i, phone in enumerate(self.lePhones.text().strip().split(' ')):
+                    if phone.strip() != '':
+                        buf_contact['phoneNumbers'].append({'value': fine_phone(phone)})
+
+        if self.leEmail.text():
+            buf_contact['emailAddresses'] = []
+            if len(self.leEmail.text().strip().split(' ')) > 0:
+                for i, email in enumerate(self.leEmail.text().strip().split(' ')):
+                    if email.strip() != '' and len(email.split('@')) > 0:
+                        buf_contact['emailAddresses'].append({'value': email})
+        if self.leTown.text():
+            if len(self.leTown.text().strip()) > 0:
+                buf_contact['addresses'] = [{'streetAddress': self.leTown.text().strip()}]
+
         # Создаем контакт
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
