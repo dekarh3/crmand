@@ -17,7 +17,7 @@ import time
 
 from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QTableWidgetItem, QMessageBox, QMainWindow, QWidget
 
 
 from crmand_win import Ui_Form
@@ -755,15 +755,37 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             if len(self.leTown.text().strip()) > 0:
                 buf_contact['addresses'] = [{'streetAddress': self.leTown.text().strip()}]
 
+        has_phone = False
+        has_phone_names = []
+        for phone_new in buf_contact['phoneNumbers']:
+            for contact in self.contacts:
+                for phone in contact['phones']:
+                    if fine_phone(phone) == fine_phone(phone_new['value']):
+                        has_phone = True
+                        has_phone_names.append(contact['iof'])
+        has_phone_names_string = ''
+        for has_phone_name in has_phone_names:
+            has_phone_names_string += has_phone_name + '\n'
+        if has_phone:
+            self.teNote.setText('\n!! Уже есть контакт с этим телефоном !!\n!! Уже есть контакт с этим телефоном !!' +
+                                '\n!! Уже есть контакт с этим телефоном !!\n\n' + has_phone_names_string +
+                                '\n!! Уже есть контакт с этим телефоном !!\n!! Уже есть контакт с этим телефоном !!'
+                                '\n!! Уже есть контакт с этим телефоном !!')
+            return
+
         # Создаем контакт
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsc = service.people().createContact(body=buf_contact).execute()
-        # Добавляем в текущую группу
+        # Добавляем в текущую группу и удаляем из myContacts
         group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
         resultsg = service.contactGroups().members().modify(
             resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
             body= group_body
+        ).execute()
+        resultsg = service.contactGroups().members().modify(
+            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+            body= {'resourceNamesToAdd': [], 'resourceNamesToRemove': ['contactGroups/myContacts']}
         ).execute()
 
         q=0

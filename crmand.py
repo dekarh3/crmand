@@ -10,8 +10,6 @@ from PyQt5.QtCore import QDate
 
 from crmand_slots import MainWindowSlots
 
-
-
 class MainWindow(MainWindowSlots):
 
     # При инициализации класса нам необходимо выполнить некоторые операции
