@@ -96,11 +96,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         Ui_Form.setupUi(self,form)
         self.contacts = []
         self.contacts_filtered = []
+        self.contacts_filtered_reverced = {}
         self.groups = []
         self.groups_resourcenames = {}
         self.group_cur = ''
         self.group_cur_id = 0
-        self.group_saved_id = 0
+        self.group_saved_id = None
         self.FIO_cur = ''
         self.FIO_cur_id = 0
         self.FIO_saved_id = 0
@@ -378,7 +379,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def setup_twGroups(self):
         self.twGroups.setColumnCount(0)
         self.twGroups.setRowCount(0)        # Кол-во строк из таблицы
-        groups = []
+        groups = set()
         for contact in self.contacts:      # !!!!!!!!!!!!!!!! Добавить фильтры !!!!!!!!!!!!!!!
             has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
             has_phone = False
@@ -392,10 +393,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
             if has_FIO and has_phone and has_note and has_stage:
                 for group in contact['groups']:
-                    groups.append(group)
-        self.groups = sorted(unique(groups))
-
-        self.twGroups.setColumnCount(1)             # Устанавливаем кол-во колонок
+                    groups.add(group)
+        self.groups = []
+        self.groups = sorted(groups)
+        self.twGroups.setColumnCount(1)               # Устанавливаем кол-во колонок
         self.twGroups.setRowCount(len(groups))        # Кол-во строк из таблицы
         for i, group in enumerate(self.groups):
             self.twGroups.setItem(i-1, 1, QTableWidgetItem(group))
@@ -413,9 +414,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             index = self.twGroups.model().index(0, 0)
             self.twGroups.setCurrentIndex(index)
         if self.group_saved_id:
-            index = self.twGroups.model().index(self.group_saved_id, 0)
+            index = self.twGroups.model().index(self.groups.index(self.groups_resourcenames[self.group_saved_id]), 0)
             self.twGroups.setCurrentIndex(index)
-            self.group_saved_id = 0
+            self.group_saved_id = None
         if index.row() < 0:
             return None
         self.group_cur = self.groups[index.row()]
@@ -450,10 +451,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 contacts_f[i]['contact_ind'] = ind
                 cs[contact['fio']] = i
                 i += 1
+        j = 0
         for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Хитровычурная сортирвка с исп. sorted()
             self.contacts_filtered.append(contacts_f[i])
-        self.twFIO.setColumnCount(1)                              # Устанавливаем кол-во колонок
-        self.twFIO.setRowCount(len(self.contacts_filtered))       # Кол-во строк из таблицы
+            self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
+            j += 1
+        self.twFIO.setColumnCount(1)                                # Устанавливаем кол-во колонок
+        self.twFIO.setRowCount(len(self.contacts_filtered))         # Кол-во строк из таблицы
         for i, contact in enumerate(self.contacts_filtered):
             self.twFIO.setItem(i-1, 1, QTableWidgetItem(contact['fio']))
         # Устанавливаем заголовки таблицы
@@ -470,7 +474,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             index = self.twFIO.model().index(0, 0)
             self.twFIO.setCurrentIndex(index)
         if self.FIO_saved_id:
-            index = self.twFIO.model().index(self.FIO_saved_id, 0)
+            index = self.twFIO.model().index(self.contacts_filtered_reverced[self.FIO_saved_id], 0)
             self.twFIO.setCurrentIndex(index)
             self.FIO_saved_id = 0
         if index.row() < 0:
@@ -544,8 +548,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_pbRedo(self):
-        self.group_saved_id = self.group_cur_id
-        self.FIO_saved_id = self.FIO_cur_id
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
         self.refresh_contacts()  # Перезагрузка контактов из gmail
         self.setup_twGroups()
         return
@@ -777,19 +781,22 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         resultsc = service.people().createContact(body=buf_contact).execute()
+        self.FIO_saved_id = resultsc['resourceName']
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         # Добавляем в текущую группу и удаляем из myContacts
         group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
         resultsg = service.contactGroups().members().modify(
             resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
             body= group_body
         ).execute()
-        resultsg = service.contactGroups().members().modify(
-            resourceName='contactGroups/myContacts',
-            body= {'resourceNamesToAdd': [], 'resourceNamesToRemove': [resultsc['resourceName']]}
-        ).execute()
-
-        q=0
-
+#        time.sleep(1)
+#        resultsg = service.contactGroups().members().modify(
+#            resourceName='contactGroups/myContacts',
+#            body= {'resourceNamesToAdd': [], 'resourceNamesToRemove': [resultsc['resourceName']]}
+#        ).execute()
+        self.refresh_contacts()  # Перезагрузка контактов из gmail
+        self.setup_twGroups()
+        return
 
     def click_clbGoURL1(self):
         if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 0:
