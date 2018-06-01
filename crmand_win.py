@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'crmand_win.ui'
 #
-# Created by: PyQt5 UI code generator 5.8.2
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -184,6 +184,14 @@ class Ui_Form(object):
         self.frame_6.setObjectName("frame_6")
         self.horizontalLayout_7 = QtWidgets.QHBoxLayout(self.frame_6)
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
+        self.clbExport = QtWidgets.QCommandLinkButton(self.frame_6)
+        self.clbExport.setMaximumSize(QtCore.QSize(33, 16777215))
+        self.clbExport.setText("")
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap("export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.clbExport.setIcon(icon1)
+        self.clbExport.setObjectName("clbExport")
+        self.horizontalLayout_7.addWidget(self.clbExport)
         self.lePhones = QtWidgets.QLineEdit(self.frame_6)
         self.lePhones.setObjectName("lePhones")
         self.horizontalLayout_7.addWidget(self.lePhones)
@@ -195,9 +203,9 @@ class Ui_Form(object):
         self.clbCreateContact = QtWidgets.QCommandLinkButton(self.frame_6)
         self.clbCreateContact.setMaximumSize(QtCore.QSize(33, 16777215))
         self.clbCreateContact.setText("")
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("plus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.clbCreateContact.setIcon(icon1)
+        icon2 = QtGui.QIcon()
+        icon2.addPixmap(QtGui.QPixmap("plus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.clbCreateContact.setIcon(icon2)
         self.clbCreateContact.setDescription("")
         self.clbCreateContact.setObjectName("clbCreateContact")
         self.horizontalLayout_7.addWidget(self.clbCreateContact)

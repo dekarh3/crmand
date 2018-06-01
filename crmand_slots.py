@@ -133,11 +133,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             calls.append('Outgoing/'+ call)
         calls_amr = [x for x in calls if x.endswith('.amr')]
         calls_wav = [x for x in calls if x.endswith('.wav')]
-        calls_mp3 = [x for x in calls if x.endswith('.mp3')]
+        calls_mp3 = [x for x in calls if x.endswith('.mp4')]
         self.calls = calls_amr + calls_mp3 +calls_wav
         self.calls_ids = []
         self.setup_twGroups()
         self.changed = True
+        self.clbExport.close()
         return
 
     def refresh_contacts(self):                             # Обновляем все контакты из гугля
@@ -372,6 +373,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_pbPeopleFilter(self):  # Кнопка фильтр
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
 #        self.refresh_contacts()  # Перезагрузка контактов из gmail
         self.setup_twGroups()
         return
@@ -414,7 +417,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             index = self.twGroups.model().index(0, 0)
             self.twGroups.setCurrentIndex(index)
         if self.group_saved_id:
-            index = self.twGroups.model().index(self.groups.index(self.groups_resourcenames[self.group_saved_id]), 0)
+            try:
+                index = self.twGroups.model().index(self.groups.index(self.groups_resourcenames[self.group_saved_id]), 0)
+            except KeyError:
+                index = self.twGroups.model().index(0, 0)
+            except ValueError:
+                index = self.twGroups.model().index(0, 0)
             self.twGroups.setCurrentIndex(index)
             self.group_saved_id = None
         if index.row() < 0:
@@ -474,7 +482,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             index = self.twFIO.model().index(0, 0)
             self.twFIO.setCurrentIndex(index)
         if self.FIO_saved_id:
-            index = self.twFIO.model().index(self.contacts_filtered_reverced[self.FIO_saved_id], 0)
+            try:
+                index = self.twFIO.model().index(self.contacts_filtered_reverced[self.FIO_saved_id], 0)
+            except KeyError:
+                index = self.twFIO.model().index(0, 0)
             self.twFIO.setCurrentIndex(index)
             self.FIO_saved_id = 0
         if index.row() < 0:
@@ -717,6 +728,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def click_clbCreateContact(self):
         buf_contact = {}
+        buf_contact['biographies'] = [{}]
+        buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         givenName = ''
         middleName = ''
         familyName = ''
@@ -819,6 +832,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if proc.returncode:
                     print(res[1])
                     print('result:', res[0])
+
+    def click_clbExport(self):          # для создания отчета в Бигль
+        q=0
 
     def qwe(self):
         q4 = """
