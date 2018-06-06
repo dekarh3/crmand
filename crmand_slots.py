@@ -30,9 +30,10 @@ except ImportError:
 
 from lib import unique, l, s, fine_phone, format_phone
 
-ALL_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча', 'перезвонить', 'нужен e-mail',
-                    'секретарь передаст', 'отправил сообщен', 'нет на месте', 'недозвон', 'недоступен', '---',
-                    'когда получится','нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'не верит', 'рыпу']
+ALL_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
+                    'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
+                    'нет на месте', 'недозвон', 'недоступен', '---', 'когда получится','нет контактов',
+                    'не занимаюсь', 'не понимает', 'не интересно', 'не верит', 'рыпу']
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
@@ -375,7 +376,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_pbPeopleFilter(self):  # Кнопка фильтр
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
-#        self.refresh_contacts()  # Перезагрузка контактов из gmail
+#        self.changed = False  # обновляем информацию о контакте
+#        self.refresh_contact()
+#        self.changed = True
         self.setup_twGroups()
         return
 
@@ -490,8 +493,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.FIO_saved_id = 0
         if index.row() < 0:
             return None
-        self.changed = False
-        # обновляем информацию о контакте и карточку
+        self.changed = False # обновляем информацию о контакте и карточку
         self.FIO_cur_id = index.row()
         self.refresh_contact()
         self.refresh_card()
@@ -551,8 +553,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
             updatePersonFields='biographies,userDefined',
             body=buf_contact).execute()
-        self.changed = False
-        # обновляем информацию о контакте и карточку
+        self.changed = False # обновляем информацию о контакте и карточку
         self.refresh_contact()
         self.refresh_card()
         self.changed = True
@@ -561,11 +562,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_pbRedo(self):
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
-        self.refresh_contacts()  # Перезагрузка контактов из gmail
+        self.refresh_contacts() # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
         return
 
     def click_pbSave(self):
+        time.sleep(5)
         buf_contact = {}
         buf_contact['userDefined'] = [{},{}]
         buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
@@ -619,6 +621,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         # Обновление контакта
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        self.changed = False # обновляем информацию о контакте
+        self.refresh_contact()
+        self.changed = True
+        buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
         resultsc = service.people().updateContact(
             resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
             updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
@@ -626,8 +632,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         cal_cancel = False
         if self.contacts_filtered[self.FIO_cur_id]['calendar'] == self.deCalendar.date().toString("dd.MM.yyyy"):  #
             cal_cancel = True
-        self.changed = False
-        # обновляем информацию о контакте и карточку
+        self.changed = False        # обновляем информацию о контакте и карточку
         self.refresh_contact()
         self.refresh_card()
         self.changed = True
@@ -693,6 +698,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 calendarId='primary',
                 body=event
             ).execute()
+        self.changed = False            # обновляем информацию о контакте и карточку
+        self.refresh_contact()
+        self.refresh_card()
+        self.changed = True
         return
 
     def change_deCalendar(self):                          # выключил из-за глюков deCalendar
@@ -719,8 +728,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             updatePersonFields='biographies,userDefined',
             body=buf_contact).execute()
         print(resultsc['userDefined'][0]['value'], resultsc['userDefined'][1]['value'])
-        self.changed = False
-        # обновляем информацию о контакте и карточку
+        self.changed = False            # обновляем информацию о контакте и карточку
         self.refresh_contact()
         self.refresh_card()
         self.changed = True
@@ -807,7 +815,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 #            resourceName='contactGroups/myContacts',
 #            body= {'resourceNamesToAdd': [], 'resourceNamesToRemove': [resultsc['resourceName']]}
 #        ).execute()
-        self.refresh_contacts()  # Перезагрузка контактов из gmail
+        self.refresh_contacts()
         self.setup_twGroups()
         return
 
