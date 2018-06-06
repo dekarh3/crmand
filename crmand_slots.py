@@ -567,7 +567,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_pbSave(self):
-        time.sleep(5)
         buf_contact = {}
         buf_contact['userDefined'] = [{},{}]
         buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
@@ -618,6 +617,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.leTown.text():
             if len(self.leTown.text().strip()) > 0:
                 buf_contact['addresses'] = [{'streetAddress': self.leTown.text().strip()}]
+        time.sleep(5)
         # Обновление контакта
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
