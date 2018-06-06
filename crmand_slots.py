@@ -632,10 +632,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         cal_cancel = False
         if self.contacts_filtered[self.FIO_cur_id]['calendar'] == self.deCalendar.date().toString("dd.MM.yyyy"):  #
             cal_cancel = True
-        self.changed = False        # обновляем информацию о контакте и карточку
-        self.refresh_contact()
-        self.refresh_card()
-        self.changed = True
+#        self.changed = False        # обновляем информацию о контакте
+#        self.refresh_contact()
+#        self.changed = True
 # Календарь
         if cal_cancel or self.deCalendar.date() < datetime.today().date():
             return         # Если Дата не изменилась или поставили дату меньшую сегодняшней - ничего не изменяем
@@ -698,9 +697,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 calendarId='primary',
                 body=event
             ).execute()
-        self.changed = False            # обновляем информацию о контакте и карточку
+        self.changed = False            # обновляем информацию о контакте
         self.refresh_contact()
-        self.refresh_card()
         self.changed = True
         return
 
