@@ -653,9 +653,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for calendar in calendars:                                                          # Переводим в удобную форму
             event = {}
             event['id'] = calendar['id']
-            event['start'] = {'dateTime' : datetime.combine(datetime.strptime(self.contacts_filtered[self.FIO_cur_id]['calendar'],
+            event['start'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
                             '%d.%m.%Y').date(),datetime.strptime('16:00','%H:%M').time()).isoformat() + 'Z'}
-            event['end'] = {'dateTime' : datetime.combine(datetime.strptime(self.contacts_filtered[self.FIO_cur_id]['calendar'],
+            event['end'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
                             '%d.%m.%Y').date(),datetime.strptime('16:15','%H:%M').time()).isoformat() + 'Z'}
             event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
             phones = ''
@@ -677,9 +677,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         except KeyError:                                # нет такого event'а - создаем
             event = {}
             event['id'] = self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]
-            event['start'] = {'dateTime' : datetime.combine(datetime.strptime(self.contacts_filtered[self.FIO_cur_id]['calendar'],
+            event['start'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
                             '%d.%m.%Y').date(),datetime.strptime('16:00','%H:%M').time()).isoformat() + 'Z'}
-            event['end'] = {'dateTime' : datetime.combine(datetime.strptime(self.contacts_filtered[self.FIO_cur_id]['calendar'],
+            event['end'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
                             '%d.%m.%Y').date(),datetime.strptime('16:15','%H:%M').time()).isoformat() + 'Z'}
             event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
             phones = ''
