@@ -33,7 +33,7 @@ from lib import unique, l, s, fine_phone, format_phone
 ALL_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                     'нет на месте', 'недозвон', 'недоступен', '---', 'когда получится','нет контактов',
-                    'не занимаюсь', 'не понимает', 'не интересно', 'не верит', 'рыпу']
+                    'не занимаюсь', 'не понимает', 'не интересно', 'уже продали', 'не верит', 'дубль', 'рыпу']
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
@@ -142,6 +142,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.clbExport.close()
         return
 
+    def errMessage(self, err_text): ## Method to open a message box
+        infoBox = QMessageBox() ##Message Box that doesn't run
+        infoBox.setIcon(QMessageBox.Warning)
+        infoBox.setText(err_text)
+#        infoBox.setInformativeText("Informative Text")
+        infoBox.setWindowTitle(datetime.strftime(datetime.now(), "%H:%M:%S") + ' Ошибка: ')
+#        infoBox.setDetailedText("Detailed Text")
+#        infoBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        infoBox.setStandardButtons(QMessageBox.Ok)
+#        infoBox.setEscapeButton(QMessageBox.Close)
+        infoBox.exec_()
+
     def refresh_contacts(self):                             # Обновляем все контакты из гугля
         credentials_con = get_credentials_con()
         self.http_con = credentials_con.authorize(Http())
@@ -247,6 +259,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def refresh_contact(self):                                              # Обновляем текущий контакт из гугля
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+#    except Exception as ee:
+#        print(datetime.strftime(datetime.now(), "%H:%M:%S"),'Ошибка: ', ee, '\n\nПродолжаем ')
+
         result = service.people().get(
             resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
             personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
@@ -537,6 +552,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_cbStage(self):
         if not self.changed:
             return
+        # Обновление контакта
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        self.changed = False # обновляем информацию о контакте
+        self.refresh_contact()
+        self.changed = True
         buf_contact = {}
         buf_contact['userDefined'] = [{},{}]
         buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
