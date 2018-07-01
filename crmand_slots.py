@@ -224,6 +224,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact['groups'] = memberships
             stage = '---'
             calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+            cost = 0
             ostages = connection.get('userDefined', [])
             if len(ostages) > 0:
                 for ostage in ostages:
@@ -231,8 +232,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         stage = ostage['value'].lower()
                     if ostage['key'].lower() == 'calendar':
                         calendar = ostage['value']
+                    if ostage['key'].lower() == 'cost':
+                        cost = float(ostage['value'])
             contact['stage'] = stage
             contact['calendar'] = calendar
+            contact['cost'] = cost
+
             town = ''
             oaddresses = connection.get('addresses', [])
             if len(oaddresses) > 0:
@@ -310,6 +315,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contact['groups'] = memberships
         stage = '---'
         calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+        cost = 0
         ostages = connection.get('userDefined', [])
         if len(ostages) > 0:
             for ostage in ostages:
@@ -317,8 +323,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     stage = ostage['value'].lower()
                 if ostage['key'].lower() == 'calendar':
                     calendar = ostage['value']
+                if ostage['key'].lower() == 'cost':
+                    cost = float(ostage['value'])
         contact['stage'] = stage
         contact['calendar'] = calendar
+        contact['cost'] = cost
         town = ''
         oaddresses = connection.get('addresses', [])
         if len(oaddresses) > 0:
@@ -559,11 +568,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.refresh_contact()
         self.changed = True
         buf_contact = {}
-        buf_contact['userDefined'] = [{},{}]
+        buf_contact['userDefined'] = [{},{},{}]
         buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
         buf_contact['userDefined'][0]['key'] = 'stage'
         buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
         buf_contact['userDefined'][1]['key'] = 'calendar'
+        buf_contact['userDefined'][2]['value'] = '0'
+        buf_contact['userDefined'][2]['key'] = 'cost'
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
@@ -589,11 +600,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def click_pbSave(self):
         buf_contact = {}
-        buf_contact['userDefined'] = [{},{}]
+        buf_contact['userDefined'] = [{},{},{}]
         buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
         buf_contact['userDefined'][0]['key'] = 'stage'
         buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
         buf_contact['userDefined'][1]['key'] = 'calendar'
+        buf_contact['userDefined'][2]['value'] = '0'
+        buf_contact['userDefined'][2]['key'] = 'cost'
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
@@ -731,11 +744,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.deCalendar.date().toString("dd.MM.yyyy") == self.contacts_filtered[self.FIO_cur_id]['calendar']:
             return
         buf_contact = {}
-        buf_contact['userDefined'] = [{},{}]
+        buf_contact['userDefined'] = [{},{},{}]
         buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
         buf_contact['userDefined'][0]['key'] = 'stage'
         buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
         buf_contact['userDefined'][1]['key'] = 'calendar'
+        buf_contact['userDefined'][2]['value'] = '0'
+        buf_contact['userDefined'][2]['key'] = 'cost'
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
