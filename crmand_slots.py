@@ -551,7 +551,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         audios = ''
         for i, call_id in enumerate(self.calls_ids):
             audios +=  self.calls[call_id] + ' '
-        proc = Popen('gnome-mplayer --single_instance ' + audios, shell=True, stdout=PIPE, stderr=PIPE)
+        proc = Popen('gnome-mpv ' + audios, shell=True, stdout=PIPE, stderr=PIPE)
         proc.wait()  # дождаться выполнения
         res = proc.communicate()  # получить tuple('stdout', 'stderr')
         if proc.returncode:
