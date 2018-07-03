@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'crmand_win.ui'
 #
-# Created by: PyQt5 UI code generator 5.10.1
+# Created by: PyQt5 UI code generator 5.11.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -216,14 +216,27 @@ class Ui_Form(object):
         self.frame_4.setObjectName("frame_4")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.frame_4)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.leTown = QtWidgets.QLineEdit(self.frame_4)
-        self.leTown.setMaximumSize(QtCore.QSize(130, 16777215))
-        self.leTown.setObjectName("leTown")
-        self.horizontalLayout.addWidget(self.leTown)
+        self.chbCost = QtWidgets.QCheckBox(self.frame_4)
+        self.chbCost.setObjectName("chbCost")
+        self.horizontalLayout.addWidget(self.chbCost)
+        self.leCost = QtWidgets.QLineEdit(self.frame_4)
+        self.leCost.setMaximumSize(QtCore.QSize(130, 16777215))
+        self.leCost.setObjectName("leCost")
+        self.horizontalLayout.addWidget(self.leCost)
         self.leEmail = QtWidgets.QLineEdit(self.frame_4)
         self.leEmail.setObjectName("leEmail")
         self.horizontalLayout.addWidget(self.leEmail)
         self.verticalLayout_4.addWidget(self.frame_4)
+        self.frame_7 = QtWidgets.QFrame(Form)
+        self.frame_7.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.frame_7.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.frame_7.setObjectName("frame_7")
+        self.horizontalLayout_8 = QtWidgets.QHBoxLayout(self.frame_7)
+        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
+        self.leTown = QtWidgets.QLineEdit(self.frame_7)
+        self.leTown.setObjectName("leTown")
+        self.horizontalLayout_8.addWidget(self.leTown)
+        self.verticalLayout_4.addWidget(self.frame_7)
         self.teNote = QtWidgets.QTextEdit(Form)
         self.teNote.setObjectName("teNote")
         self.verticalLayout_4.addWidget(self.teNote)
@@ -240,4 +253,5 @@ class Ui_Form(object):
         self.pbRedo.setText(_translate("Form", "Восстановить"))
         self.pbSave.setText(_translate("Form", "Сохранить"))
         self.chbHasPhone.setText(_translate("Form", "Тел"))
+        self.chbCost.setText(_translate("Form", "Цена"))
 

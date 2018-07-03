@@ -380,6 +380,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.leUrls.setText(urls)
         ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
         self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
+        self.leCost.setText(str(self.contacts_filtered[self.FIO_cur_id]['cost']))
         self.setup_twCalls()
 
 
@@ -486,11 +487,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 contacts_f[i]['contact_ind'] = ind
                 cs[contact['fio']] = i
                 i += 1
-        j = 0
-        for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Хитровычурная сортирвка с исп. sorted()
-            self.contacts_filtered.append(contacts_f[i])
-            self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
-            j += 1
+        if self.chbCost.isChecked():
+            j = 0
+            for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Тут нужно сортировать по цене, пока не сделано
+                self.contacts_filtered.append(contacts_f[i])
+                self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
+                j += 1
+        else:
+            j = 0
+            for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Хитровычурная сортирвка с исп. sorted()
+                self.contacts_filtered.append(contacts_f[i])
+                self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
+                j += 1
         self.twFIO.setColumnCount(1)                                # Устанавливаем кол-во колонок
         self.twFIO.setRowCount(len(self.contacts_filtered))         # Кол-во строк из таблицы
         for i, contact in enumerate(self.contacts_filtered):
@@ -573,7 +581,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['userDefined'][0]['key'] = 'stage'
         buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
         buf_contact['userDefined'][1]['key'] = 'calendar'
-        buf_contact['userDefined'][2]['value'] = '0'
+        try:
+            buf_contact['userDefined'][2]['value'] = str(float(self.leCost.text()))
+        except ValueError:
+            buf_contact['userDefined'][2]['value'] = '0'
         buf_contact['userDefined'][2]['key'] = 'cost'
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
@@ -605,7 +616,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['userDefined'][0]['key'] = 'stage'
         buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
         buf_contact['userDefined'][1]['key'] = 'calendar'
-        buf_contact['userDefined'][2]['value'] = '0'
+        try:
+            buf_contact['userDefined'][2]['value'] = str(float(self.leCost.text()))
+        except ValueError:
+            buf_contact['userDefined'][2]['value'] = '0'
         buf_contact['userDefined'][2]['key'] = 'cost'
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
@@ -749,7 +763,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['userDefined'][0]['key'] = 'stage'
         buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
         buf_contact['userDefined'][1]['key'] = 'calendar'
-        buf_contact['userDefined'][2]['value'] = '0'
+        try:
+            buf_contact['userDefined'][2]['value'] = str(float(self.leCost.text()))
+        except ValueError:
+            buf_contact['userDefined'][2]['value'] = '0'
         buf_contact['userDefined'][2]['key'] = 'cost'
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()

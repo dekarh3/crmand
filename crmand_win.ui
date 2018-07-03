@@ -459,7 +459,14 @@
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QLineEdit" name="leTown">
+       <widget class="QCheckBox" name="chbCost">
+        <property name="text">
+         <string>Цена</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="leCost">
         <property name="maximumSize">
          <size>
           <width>130</width>
@@ -470,6 +477,21 @@
       </item>
       <item>
        <widget class="QLineEdit" name="leEmail"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="frame_7">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_8">
+      <item>
+       <widget class="QLineEdit" name="leTown"/>
       </item>
      </layout>
     </widget>
