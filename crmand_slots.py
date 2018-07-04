@@ -4,6 +4,7 @@ from httplib2 import Http
 from subprocess import Popen, PIPE
 import os
 from string import digits
+from random import random
 from dateutil.parser import parse
 
 from apiclient import discovery                             # Механизм запроса данных
@@ -236,7 +237,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         cost = float(ostage['value'])
             contact['stage'] = stage
             contact['calendar'] = calendar
-            contact['cost'] = cost
+            contact['cost'] = cost + random() * 1e-5
 
             town = ''
             oaddresses = connection.get('addresses', [])
@@ -327,7 +328,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     cost = float(ostage['value'])
         contact['stage'] = stage
         contact['calendar'] = calendar
-        contact['cost'] = cost
+        contact['cost'] = cost + random() * 1e-5
         town = ''
         oaddresses = connection.get('addresses', [])
         if len(oaddresses) > 0:
@@ -380,7 +381,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.leUrls.setText(urls)
         ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
         self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
-        self.leCost.setText(str(self.contacts_filtered[self.FIO_cur_id]['cost']))
+        self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
         self.setup_twCalls()
 
 
@@ -464,6 +465,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts_filtered = []
         contacts_f = []
         cs = {}
+        cc = {}
         i = 0
         for ind, contact in enumerate(self.contacts):
             has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
@@ -488,8 +490,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 cs[contact['fio']] = i
                 i += 1
         if self.chbCost.isChecked():
+            for i, contact_f in enumerate(contacts_f):
+                cc[contact_f['cost']] = i
             j = 0
-            for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Тут нужно сортировать по цене, пока не сделано
+            for kk, i in sorted(cc.items(), reverse = True, key=lambda item: item[0]):  # Тут нужно сортировать по цене, пока не сделано
                 self.contacts_filtered.append(contacts_f[i])
                 self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
                 j += 1
