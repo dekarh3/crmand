@@ -793,6 +793,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact = {}
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
+        buf_contact['userDefined'] = [{},{},{}]
+        buf_contact['userDefined'][0]['value'] = '---'
+        buf_contact['userDefined'][0]['key'] = 'stage'
+        buf_contact['userDefined'][1]['value'] = datetime.now().strftime("%d.%m.%Y")
+        buf_contact['userDefined'][1]['key'] = 'calendar'
+        try:
+            buf_contact['userDefined'][2]['value'] = str(float(self.leCost.text()))
+        except ValueError:
+            buf_contact['userDefined'][2]['value'] = '0'
+        buf_contact['userDefined'][2]['key'] = 'cost'
+
         givenName = ''
         middleName = ''
         familyName = ''
