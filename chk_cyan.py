@@ -35,7 +35,9 @@ CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'People API Python Quickstart'
 
 IN_SNILS = ['ID']
-IN_NAME = ['Площадь, м2', 'Участок', 'Телефоны', 'Цена', 'Ссылка на объявление']
+IN_NAME = ['ID', 'Телефоны', 'Площадь, м2', 'Участок', 'Цена', 'Ссылка на объявление']
+OUT_NAME = ['Дом+Участок']
+USED_GROUPS = ['_Квартиры', '_Коттеджи', '_Недвижимость']
 
 def get_credentials_con():
     """Gets valid user credentials from storage.
@@ -215,9 +217,9 @@ for i, sheet in enumerate(sheets):                                    # Марк
 without = True
 for i, sheet in enumerate(sheets):
     if len(sheets_keys[i]) > 1:
-        print('\nВ файле "' + sys.argv[i+1] + '" найдены столбцы:')
-        for q in sheets_keys[i].keys():
-            print('    ' + q)
+#        print('\nВ файле "' + sys.argv[i+1] + '" найдены столбцы:')
+#        for q in sheets_keys[i].keys():
+#            print('    ' + q)
         without = False
 if without:
     print('Во всех файлах нет никаких столбцов, кроме СНИЛС')
@@ -226,25 +228,109 @@ if without:
 
     #print('\n'+ datetime.datetime.now().strftime("%H:%M:%S") +' Начинаем расчет \n')
 
-our_statuses = []
-fond_pays = []
-total_rows = sheets[0].max_row
-perc_rows = 0
 big_rows = []
-for j, row in enumerate(sheets[0].rows):                     # Загружаем все входные данные в одну строку
-    our_status = {}
-    fond_pay = {}
-    if j == 0:
-        continue
-    big_row = {}
-    for i, sheet in enumerate(sheets):
-        if l(row[sheets_keys[i][IN_SNILS[0]]].value) < 1:
+for i, sheet in enumerate(sheets):              # Загружаем все входные данные в одну строку
+    for j, row in enumerate(sheet.rows):
+        if j == 0:
             continue
+        big_row = {}
+        cell_count = 0
         for k, sheet_key in enumerate(sheets_keys[i]):
             if row[sheets_keys[i][sheet_key]].value != None and str(row[sheets_keys[i][sheet_key]].value).strip() != '': # and str(row[sheets_keys[0][sheet_key]].value).strip() != '—'
-                if k == 2:
+                if sheet_key == IN_NAME[1]:
                     big_row[sheet_key] = str(row[sheets_keys[i][sheet_key]].value).split(',')
                 else:
                     big_row[sheet_key] = str(row[sheets_keys[i][sheet_key]].value)
-        big_rows.append(big_row)
+            else:
+                big_row[sheet_key] = ''
+                cell_count += 1
+        if cell_count < len(sheets_keys[i]):
+            big_rows.append(big_row)
 q = 0
+wb = openpyxl.Workbook(write_only=True)
+ws_contact = wb.create_sheet('Контакты')
+ws_contact.append(IN_NAME + OUT_NAME)  # добавляем первую строку xlsx
+ws_phone = wb.create_sheet('Телефоны')
+ws_phone.append(IN_NAME + OUT_NAME + ['Нет в БД'])  # добавляем первую строку xlsx
+
+with_new_phones = []
+with_new_contacts = []
+new_phone = ''
+home = ''
+square = ''
+for i, big_row in enumerate(big_rows):
+    has_contact = False
+    for j, phone_xls in enumerate(big_row[IN_NAME[1]]):
+        has_phone = False
+        for contact in cg['cnt']:
+            in_group = False
+            for group in contact['groups']:
+                if group in USED_GROUPS:
+                    in_group = True
+            if not in_group:
+                continue
+            for k, phone_google in enumerate(contact['phones']):
+                if format_phone(phone_google) == format_phone(phone_xls):
+                    has_phone = True
+                    has_contact = True
+                else:
+                    new_phone = fine_phone(phone_xls)
+        if not has_phone:
+            temp_xls_string = []
+            for ic, cell_name in enumerate(IN_NAME):
+                if ic == 1:
+                    phones = ''
+                    for phone in big_row[cell_name]:
+                        phones += fine_phone(phone) + ' '
+                    temp_xls_string.append(phones.strip())
+                elif ic == 2:   # Площадь дома
+                    temp_xls_string.append(big_row[cell_name])
+                    h = float(big_row[cell_name])
+                    if h % int(h) == 0:
+                        home = str(int(h))
+                    else:
+                        home = str(h)
+                elif ic == 3:   # Площадь участка
+                    temp_xls_string.append(big_row[cell_name])
+                    h = float(big_row[cell_name].split(',')[0])
+                    if h % int(h) == 0:
+                        square = str(int(h))
+                    else:
+                        square = str(h)
+                    ts = big_row[cell_name].split(',')[1]
+                    if ts.strip() == 'Сотка':
+                        type_square = 'сот'
+                    elif ts.strip() == 'Гектар':
+                        type_square = 'га'
+                    else:
+                        type_square = 'м²'
+                elif ic == 4:   # Телефоны
+                    temp_xls_string.append(str(l(big_row[cell_name].split(' ')[0]) / 1000000))
+                else:
+                    temp_xls_string.append(big_row[cell_name])
+            with_new_phones.append(temp_xls_string + [(home + 'м²+' + square + type_square).replace('.','_')])
+    if not has_contact:
+        temp_xls_string = []
+        for ic, cell_name in enumerate(IN_NAME):
+            if ic == 1:
+                phones = ''
+                for phone in big_row[cell_name]:
+                    phones += fine_phone(phone) + ' '
+                temp_xls_string.append(phones.strip())
+            elif ic == 4:
+                temp_xls_string.append(str(l(big_row[cell_name].split(' ')[0])/1000000))
+            else:
+                temp_xls_string.append(big_row[cell_name])
+        with_new_contacts.append(temp_xls_string + [(home + 'м²+' + square + type_square).replace('.','_')])
+
+for with_new_contact in with_new_contacts:
+    ws_contact.append(with_new_contact)
+for with_new_phone in with_new_phones:
+    has_contact = False
+    for with_new_contact in with_new_contacts:
+        if with_new_contact[0] == with_new_phone[0]:
+            has_contact = True
+    if not has_contact:
+        ws_phone.append(with_new_phone)
+
+wb.save('Добавить.xlsx')
