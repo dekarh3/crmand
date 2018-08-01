@@ -248,6 +248,8 @@ for i, sheet in enumerate(sheets):              # Загружаем все вх
             big_rows.append(big_row)
 q = 0
 wb = openpyxl.Workbook(write_only=True)
+ws_all = wb.create_sheet('Всё')
+ws_all.append(IN_NAME + OUT_NAME)  # добавляем первую строку xlsx
 ws_contact = wb.create_sheet('Контакты')
 ws_contact.append(IN_NAME + OUT_NAME)  # добавляем первую строку xlsx
 ws_phone = wb.create_sheet('Телефоны')
@@ -255,10 +257,46 @@ ws_phone.append(IN_NAME + OUT_NAME + ['Нет в БД'])  # добавляем �
 
 with_new_phones = []
 with_new_contacts = []
+all_contacts = []
 new_phone = ''
 home = ''
 square = ''
 for i, big_row in enumerate(big_rows):
+    temp_xls_string = []
+    home = ''
+    square = ''
+    type_square = 'сот'
+    for ic, cell_name in enumerate(IN_NAME):
+        if ic == 1:
+            phones = ''
+            for phone in big_row[cell_name]:
+                phones += fine_phone(phone) + ' '
+            temp_xls_string.append(phones.strip())
+        elif ic == 2:  # Площадь дома
+            temp_xls_string.append(big_row[cell_name])
+            h = float(big_row[cell_name])
+            if h % int(h) == 0:
+                home = str(int(h))
+            else:
+                home = str(h)
+        elif ic == 3:  # Площадь участка
+            temp_xls_string.append(big_row[cell_name])
+            h = float(big_row[cell_name].split(',')[0])
+            if h % int(h) == 0:
+                square = str(int(h))
+            else:
+                square = str(h)
+            ts = big_row[cell_name].split(',')[1]
+            if ts.strip() == 'сот.':
+                type_square = 'сот'
+            elif ts.strip() == 'га':
+                type_square = 'га'
+            else:
+                type_square = 'м²'
+        elif ic == 4:  # Телефоны
+            temp_xls_string.append(str(l(big_row[cell_name].split(' ')[0]) / 1000000))
+        else:
+            temp_xls_string.append(big_row[cell_name])
     has_contact = False
     for j, phone_xls in enumerate(big_row[IN_NAME[1]]):
         has_phone = False
@@ -276,53 +314,13 @@ for i, big_row in enumerate(big_rows):
                 else:
                     new_phone = fine_phone(phone_xls)
         if not has_phone:
-            temp_xls_string = []
-            for ic, cell_name in enumerate(IN_NAME):
-                if ic == 1:
-                    phones = ''
-                    for phone in big_row[cell_name]:
-                        phones += fine_phone(phone) + ' '
-                    temp_xls_string.append(phones.strip())
-                elif ic == 2:   # Площадь дома
-                    temp_xls_string.append(big_row[cell_name])
-                    h = float(big_row[cell_name])
-                    if h % int(h) == 0:
-                        home = str(int(h))
-                    else:
-                        home = str(h)
-                elif ic == 3:   # Площадь участка
-                    temp_xls_string.append(big_row[cell_name])
-                    h = float(big_row[cell_name].split(',')[0])
-                    if h % int(h) == 0:
-                        square = str(int(h))
-                    else:
-                        square = str(h)
-                    ts = big_row[cell_name].split(',')[1]
-                    if ts.strip() == 'Сотка':
-                        type_square = 'сот'
-                    elif ts.strip() == 'Гектар':
-                        type_square = 'га'
-                    else:
-                        type_square = 'м²'
-                elif ic == 4:   # Телефоны
-                    temp_xls_string.append(str(l(big_row[cell_name].split(' ')[0]) / 1000000))
-                else:
-                    temp_xls_string.append(big_row[cell_name])
             with_new_phones.append(temp_xls_string + [(home + 'м²+' + square + type_square).replace('.','_')])
     if not has_contact:
-        temp_xls_string = []
-        for ic, cell_name in enumerate(IN_NAME):
-            if ic == 1:
-                phones = ''
-                for phone in big_row[cell_name]:
-                    phones += fine_phone(phone) + ' '
-                temp_xls_string.append(phones.strip())
-            elif ic == 4:
-                temp_xls_string.append(str(l(big_row[cell_name].split(' ')[0])/1000000))
-            else:
-                temp_xls_string.append(big_row[cell_name])
         with_new_contacts.append(temp_xls_string + [(home + 'м²+' + square + type_square).replace('.','_')])
+    all_contacts.append(temp_xls_string + [(home + 'м²+' + square + type_square).replace('.','_')])
 
+for all_contact in all_contacts:
+    ws_all.append(all_contact)
 for with_new_contact in with_new_contacts:
     ws_contact.append(with_new_contact)
 for with_new_phone in with_new_phones:
