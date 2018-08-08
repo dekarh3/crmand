@@ -13,7 +13,7 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer
@@ -33,7 +33,7 @@ from lib import unique, l, s, fine_phone, format_phone
 
 ALL_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
-                    'пауза', 'нет на месте', 'недозвон', 'недоступен', 'нет объявления', '---', 'когда получится',
+                     'нет на месте', 'недозвон', 'пауза', 'недоступен', 'нет объявления', '---', 'когда получится',
                     'нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'уже продали', 'не верит', 'дубль',
                     'рыпу']
 
@@ -795,9 +795,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['userDefined'] = [{},{},{}]
-        buf_contact['userDefined'][0]['value'] = '---'
+        buf_contact['userDefined'][0]['value'] = 'пауза'
         buf_contact['userDefined'][0]['key'] = 'stage'
-        buf_contact['userDefined'][1]['value'] = datetime.now().strftime("%d.%m.%Y")
+        buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
         buf_contact['userDefined'][1]['key'] = 'calendar'
         try:
             buf_contact['userDefined'][2]['value'] = str(float(self.leCost.text()))
