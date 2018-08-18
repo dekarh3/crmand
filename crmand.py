@@ -32,6 +32,7 @@ class MainWindow(MainWindowSlots):
         self.clbGoURL1.clicked.connect(self.click_clbGoURL1)
         self.clbGoURL2.clicked.connect(self.click_clbGoURL2)
         self.clbExport.clicked.connect(self.click_clbExport)
+        self.leIOF.textChanged[str].connect(self.leIOF_changed)
 #        self.deCalendar.dateChanged.connect(self.change_deCalendar)
 #        self.twCalls.customContextMenuRequested.connect(self.click_label_3)
 

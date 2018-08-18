@@ -413,20 +413,26 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.twGroups.setColumnCount(0)
         self.twGroups.setRowCount(0)        # Кол-во строк из таблицы
         groups = set()
-        for contact in self.contacts:      # !!!!!!!!!!!!!!!! Добавить фильтры !!!!!!!!!!!!!!!
-            has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
-            has_phone = False
-            for phone in contact['phones']:
-                if str(l(phone)).find(str(l(self.lePhone.text()))) > -1:
+        if l(self.lePhone.text()) > 0:
+            for contact in self.contacts:
+                has_phone = False
+                for phone in contact['phones']:
+                    if str(l(phone)).find(str(l(self.lePhone.text()))) > -1:
+                        has_phone = True
+                if not self.chbHasPhone.isChecked():
                     has_phone = True
-            if not self.chbHasPhone.isChecked():
-                has_phone = True
-            has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
-            has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
-                        and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
-            if has_FIO and has_phone and has_note and has_stage:
-                for group in contact['groups']:
-                    groups.add(group)
+                if has_phone:
+                    for group in contact['groups']:
+                        groups.add(group)
+        else:
+            for contact in self.contacts:
+                has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
+                has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
+                has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
+                            and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
+                if has_FIO and has_note and has_stage:
+                    for group in contact['groups']:
+                        groups.add(group)
         self.groups = []
         self.groups = sorted(groups)
         self.twGroups.setColumnCount(1)               # Устанавливаем кол-во колонок
@@ -468,28 +474,36 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         cs = {}
         cc = {}
         i = 0
-        for ind, contact in enumerate(self.contacts):
-            has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
-            has_phone = False
-            tel = self.lePhone.text()
-            tel = ''.join([char for char in tel if char in digits])
-            for phone in contact['phones']:
-                if str(l(phone)).find(tel) > -1:
+        if l(self.lePhone.text()) > 0:
+            for ind, contact in enumerate(self.contacts):
+                has_phone = False
+                tel = self.lePhone.text()
+                tel = ''.join([char for char in tel if char in digits])
+                for phone in contact['phones']:
+                    if str(l(phone)).find(tel) > -1:
+                        has_phone = True
+                if not self.chbHasPhone.isChecked():
                     has_phone = True
-            if not self.chbHasPhone.isChecked():
-                has_phone = True
-            has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
-            has_group = False
-            for group in contact['groups']:
-                if group == self.group_cur:
-                    has_group = True
-            has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
-                        and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
-            if has_FIO and has_phone and has_note and has_group and has_stage:
-                contacts_f.append(contact)
-                contacts_f[i]['contact_ind'] = ind
-                cs[contact['fio']] = i
-                i += 1
+                if has_phone:
+                    contacts_f.append(contact)
+                    contacts_f[i]['contact_ind'] = ind
+                    cs[contact['fio']] = i
+                    i += 1
+        else:
+            for ind, contact in enumerate(self.contacts):
+                has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
+                has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
+                has_group = False
+                for group in contact['groups']:
+                    if group == self.group_cur:
+                        has_group = True
+                has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
+                            and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
+                if has_FIO and has_note and has_group and has_stage:
+                    contacts_f.append(contact)
+                    contacts_f[i]['contact_ind'] = ind
+                    cs[contact['fio']] = i
+                    i += 1
         if self.chbCost.isChecked():
             for i, contact_f in enumerate(contacts_f):
                 cc[contact_f['cost']] = i
@@ -697,7 +711,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         calendars_result = service_cal.events().list(
             calendarId='primary',
             timeMin=now,
-            maxResults=2000,
+            maxResults=5000,
             singleEvents=True,
             orderBy='startTime'
         ).execute()
@@ -712,13 +726,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             '%d.%m.%Y').date(),datetime.strptime('16:15','%H:%M').time()).isoformat() + 'Z'}
             event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
             phones = ''
+            memos = ''
             if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
                 phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
                 for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
                     if i == 0:
                         continue
                     phones += ', ' + fine_phone(phone)
-            event['description'] = phones
+                if len(self.contacts_filtered[self.FIO_cur_id]['urls']):
+                    memos = self.contacts_filtered[self.FIO_cur_id]['urls'][0] + '\n'
+                    for i, memo in enumerate(self.contacts_filtered[self.FIO_cur_id]['urls']):
+                        if i == 0:
+                            continue
+                        memos += memo + '\n'
+            event['description'] = phones + '\n' + memos + '\n' + self.contacts_filtered[self.FIO_cur_id]['note']
             event['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
                                self.contacts_filtered[self.FIO_cur_id]['stage']
             self.events[calendar['id']] = event
@@ -910,6 +931,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def click_clbExport(self):          # для создания отчета в Бигль
         q=0
+
+    def leIOF_changed(self, text):
+        str_ = text
+        if str_.find(' на участке ') > -1:
+            str_ = str_.replace(' на участке ', '+')
+        if str_.find(' м²') > -1:
+            str_ = str_.replace(' м²', 'м²')
+        if str_.find(' сот') > -1:
+            str_ = str_.replace(' сот', 'сот')
+        if str_.find('.') > -1:
+            str_ = str_.replace('.', '_')
+        self.leIOF.setText(str_)
 
     def qwe(self):
         q4 = """
