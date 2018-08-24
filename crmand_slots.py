@@ -356,6 +356,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']] = contact
         return
 
+    def refresh_etag(self):  # Обновляем etag текущего контакта из гугля
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        result = service.people().get(
+            resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+            personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                         'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                         'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                         'residences,skills,taglines,urls,userDefined') \
+            .execute()
+        connection = result
+        self.contacts_filtered[self.FIO_cur_id]['etag'] = connection['etag']
+        return
+
     def refresh_card(self):                                                     # Обновляем поля в карточке
         self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
@@ -385,6 +399,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
         self.setup_twCalls()
 
+    def refresh_card_in_db(self): #!!!! Доделать !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        self.contacts_filtered[self.FIO_cur_id]['note'] = self.teNote.toPlainText()
 
     def refresh_stages(self):          # Добавляем в стандатные стадии стадии из контактов
         self.all_stages = ALL_STAGES_CONST
@@ -643,6 +659,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
+        self.refresh_card_in_db()
         givenName = ''
         middleName = ''
         familyName = ''
@@ -689,7 +706,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         self.changed = False # обновляем информацию о контакте
-        self.refresh_contact()
+        self.refresh_etag()
         self.changed = True
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
         resultsc = service.people().updateContact(
@@ -733,13 +750,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     if i == 0:
                         continue
                     phones += ', ' + fine_phone(phone)
-                if len(self.contacts_filtered[self.FIO_cur_id]['urls']):
-                    memos = self.contacts_filtered[self.FIO_cur_id]['urls'][0] + '\n'
-                    for i, memo in enumerate(self.contacts_filtered[self.FIO_cur_id]['urls']):
-                        if i == 0:
-                            continue
-                        memos += memo + '\n'
-            event['description'] = phones + '\n' + memos + '\n' + self.contacts_filtered[self.FIO_cur_id]['note']
+            if len(self.contacts_filtered[self.FIO_cur_id]['urls']):
+                memos = self.contacts_filtered[self.FIO_cur_id]['urls'][0] + '\n'
+                for i, memo in enumerate(self.contacts_filtered[self.FIO_cur_id]['urls']):
+                    if i == 0:
+                        continue
+                    memos += memo + '\n'
+            cost = round(self.contacts_filtered[self.FIO_cur_id]['cost']*1000)/1000
+            event['description'] = phones + '\n' + memos + '\n' + '{0:0g}'.format(cost) + ' м\n' \
+                                   + self.contacts_filtered[self.FIO_cur_id]['note']
             event['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
                                self.contacts_filtered[self.FIO_cur_id]['stage']
             self.events[calendar['id']] = event
