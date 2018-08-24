@@ -399,8 +399,48 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
         self.setup_twCalls()
 
-    def refresh_card_in_db(self): #!!!! Доделать !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    def refresh_card_into(self):
         self.contacts_filtered[self.FIO_cur_id]['note'] = self.teNote.toPlainText()
+        givenName = ''
+        middleName = ''
+        familyName = ''
+        if self.leIOF.text():
+            self.contacts_filtered[self.FIO_cur_id]['iof'] = self.leIOF.text()
+            if len(self.leIOF.text().strip().split(' ')) > 2:
+                givenName = self.leIOF.text().strip().split(' ')[0]
+                middleName = self.leIOF.text().strip().split(' ')[1]
+                for i, name in enumerate(self.leIOF.text().strip().split(' ')):
+                    if i > 1:
+                        familyName += name + ' '
+            elif len(self.leIOF.text().strip().split(' ')) == 2:
+                givenName = self.leIOF.text().strip().split(' ')[0]
+                familyName = self.leIOF.text().strip().split(' ')[1]
+            elif len(self.leIOF.text().strip().split(' ')) == 1:
+                givenName = self.leIOF.text().strip().split(' ')[0]
+        self.contacts_filtered[self.FIO_cur_id]['fio'] = familyName.strip() + ' ' + givenName.strip() + ' ' \
+                                                         + middleName.strip()
+        phones = []
+        if len(self.lePhones.text().strip().split(' ')) > 0:
+            for i, phone in enumerate(self.lePhones.text().strip().split(' ')):
+                if phone.strip() != '':
+                    phones.append(fine_phone(phone))
+        self.contacts_filtered[self.FIO_cur_id]['phones'] = phones
+        self.contacts_filtered[self.FIO_cur_id]['stage'] = self.cbStage.currentText()
+        self.contacts_filtered[self.FIO_cur_id]['calendar'] = self.deCalendar.date().toString("dd.MM.yyyy")
+        self.contacts_filtered[self.FIO_cur_id]['cost'] = float(self.leCost.text()) + random() * 1e-5
+        self.contacts_filtered[self.FIO_cur_id]['town'] = self.leTown.text().strip()
+        emails = []
+        if len(self.leEmail.text().strip().split(' ')) > 0:
+            for i, email in enumerate(self.leEmail.text().strip().split(' ')):
+                if email.strip() != '' and len(email.split('@')) > 0:
+                    emails.append(email)
+        self.contacts_filtered[self.FIO_cur_id]['email'] = emails
+        urls = []
+        if len(self.leUrls.text().strip().split(' ')) > 0:
+            for i, url in enumerate(self.leUrls.text().strip().split(' ')):
+                if url.strip() != '' and len(url.split('.')) > 0:
+                    urls.append(url)
+        self.contacts_filtered[self.FIO_cur_id]['urls'] = urls
 
     def refresh_stages(self):          # Добавляем в стандатные стадии стадии из контактов
         self.all_stages = ALL_STAGES_CONST
@@ -645,6 +685,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_pbSave(self):
+        pred_cal = self.contacts_filtered[self.FIO_cur_id]['calendar']
+        self.refresh_card_into()
         buf_contact = {}
         buf_contact['userDefined'] = [{},{},{}]
         buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
@@ -659,7 +701,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['biographies'] = [{}]
         buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
-        self.refresh_card_in_db()
         givenName = ''
         middleName = ''
         familyName = ''
@@ -714,7 +755,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
             body=buf_contact).execute()
         cal_cancel = False
-        if self.contacts_filtered[self.FIO_cur_id]['calendar'] == self.deCalendar.date().toString("dd.MM.yyyy"):  #
+        if pred_cal == self.deCalendar.date().toString("dd.MM.yyyy"):  #
             cal_cancel = True
 #        self.changed = False        # обновляем информацию о контакте
 #        self.refresh_contact()
