@@ -779,9 +779,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             event = {}
             event['id'] = calendar['id']
             event['start'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-                            '%d.%m.%Y').date(),datetime.strptime('16:00','%H:%M').time()).isoformat() + 'Z'}
+                            '%d.%m.%Y').date(),datetime.strptime('15:00','%H:%M').time()).isoformat() + 'Z'}
             event['end'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-                            '%d.%m.%Y').date(),datetime.strptime('16:15','%H:%M').time()).isoformat() + 'Z'}
+                            '%d.%m.%Y').date(),datetime.strptime('15:15','%H:%M').time()).isoformat() + 'Z'}
             event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
             phones = ''
             memos = ''
@@ -812,9 +812,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             event = {}
             event['id'] = self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]
             event['start'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-                            '%d.%m.%Y').date(),datetime.strptime('16:00','%H:%M').time()).isoformat() + 'Z'}
+                            '%d.%m.%Y').date(),datetime.strptime('15:00','%H:%M').time()).isoformat() + 'Z'}
             event['end'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-                            '%d.%m.%Y').date(),datetime.strptime('16:15','%H:%M').time()).isoformat() + 'Z'}
+                            '%d.%m.%Y').date(),datetime.strptime('15:15','%H:%M').time()).isoformat() + 'Z'}
             event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
             phones = ''
             if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:

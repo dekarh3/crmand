@@ -282,10 +282,13 @@ for i, big_row in enumerate(big_rows):
         elif ic == 3:  # Площадь участка
             temp_xls_string.append(big_row[cell_name])
             h = float(big_row[cell_name].split(',')[0])
-            if h % int(h) == 0:
-                square = str(int(h))
+            if h == 0:
+                if h % int(h) == 0:
+                    square = str(int(h))
+                else:
+                    square = str(h)
             else:
-                square = str(h)
+                square = '0.0'
             ts = big_row[cell_name].split(',')[1]
             if ts.strip() == 'сот.':
                 type_square = 'сот'
