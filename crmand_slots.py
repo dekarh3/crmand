@@ -823,7 +823,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     if i == 0:
                         continue
                     phones += ', ' + fine_phone(phone)
-            event['description'] = phones
+            if len(self.contacts_filtered[self.FIO_cur_id]['urls']):
+                memos = self.contacts_filtered[self.FIO_cur_id]['urls'][0] + '\n'
+                for i, memo in enumerate(self.contacts_filtered[self.FIO_cur_id]['urls']):
+                    if i == 0:
+                        continue
+                    memos += memo + '\n'
+            cost = round(self.contacts_filtered[self.FIO_cur_id]['cost']*1000)/1000
+            event['description'] = phones + '\n' + memos + '\n' + '{0:0g}'.format(cost) + ' м\n' \
+                                   + self.contacts_filtered[self.FIO_cur_id]['note']
             event['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
                                self.contacts_filtered[self.FIO_cur_id]['stage']
             self.events[self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]] = event
@@ -1000,6 +1008,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             str_ = str_.replace(' м²', 'м²')
         if str_.find(' сот') > -1:
             str_ = str_.replace(' сот', 'сот')
+        if str_.find(' га') > -1:
+            str_ = str_.replace(' га', 'га')
         if str_.find('.') > -1:
             str_ = str_.replace('.', '_')
         self.leIOF.setText(str_)
