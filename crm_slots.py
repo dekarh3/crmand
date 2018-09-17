@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 import time
 
 from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer, QUrl
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QTableWidgetItem, QMessageBox, QMainWindow, QWidget
 
 
@@ -97,6 +97,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def setupUi(self, form):
         Ui_Form.setupUi(self,form)
+        self.avito = True
         self.contacts = []
         self.contacts_filtered = []
         self.contacts_filtered_reverced = {}
@@ -265,11 +266,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact['email'] = email
             contact['etag'] = connection['etag']
             contact['resourceName'] = connection['resourceName']
+            contact['avito'] = ''
             urls = []
             ourls = connection.get('urls', [])
             if len(ourls) > 0:
                 for ourl in ourls:
                     urls.append(ourl['value'])
+                    if ourl['value'].find('www.avito.ru') > -1:
+                        contact['avito'] = ourl['value']
             contact['urls'] = urls
             self.contacts.append(contact)
         return
@@ -366,11 +370,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contact['email'] = email
         contact['etag'] = connection['etag']
         contact['resourceName'] = connection['resourceName']
+        contact['avito'] = ''
         urls = []
         ourls = connection.get('urls', [])
         if len(ourls) > 0:
             for ourl in ourls:
                 urls.append(ourl['value'])
+                if ourl['value'].find('www.avito.ru') > -1:
+                    contact['avito'] = ourl['value']
         contact['urls'] = urls
         ind = self.contacts_filtered[self.FIO_cur_id]['contact_ind']
         self.contacts_filtered[self.FIO_cur_id] = contact
@@ -433,6 +440,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
         self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
+        if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.avito:
+            self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+            self.preview.show()
         self.setup_twCalls()
 
     def refresh_card_into(self):      #  Форма -> внутр. БД
@@ -1133,9 +1143,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.leIOF.setText(str_)
 
     def click_clbAvito(self):
-        self.preview.load(QUrl('https://yandex.ru'))
-        self.preview.show()
-        q=0
+        if self.avito:
+            self.clbAvito.setIcon(QIcon('gcal.png'))
+            self.avito = False
+            self.preview.load(QUrl('https://calendar.google.com'))
+            self.preview.show()
+        else:
+            self.clbAvito.setIcon(QIcon('avito.png'))
+            self.avito = True
+#        if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10:
+#            self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+#            self.preview.show()
 
     def click_clbGCal(self):
         q=0
