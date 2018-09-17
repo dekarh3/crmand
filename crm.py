@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QFileDialog, QM
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QDate
 
-from crmand_slots import MainWindowSlots
+from crm_slots import MainWindowSlots
 
 class MainWindow(MainWindowSlots):
 
@@ -22,8 +22,10 @@ class MainWindow(MainWindowSlots):
     # Подключаем слоты к виджетам (для каждого действия, которое надо обработать - свой слот)
     def connect_slots(self):
         self.pbPeopleFilter.clicked.connect(self.click_pbPeopleFilter)
-        self.pbRedo.clicked.connect(self.click_pbRedo)
-        self.pbSave.clicked.connect(self.click_pbSave)
+        self.clbRedo.clicked.connect(self.click_clbRedo)
+        self.clbSave.clicked.connect(self.click_clbSave)
+        self.clbAvito.clicked.connect(self.click_clbAvito)
+        self.clbGCal.clicked.connect(self.click_clbGCal)
         self.twGroups.clicked.connect(self.click_twGroups)
         self.twFIO.clicked.connect(self.click_twFIO)
         self.twCalls.clicked.connect(self.click_twCalls)

@@ -16,12 +16,12 @@ from oauth2client.file import Storage
 from datetime import datetime, timedelta
 import time
 
-from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer
+from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer, QUrl
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QTableWidgetItem, QMessageBox, QMainWindow, QWidget
 
 
-from crmand_win import Ui_Form
+from crm_win import Ui_Form
 
 try:
     import argparse
@@ -156,7 +156,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 #        infoBox.setEscapeButton(QMessageBox.Close)
         infoBox.exec_()
 
-    def refresh_contacts(self):                             # Обновляем все контакты из гугля
+    def refresh_contacts(self):                  # Google -> Внутр БД (все контакты)
         credentials_con = get_credentials_con()
         self.http_con = credentials_con.authorize(Http())
         try:
@@ -274,7 +274,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.contacts.append(contact)
         return
 
-    def refresh_contact(self):                                              # Обновляем текущий контакт из гугля
+    def refresh_contact(self):               # Google -> Внутр БД (текущий контакт)
         try:
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
@@ -378,7 +378,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']] = contact
         return
 
-    def refresh_etag(self):  # Обновляем etag текущего контакта из гугля
+    def refresh_etag(self):  # Google -> etag внутр БД (текущий контакт)
         try:
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
@@ -406,7 +406,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts_filtered[self.FIO_cur_id]['etag'] = connection['etag']
         return
 
-    def refresh_card(self):                                                     # Обновляем поля в карточке
+    def refresh_card(self):              #  внутр. БД -> Форма
         self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
         phones = ''
@@ -435,7 +435,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
         self.setup_twCalls()
 
-    def refresh_card_into(self):
+    def refresh_card_into(self):      #  Форма -> внутр. БД
         givenName = ''
         middleName = ''
         familyName = ''
@@ -734,14 +734,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.changed = True
         return
 
-    def click_pbRedo(self):
+    def click_clbRedo(self):
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
         self.refresh_contacts() # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
         return
 
-    def click_pbSave(self):
+    def click_clbSave(self):
         pred_cal = self.contacts_filtered[self.FIO_cur_id]['calendar']
         self.refresh_card_into()
         if len(self.teNote.toPlainText()) > 0:
@@ -1131,6 +1131,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if str_.find('.') > -1:
             str_ = str_.replace('.', '_')
         self.leIOF.setText(str_)
+
+    def click_clbAvito(self):
+        self.preview.load(QUrl('https://yandex.ru'))
+        self.preview.show()
+        q=0
+
+    def click_clbGCal(self):
+        q=0
 
     def qwe(self):
         q4 = """
