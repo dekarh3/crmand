@@ -109,14 +109,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.FIO_cur = ''
         self.FIO_cur_id = 0
         self.FIO_saved_id = 0
-        self.refresh_contacts()
-        self.all_stages = []
-        self.all_stages_reverce = {}
-        self.events = {}
         credentials_con = get_credentials_con()
         self.http_con = credentials_con.authorize(Http())
         credentials_cal = get_credentials_cal()
         self.http_cal = credentials_cal.authorize(Http())
+        self.google2db4all()
+        self.all_stages = []
+        self.all_stages_reverce = {}
+        self.events = {}
         self.refresh_stages()
         self.id_tek = 0
         self.show_clear = True
@@ -157,14 +157,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 #        infoBox.setEscapeButton(QMessageBox.Close)
         infoBox.exec_()
 
-    def refresh_contacts(self):                  # Google -> Внутр БД (все контакты)
+    def google2db4all(self):                  # Google -> Внутр БД (все контакты)
         credentials_con = get_credentials_con()
         self.http_con = credentials_con.authorize(Http())
         try:
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
 
-            # Вытаскиваем названия групп
+# Вытаскиваем названия групп
             serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
                                        discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             resultsg = serviceg.contactGroups().list(pageSize=200).execute()
@@ -174,7 +174,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
 
-            # Вытаскиваем названия групп
             serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
                                        discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             resultsg = serviceg.contactGroups().list(pageSize=200).execute()
@@ -184,21 +183,64 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for i, contactGroup in enumerate(contactGroups):
             self.groups_resourcenames[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
             self.groups_resourcenames_reversed[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
-
-        # Контакты
-        results = service.people().connections() \
-            .list(
-            resourceName='people/me',
-            pageSize=2000,
-            personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                         'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                         'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                         'residences,skills,taglines,urls,userDefined') \
-            .execute()
+# Контакты
+        try:
+            results = service.people().connections() \
+                .list(
+                resourceName='people/me',
+                pageSize=2000,
+                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                             'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                             'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                             'residences,skills,taglines,urls,userDefined') \
+                .execute()
+        except Exception as ee:
+            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+            results = service.people().connections() \
+                .list(
+                resourceName='people/me',
+                pageSize=2000,
+                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                             'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                             'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                             'residences,skills,taglines,urls,userDefined') \
+                .execute()
         connections = results.get('connections', [])
+# Календарь
+        try:
+            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
+            now = datetime(2018, 3, 2, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
+            calendars_result = service_cal.events().list(
+                calendarId='primary',
+                timeMin=now,
+                maxResults=5000,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+        except Exception as ee:
+            print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
+            time.sleep(1)
+            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
+            now = datetime(2018, 3, 2, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
+            calendars_result = service_cal.events().list(
+                calendarId='primary',
+                timeMin=now,
+                maxResults=5000,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+        calendars = calendars_result.get('items', [])
+        self.events = {}
+        for calendar in calendars:
+            event = {}
+            event['id'] = calendar['id']
+            event['start'] = calendar['start']['dateTime']
+            self.events[calendar['id']] = event
+
         self.contacts = []
         for i, connection in enumerate(connections):
             contact = {}
+            contact['resourceName'] = connection['resourceName']
             name = ''
             iof = ''
             onames = connection.get('names', [])
@@ -251,7 +293,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact['stage'] = stage
             contact['calendar'] = calendar
             contact['cost'] = cost + random() * 1e-5
-
+            try:  # есть такой event - берем
+                event = self.events[contact['resourceName'].split('/')[1]]
+                contact['event'] = parse(event['start'])
+            except KeyError:  # нет такого event'а - ставим дряхлую дату
+                contact['event'] = datetime(2018, 3, 1, 18, 56, 19, 612451)
             town = ''
             oaddresses = connection.get('addresses', [])
             if len(oaddresses) > 0:
@@ -265,7 +311,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         email += oemailAddresses[0].get('value') + ' '
             contact['email'] = email
             contact['etag'] = connection['etag']
-            contact['resourceName'] = connection['resourceName']
             contact['avito'] = ''
             urls = []
             ourls = connection.get('urls', [])
@@ -278,7 +323,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.contacts.append(contact)
         return
 
-    def refresh_contact(self):               # Google -> Внутр БД (текущий контакт)
+    def google2db4one(self):               # Google -> Внутр БД (текущий контакт)
         try:
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
@@ -303,7 +348,39 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                              'relationshipStatuses,residences,skills,taglines,urls,userDefined') \
             .execute()
             connection = result
+# Календарь
+        try:
+            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+            now = datetime(2018, 3, 2, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
+            calendars_result = service_cal.events().list(
+                calendarId='primary',
+                timeMin=now,
+                maxResults=5000,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+        except Exception as ee:
+            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+            time.sleep(1)
+            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+            now = datetime(2018, 3, 2, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
+            calendars_result = service_cal.events().list(
+                calendarId='primary',
+                timeMin=now,
+                maxResults=5000,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+        calendars = calendars_result.get('items', [])
+        self.events = {}
+        for calendar in calendars:
+            event = {}
+            event['id'] = calendar['id']
+            event['start'] = calendar['start']['dateTime']
+            self.events[calendar['id']] = event
+
         contact = {}
+        contact['resourceName'] = connection['resourceName']
         name = ''
         iof = ''
         onames = connection.get('names', [])
@@ -356,6 +433,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contact['stage'] = stage
         contact['calendar'] = calendar
         contact['cost'] = cost + random() * 1e-5
+        try:  # есть такой event - берем
+            event = self.events[contact['resourceName'].split('/')[1]]
+            contact['event'] = parse(event['start'])
+        except KeyError:  # нет такого event'а - ставим дряхлую дату
+            contact['event'] = datetime(2018, 3, 1, 18, 56, 19, 612451)
         town = ''
         oaddresses = connection.get('addresses', [])
         if len(oaddresses) > 0:
@@ -369,7 +451,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     email += oemailAddresses[0].get('value') + ' '
         contact['email'] = email
         contact['etag'] = connection['etag']
-        contact['resourceName'] = connection['resourceName']
         contact['avito'] = ''
         urls = []
         ourls = connection.get('urls', [])
@@ -385,7 +466,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts[self.contacts_filtered[self.FIO_cur_id]['contact_ind']] = contact
         return
 
-    def refresh_etag(self):  # Google -> etag внутр БД (текущий контакт)
+    def google2db4etag(self):  # Google -> etag внутр БД (текущий контакт)
         try:
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
@@ -413,7 +494,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts_filtered[self.FIO_cur_id]['etag'] = connection['etag']
         return
 
-    def refresh_card(self):              #  внутр. БД -> Форма
+    def db2form4one(self):              #  внутр. БД -> Форма
         self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
         phones = ''
@@ -438,14 +519,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             urls += url + ' '
         self.leUrls.setText(urls)
         ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
-        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
+#        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
+        self.deCalendar.setDate(self.contacts_filtered[self.FIO_cur_id]['event'])
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
         if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.avito:
             self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
             self.preview.show()
         self.setup_twCalls()
 
-    def refresh_card_into(self):      #  Форма -> внутр. БД
+    def form2db4one(self):      #  Форма -> внутр. БД
         givenName = ''
         middleName = ''
         familyName = ''
@@ -520,7 +602,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
 #        self.changed = False  # обновляем информацию о контакте
-#        self.refresh_contact()
+#        self.google2db4one()
 #        self.changed = True
         self.setup_twGroups()
         return
@@ -662,8 +744,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             return None
         self.changed = False # обновляем информацию о контакте и карточку
         self.FIO_cur_id = index.row()
-        self.refresh_contact()
-        self.refresh_card()
+        self.google2db4one()
+        self.db2form4one()
         self.changed = True
         return
 
@@ -705,7 +787,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if not self.changed:
             return
         self.changed = False # обновляем информацию о контакте
-        self.refresh_contact()
+        self.google2db4one()
         self.changed = True
         buf_contact = {}
         buf_contact['userDefined'] = [{},{},{}]
@@ -739,21 +821,21 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 updatePersonFields='biographies,userDefined',
                 body=buf_contact).execute()
         self.changed = False # обновляем информацию о контакте и карточку
-        self.refresh_contact()
-        self.refresh_card()
+        self.google2db4one()
+        self.db2form4one()
         self.changed = True
         return
 
     def click_clbRedo(self):
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
-        self.refresh_contacts() # Перезагружаем ВСЕ контакты из gmail
+        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
         return
 
     def click_clbSave(self):
         pred_cal = self.contacts_filtered[self.FIO_cur_id]['calendar']
-        self.refresh_card_into()
+        self.form2db4one()
         if len(self.teNote.toPlainText()) > 0:
             if self.teNote.toPlainText()[0] != '|':
                 self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
@@ -825,7 +907,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 buf_contact['addresses'] = [{'streetAddress': self.leTown.text().strip()}]
         time.sleep(5)
         self.changed = False # обновляем информацию о контакте
-        self.refresh_etag()
+        self.google2db4etag()
         self.changed = True
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
         # Обновление контакта
@@ -850,7 +932,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if pred_cal == self.deCalendar.date().toString("dd.MM.yyyy"):  #
             cal_cancel = True
 #        self.changed = False        # обновляем информацию о контакте
-#        self.refresh_contact()
+#        self.google2db4one()
 #        self.changed = True
 # Календарь
 #        if cal_cancel or self.deCalendar.date() < datetime.today().date():
@@ -961,7 +1043,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     body=event
                 ).execute()
         self.changed = False            # обновляем информацию о контакте
-        self.refresh_contact()
+        self.google2db4one()
         self.changed = True
         return
 
@@ -995,8 +1077,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             body=buf_contact).execute()
         print(resultsc['userDefined'][0]['value'], resultsc['userDefined'][1]['value'])
         self.changed = False            # обновляем информацию о контакте и карточку
-        self.refresh_contact()
-        self.refresh_card()
+        self.google2db4one()
+        self.db2form4one()
         self.changed = True
         return
 
@@ -1099,7 +1181,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 #            resourceName='contactGroups/myContacts',
 #            body= {'resourceNamesToAdd': [], 'resourceNamesToRemove': [resultsc['resourceName']]}
 #        ).execute()
-        self.refresh_contacts()
+        self.google2db4all()
         self.setup_twGroups()
         return
 
