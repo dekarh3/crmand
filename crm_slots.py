@@ -15,6 +15,8 @@ from oauth2client.file import Storage
 
 from datetime import datetime, timedelta
 import time
+import pytz
+utc=pytz.UTC
 
 from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer, QUrl
 from PyQt5.QtGui import QPixmap, QIcon
@@ -36,6 +38,9 @@ ALL_STAGES_CONST = ['работаем', 'отработали', 'проводн�
                      'нет на месте', 'недозвон', 'пауза', 'недоступен', 'нет объявления', '---', 'когда получится',
                     'нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'уже продали', 'не верит', 'дубль',
                     'рыпу']
+WORK_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
+                    'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
+                     'нет на месте', 'недозвон', 'пауза']
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
@@ -235,9 +240,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             event = {}
             event['id'] = calendar['id']
             event['start'] = calendar['start']['dateTime']
+            event['www'] =calendar['htmlLink']
             self.events[calendar['id']] = event
 
         self.contacts = []
+        events4delete = []
         for i, connection in enumerate(connections):
             contact = {}
             contact['resourceName'] = connection['resourceName']
@@ -296,8 +303,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             try:  # есть такой event - берем
                 event = self.events[contact['resourceName'].split('/')[1]]
                 contact['event'] = parse(event['start'])
+                contact['event-www'] = event['www']
             except KeyError:  # нет такого event'а - ставим дряхлую дату
-                contact['event'] = datetime(2018, 3, 1, 18, 56, 19, 612451)
+                contact['event'] = utc.localize(datetime(2018, 3, 1, 18, 56, 19, 612451))
             town = ''
             oaddresses = connection.get('addresses', [])
             if len(oaddresses) > 0:
@@ -321,6 +329,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         contact['avito'] = ourl['value']
             contact['urls'] = urls
             self.contacts.append(contact)
+#            print(contact['event'], utc.localize(contact['event']))
+            if contact['event'] > utc.localize(datetime(2018, 3, 1, 18, 56, 19, 612451)) \
+                    and contact['stage'] not in WORK_STAGES_CONST:
+                events4delete.append(contact['resourceName'].split('/')[1])
+        for event4delete in events4delete:
+            service_cal.events().delete(calendarId='primary', eventId=event4delete).execute()
         return
 
     def google2db4one(self):               # Google -> Внутр БД (текущий контакт)
@@ -437,7 +451,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             event = self.events[contact['resourceName'].split('/')[1]]
             contact['event'] = parse(event['start'])
         except KeyError:  # нет такого event'а - ставим дряхлую дату
-            contact['event'] = datetime(2018, 3, 1, 18, 56, 19, 612451)
+            contact['event'] = utc.localize(datetime(2018, 3, 1, 18, 56, 19, 612451))
         town = ''
         oaddresses = connection.get('addresses', [])
         if len(oaddresses) > 0:
