@@ -13,7 +13,7 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import time
 import pytz
 utc=pytz.UTC
@@ -214,11 +214,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # Календарь
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
-            now = datetime(2018, 3, 2, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
+            start = datetime(2013, 1, 1, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
-                timeMin=now,
-                maxResults=5000,
+                showDeleted=True,
+                showHiddenInvitations=True,
+                timeMin=start,
+                maxResults=2500,
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
@@ -226,22 +228,30 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
-            now = datetime(2018, 3, 2, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
+            start = datetime(2013, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
-                timeMin=now,
-                maxResults=5000,
+                showDeleted=True,
+                showHiddenInvitations=True,
+                timeMin=start,
+                maxResults=2500,
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
         calendars = calendars_result.get('items', [])
-        self.events = {}
+        eventds = {}
         for calendar in calendars:
-            event = {}
-            event['id'] = calendar['id']
-            event['start'] = calendar['start']['dateTime']
-            event['www'] =calendar['htmlLink']
-            self.events[calendar['id']] = event
+            eventd = {}
+            eventd['id'] = calendar['id']
+            if str(calendar['start'].keys()).find('dateTime') > -1:
+                eventd['start'] = calendar['start']['dateTime']
+            else:
+                eventd['start'] = str(utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M")))
+            if str(calendar.keys()).find('htmlLink') > -1:
+                eventd['www'] =calendar['htmlLink']
+            else:
+                eventd['www'] = ''
+            eventds[calendar['id']] = eventd
 
         self.contacts = []
         events4delete = []
@@ -301,11 +311,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact['calendar'] = calendar
             contact['cost'] = cost + random() * 1e-5
             try:  # есть такой event - берем
-                event = self.events[contact['resourceName'].split('/')[1]]
-                contact['event'] = parse(event['start'])
-                contact['event-www'] = event['www']
+                eventn = eventds[contact['resourceName'].split('/')[1]]
+                contact['event'] = parse(eventn['start'])
+                contact['event-www'] = eventn['www']
             except KeyError:  # нет такого event'а - ставим дряхлую дату
-                contact['event'] = utc.localize(datetime(2018, 3, 1, 18, 56, 19, 612451))
+                contact['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
             town = ''
             oaddresses = connection.get('addresses', [])
             if len(oaddresses) > 0:
@@ -329,12 +339,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         contact['avito'] = ourl['value']
             contact['urls'] = urls
             self.contacts.append(contact)
-#            print(contact['event'], utc.localize(contact['event']))
-            if contact['event'] > utc.localize(datetime(2018, 3, 1, 18, 56, 19, 612451)) \
+            if contact['event'] > utc.localize(datetime(2013, 1, 1, 0, 0)) \
                     and contact['stage'] not in WORK_STAGES_CONST:
                 events4delete.append(contact['resourceName'].split('/')[1])
         for event4delete in events4delete:
-            service_cal.events().delete(calendarId='primary', eventId=event4delete).execute()
+            event4 = service_cal.events().get(calendarId='primary', eventId=event4delete).execute()
+            event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
+            event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+            updated_event = service_cal.events().update(calendarId='primary', eventId=event4delete, body=event4).execute()
         return
 
     def google2db4one(self):               # Google -> Внутр БД (текущий контакт)
@@ -365,11 +377,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # Календарь
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-            now = datetime(2018, 3, 2, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
+            start = datetime(2013, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
-                timeMin=now,
-                maxResults=5000,
+                showDeleted=True,
+                showHiddenInvitations=True,
+                timeMin=start,
+                maxResults=2500,
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
@@ -377,21 +391,31 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
             time.sleep(1)
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-            now = datetime(2018, 3, 2, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
+            start = datetime(2013, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
-                timeMin=now,
-                maxResults=5000,
+                showDeleted=True,
+                showHiddenInvitations=True,
+                timeMin=start,
+                maxResults=2500,
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
         calendars = calendars_result.get('items', [])
-        self.events = {}
+
+        eventds = {}
         for calendar in calendars:
-            event = {}
-            event['id'] = calendar['id']
-            event['start'] = calendar['start']['dateTime']
-            self.events[calendar['id']] = event
+            eventd = {}
+            eventd['id'] = calendar['id']
+            if str(calendar['start'].keys()).find('dateTime') > -1:
+                eventd['start'] = calendar['start']['dateTime']
+            else:
+                eventd['start'] = str(utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M")))
+            if str(calendar.keys()).find('htmlLink') > -1:
+                eventd['www'] =calendar['htmlLink']
+            else:
+                eventd['www'] = ''
+            eventds[calendar['id']] = eventd
 
         contact = {}
         contact['resourceName'] = connection['resourceName']
@@ -448,10 +472,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contact['calendar'] = calendar
         contact['cost'] = cost + random() * 1e-5
         try:  # есть такой event - берем
-            event = self.events[contact['resourceName'].split('/')[1]]
-            contact['event'] = parse(event['start'])
+            eventn = eventds[contact['resourceName'].split('/')[1]]
+            contact['event'] = parse(eventn['start'])
+            contact['event-www'] = eventn['www']
         except KeyError:  # нет такого event'а - ставим дряхлую дату
-            contact['event'] = utc.localize(datetime(2018, 3, 1, 18, 56, 19, 612451))
+            contact['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
         town = ''
         oaddresses = connection.get('addresses', [])
         if len(oaddresses) > 0:
@@ -532,7 +557,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
             urls += url + ' '
         self.leUrls.setText(urls)
-        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
+#        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
 #        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
         self.deCalendar.setDate(self.contacts_filtered[self.FIO_cur_id]['event'])
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
@@ -716,11 +741,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     contacts_f[i]['contact_ind'] = ind
                     cs[contact['fio']] = i
                     i += 1
-        if self.chbCost.isChecked():
+        if self.chbDateSort.isChecked():
+            for i, contact_f in enumerate(contacts_f):
+                cc[contact_f['event']] = i
+            j = 0
+            for kk, i in sorted(cc.items(), reverse = True, key=lambda item: item[0]):  # Сортировка по цене
+                self.contacts_filtered.append(contacts_f[i])
+                self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
+                j += 1
+        elif self.chbCostSort.isChecked():
             for i, contact_f in enumerate(contacts_f):
                 cc[contact_f['cost']] = i
             j = 0
-            for kk, i in sorted(cc.items(), reverse = True, key=lambda item: item[0]):  # Тут нужно сортировать по цене, пока не сделано
+            for kk, i in sorted(cc.items(), reverse = True, key=lambda item: item[0]):  # Сортировка по цене
                 self.contacts_filtered.append(contacts_f[i])
                 self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
                 j += 1
@@ -848,7 +881,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_clbSave(self):
-        pred_cal = self.contacts_filtered[self.FIO_cur_id]['calendar']
+        pred_cal = self.contacts_filtered[self.FIO_cur_id]['event']
+        pred_stage = self.contacts_filtered[self.FIO_cur_id]['stage']
         self.form2db4one()
         if len(self.teNote.toPlainText()) > 0:
             if self.teNote.toPlainText()[0] != '|':
@@ -943,7 +977,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 body=buf_contact).execute()
 
         cal_cancel = False
-        if pred_cal == self.deCalendar.date().toString("dd.MM.yyyy"):  #
+        if pred_cal.date() == self.deCalendar.date(): #.toString("dd.MM.yyyy"):  #
             cal_cancel = True
 #        self.changed = False        # обновляем информацию о контакте
 #        self.google2db4one()
@@ -951,13 +985,38 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # Календарь
 #        if cal_cancel or self.deCalendar.date() < datetime.today().date():
 #            return         # Если Дата не изменилась или поставили дату меньшую сегодняшней - ничего не изменяем
+        if self.cbStage.currentText() not in WORK_STAGES_CONST:  # Если стадия не рабочая, уходим поставив прошлую дату
+            try:
+                service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+                event4 = service_cal.events().get(calendarId='primary',
+                         eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]).execute()
+                event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
+                event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                updated_event = service_cal.events().update(calendarId='primary',
+                                eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1],
+                                body=event4).execute()
+            except Exception as ee:
+                print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                time.sleep(1)
+                service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+                event4 = service_cal.events().get(calendarId='primary',
+                         eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]).execute()
+                event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
+                event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                updated_event = service_cal.events().update(calendarId='primary',
+                                eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1],
+                                body=event4).execute()
+            self.contacts_filtered[self.FIO_cur_id]['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
+            return
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
-            now = datetime(2016, 1, 1, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
+            start = datetime(2012, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
-                timeMin=now,
-                maxResults=5000,
+                showDeleted=True,
+                showHiddenInvitations=True,
+                timeMin=start,
+                maxResults=2500,
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
@@ -965,11 +1024,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
-            now = datetime(2016, 1, 1, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
+            start = datetime(2012, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
-                timeMin=now,
-                maxResults=5000,
+                showDeleted=True,
+                showHiddenInvitations=True,
+                timeMin=start,
+                maxResults=2500,
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
@@ -1041,10 +1102,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \
                     .execute()
             else:
-                calendar_result = service_cal.events().insert(
-                    calendarId='primary',
-                    body=event
-                ).execute()
+                calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
         except Exception as ee:
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
@@ -1052,10 +1110,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \
                     .execute()
             else:
-                calendar_result = service_cal.events().insert(
-                    calendarId='primary',
-                    body=event
-                ).execute()
+                calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
         self.changed = False            # обновляем информацию о контакте
         self.google2db4one()
         self.changed = True
@@ -1221,9 +1276,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     print(res[1])
                     print('result:', res[0])
 
-    def click_clbExport(self):          # для создания отчета в Бигль
-        q=0
-
     def leIOF_changed(self, text):
         str_ = text
         if str_.find(' на участке ') > -1:
@@ -1253,6 +1305,115 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def click_clbGCal(self):
         q=0
+
+    def click_clbExport(self):          # пересоздаем удаленные контакты (глюки Гугля при удалении)
+        try:
+            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем глюки календаря
+            start = datetime(1999, 12, 31, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time)
+            end = datetime(2017, 12, 31, 0, 0).isoformat() + 'Z'
+            calendars_result = service_cal.events().list(
+                calendarId='primary',
+                showDeleted=True,
+                showHiddenInvitations=True,
+                timeMin=start,
+#                timeMax=end,
+                maxResults=2500,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+        except Exception as ee:
+            print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
+            time.sleep(1)
+            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+            start = datetime(1999, 12, 31, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time)
+            end = datetime(2017, 12, 31, 0, 0).isoformat() + 'Z'
+            calendars_result = service_cal.events().list(
+                calendarId='primary',
+                showDeleted=True,
+                showHiddenInvitations=True,
+                timeMin=start,
+#                timeMax=end,
+                maxResults=2500,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+        calendars = calendars_result.get('items', [])
+        gluck_ids = []
+        for calendar in calendars:
+            if str(calendar['start'].keys()).find('dateTime') == -1:
+                gluck_ids.append(calendar['id'])
+
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        try:
+            results = service.people().connections() \
+                .list(
+                resourceName='people/me',
+                pageSize=2000,
+                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                             'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                             'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                             'residences,skills,taglines,urls,userDefined') \
+                .execute()
+        except Exception as ee:
+            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+            results = service.people().connections() \
+                .list(
+                resourceName='people/me',
+                pageSize=2000,
+                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                             'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                             'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                             'residences,skills,taglines,urls,userDefined') \
+                .execute()
+        contacts = results.get('connections', [])
+        for contact in contacts:
+            if contact['resourceName'].split('/')[1] in gluck_ids:
+                groups = ''
+                for cont in contact['memberships']:
+                    groups += ' ' + self.groups_resourcenames[cont['contactGroupMembership']['contactGroupId']]
+                resourceName = contact['resourceName']
+                del contact['resourceName']
+                del contact['etag']
+                del contact['metadata']
+                if str(contact.keys()).find('coverPhotos') > -1:
+                    del contact['coverPhotos']
+                if str(contact.keys()).find('photos') > -1:
+                    del contact['photos']
+                if str(contact.keys()).find('taglines') > -1:
+                    del contact['taglines']
+                if str(contact.keys()).find('memberships') > -1:
+                    del contact['memberships']
+                if str(contact.keys()).find('genders') > -1:
+                    if len(contact['genders']) > 1:
+                        for i in range(1,len(contact['genders'])):
+                            del contact['genders'][i]
+                if str(contact.keys()).find('names') > -1:
+                    if len(contact['names']) > 1:
+                        for i in range(1,len(contact['names'])):
+                            del contact['names'][i]
+                for infos in contact:
+                    for info in contact[infos]:
+                        del info['metadata']['source']
+                print(contact['names'][0]['displayName'], '-', groups)
+                try:
+                    contact_res = service.people().createContact(body=contact).execute()
+                except Exception as ee:
+                    time.sleep(1)
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать еще раз')
+                    try:
+                        contact_res = service.people().createContact(body=contact).execute()
+                    except Exception as ee:
+                        time.sleep(1)
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать третий раз')
+                        contact_res = service.people().createContact(body=contact).execute()
+                try:
+                    result = service.people().deleteContact(resourceName=resourceName).execute()
+                except Exception as ee:
+                    time.sleep(1)
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить еще раз')
+                    result = service.people().deleteContact(resourceName=resourceName).execute()
+                q=0
 
     def qwe(self):
         q4 = """
