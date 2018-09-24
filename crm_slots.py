@@ -6,6 +6,7 @@ import os
 from string import digits
 from random import random
 from dateutil.parser import parse
+from collections import OrderedDict
 
 from apiclient import discovery                             # Механизм запроса данных
 from googleapiclient import errors
@@ -214,7 +215,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # Календарь
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
-            start = datetime(2013, 1, 1, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
+            start = datetime(2012, 1, 1, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
                 showDeleted=True,
@@ -228,7 +229,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
-            start = datetime(2013, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
+            start = datetime(2012, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
                 showDeleted=True,
@@ -377,7 +378,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # Календарь
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-            start = datetime(2013, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
+            start = datetime(2012, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
                 showDeleted=True,
@@ -391,7 +392,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
             time.sleep(1)
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-            start = datetime(2013, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
+            start = datetime(2012, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
             calendars_result = service_cal.events().list(
                 calendarId='primary',
                 showDeleted=True,
@@ -708,6 +709,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def setup_twFIO(self):
         self.contacts_filtered = []
         contacts_f = []
+        contacts_f_event = {}
+        contacts_f_cost = {}
+        contacts_f_fio = {}
         cs = {}
         cc = {}
         i = 0
@@ -724,7 +728,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if has_phone:
                     contacts_f.append(contact)
                     contacts_f[i]['contact_ind'] = ind
-                    cs[contact['fio']] = i
+                    contacts_f_event[i] = contacts_f[i]['event']
+                    contacts_f_fio[i] = contacts_f[i]['fio']
+                    contacts_f_cost[i] = contacts_f[i]['cost']
                     i += 1
         else:
             for ind, contact in enumerate(self.contacts):
@@ -739,30 +745,25 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if has_FIO and has_note and has_group and has_stage:
                     contacts_f.append(contact)
                     contacts_f[i]['contact_ind'] = ind
-                    cs[contact['fio']] = i
+                    contacts_f_event[i] = contacts_f[i]['event']
+                    contacts_f_fio[i] = contacts_f[i]['fio']
+                    contacts_f_cost[i] = contacts_f[i]['cost']
                     i += 1
-        if self.chbDateSort.isChecked():
-            for i, contact_f in enumerate(contacts_f):
-                cc[contact_f['event']] = i
-            j = 0
-            for kk, i in sorted(cc.items(), reverse = True, key=lambda item: item[0]):  # Сортировка по цене
-                self.contacts_filtered.append(contacts_f[i])
-                self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
-                j += 1
-        elif self.chbCostSort.isChecked():
-            for i, contact_f in enumerate(contacts_f):
-                cc[contact_f['cost']] = i
-            j = 0
-            for kk, i in sorted(cc.items(), reverse = True, key=lambda item: item[0]):  # Сортировка по цене
-                self.contacts_filtered.append(contacts_f[i])
-                self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
-                j += 1
-        else:
-            j = 0
-            for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Хитровычурная сортирвка с исп. sorted()
-                self.contacts_filtered.append(contacts_f[i])
-                self.contacts_filtered_reverced[contacts_f[i]['resourceName']] = j
-                j += 1
+        if self.chbDateSort.isChecked():                                        # Сортировка по дате
+            contacts_f_event_sorted = OrderedDict(sorted(contacts_f_event.items(), reverse = True, key=lambda t: t[1]))
+            for j, contact_f_event_sorted in enumerate(contacts_f_event_sorted):
+                self.contacts_filtered.append(contacts_f[contact_f_event_sorted])
+                self.contacts_filtered_reverced[contacts_f[contact_f_event_sorted]['resourceName']] = j
+        elif self.chbCostSort.isChecked():                                      # Сортировка по цене
+            contacts_f_cost_sorted = OrderedDict(sorted(contacts_f_cost.items(), reverse = True, key=lambda t: t[1]))
+            for j, contact_f_cost_sorted in enumerate(contacts_f_cost_sorted):
+                self.contacts_filtered.append(contacts_f[contact_f_cost_sorted])
+                self.contacts_filtered_reverced[contacts_f[contact_f_cost_sorted]['resourceName']] = j
+        else:                                                                   # Сортировка по фамилии
+            contacts_f_fio_sorted = OrderedDict(sorted(contacts_f_fio.items(), key=lambda t: t[1]))
+            for j, contact_f_fio_sorted in enumerate(contacts_f_fio_sorted):
+                self.contacts_filtered.append(contacts_f[contact_f_fio_sorted])
+                self.contacts_filtered_reverced[contacts_f[contact_f_fio_sorted]['resourceName']] = j
         self.twFIO.setColumnCount(1)                                # Устанавливаем кол-во колонок
         self.twFIO.setRowCount(len(self.contacts_filtered))         # Кол-во строк из таблицы
         for i, contact in enumerate(self.contacts_filtered):
