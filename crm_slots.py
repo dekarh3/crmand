@@ -562,6 +562,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 #        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
 #        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
         self.deCalendar.setDate(self.contacts_filtered[self.FIO_cur_id]['event'])
+        self.cbTime.setTime(self.contacts_filtered[self.FIO_cur_id]['event'].time())
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
         if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.avito:
             self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
@@ -1002,7 +1003,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1],
                                 body=event4).execute()
             except Exception as ee:
-                print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                print(datetime.now().strftime("%H:%M:%S") + ' попробуем поставить прошлую дату еще раз')
                 time.sleep(1)
                 service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
                 event4 = service_cal.events().get(calendarId='primary',
@@ -1027,7 +1028,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 orderBy='startTime'
             ).execute()
         except Exception as ee:
-            print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
+            print(datetime.now().strftime("%H:%M:%S") +' попробуем прочитать весь календарь еще раз')
             time.sleep(1)
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
             start = datetime(2012, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
@@ -1078,10 +1079,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if not has_event:
             event = {}
             event['id'] = self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]
-        event['start'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-                        '%d.%m.%Y').date(),datetime.strptime('15:00','%H:%M').time()).isoformat() + 'Z'}
-        event['end'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-                        '%d.%m.%Y').date(),datetime.strptime('15:15','%H:%M').time()).isoformat() + 'Z'}
+
+        event['start'] = {'dateTime' : datetime.combine(self.deCalendar.date().toPyDate(),
+                                        self.cbTime.time().toPyTime()).isoformat() + '+04:00'}
+
+        event['end'] = {'dateTime' : (datetime.combine(self.deCalendar.date().toPyDate(),
+                                        self.cbTime.time().toPyTime()) + timedelta(minutes=15)).isoformat() + '+04:00'}
         event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
         phones = ''
         if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
@@ -1110,7 +1113,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             else:
                 calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
         except Exception as ee:
-            print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
+            print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить event еще раз')
             time.sleep(1)
             if has_event:
                 calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \

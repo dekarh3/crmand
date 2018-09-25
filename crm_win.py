@@ -221,8 +221,7 @@ class Ui_Form(object):
         self.chbDateSort.setText("")
         self.chbDateSort.setObjectName("chbDateSort")
         self.horizontalLayout_4.addWidget(self.chbDateSort)
-        self.cbTime = QtWidgets.QComboBox(self.frame_2)
-        self.cbTime.setMaxVisibleItems(12)
+        self.cbTime = QtWidgets.QTimeEdit(self.frame_2)
         self.cbTime.setObjectName("cbTime")
         self.horizontalLayout_4.addWidget(self.cbTime)
         self.clbSave = QtWidgets.QCommandLinkButton(self.frame_2)
@@ -354,7 +353,6 @@ class Ui_Form(object):
         self.horizontalLayout_9.addWidget(self.frame_9)
 
         self.retranslateUi(Form)
-        self.cbTime.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
