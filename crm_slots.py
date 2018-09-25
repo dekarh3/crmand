@@ -104,6 +104,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def setupUi(self, form):
         Ui_Form.setupUi(self,form)
         self.avito = True
+        self.my_html = ''
         self.contacts = []
         self.contacts_filtered = []
         self.contacts_filtered_reverced = {}
@@ -148,7 +149,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.calls_ids = []
         self.setup_twGroups()
         self.changed = True
-        self.clbExport.close()
+        #self.clbExport.close()
         return
 
     def errMessage(self, err_text): ## Method to open a message box
@@ -777,6 +778,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.click_twFIO()
         return
 
+    def processHtml(self, html):
+        self.my_html = html
+
     def click_twFIO(self, index=None):
         if index == None:
             index = self.twFIO.model().index(0, 0)
@@ -795,6 +799,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.google2db4one()
         self.db2form4one()
         self.changed = True
+        self.preview.page().toHtml(self.processHtml)
         return
 
     def setup_twCalls(self):
@@ -1308,6 +1313,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         q=0
 
     def click_clbExport(self):          # пересоздаем удаленные контакты (глюки Гугля при удалении)
+        print(self.preview.page().url().url())
+
+    def click_gluckGooglePatch(self):  # пересоздаем удаленные контакты (глюки Гугля при удалении)
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем глюки календаря
             start = datetime(1999, 12, 31, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time)
