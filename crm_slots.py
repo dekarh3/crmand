@@ -149,7 +149,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.calls_ids = []
         self.setup_twGroups()
         self.changed = True
-        #self.clbExport.close()
+        self.clbExport.hide()
         return
 
     def errMessage(self, err_text): ## Method to open a message box
@@ -781,6 +781,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def processHtml(self, html):
         self.my_html = html
+        time.sleep(5)
 
     def click_twFIO(self, index=None):
         if index == None:
@@ -800,7 +801,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.google2db4one()
         self.db2form4one()
         self.changed = True
-        self.preview.page().toHtml(self.processHtml)
         return
 
     def setup_twCalls(self):
@@ -1315,12 +1315,73 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_clbGCal(self):
         q=0
 
-    def click_clbExport(self):          # пересоздаем удаленные контакты (глюки Гугля при удалении)
-        print(self.preview.page().url().url())
+    def click_clbExport(self):                                  # ищем на странице отсутствующие в БД ссылки avito
+        #print(self.preview.page().url().url())
+        self.preview.page().toHtml(self.processHtml)
+        if len(self.my_html) < 1000:
+            return
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+        avitos = []
+        avitos_raw = self.my_html.split('href="/sochi/doma_dachi_kottedzhi/')
+        for i, avito_raw in enumerate(avitos_raw):
+            if i == 0:
+                continue
+            if avito_raw[:6] != 'prodam':
+                avitos.append('https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0])
+        j = 0
+        for avito in avitos:
+            has_in_db = False
+            for contact in self.contacts:
+                if str(contact.keys()).find('avito') > -1:
+                    if contact['avito'] == avito:
+                        has_in_db = True
+            if not has_in_db:
+                j += 1
+                buf_contact = {}
+                buf_contact['userDefined'] = [{}, {}, {}]
+                buf_contact['userDefined'][0]['value'] = 'пауза'
+                buf_contact['userDefined'][0]['key'] = 'stage'
+                buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
+                buf_contact['userDefined'][1]['key'] = 'calendar'
+                buf_contact['userDefined'][2]['value'] = '0'
+                buf_contact['userDefined'][2]['key'] = 'cost'
+                buf_contact['names'] = [{'givenName': str(j)}]
+                buf_contact['urls'] = {'value': avito}
+                #buf_contact['phoneNumbers'] = ['0']
+                # Создаем контакт
+                try:
+                    service = discovery.build('people', 'v1', http=self.http_con,
+                                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                    resultsc = service.people().createContact(body=buf_contact).execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
+                    time.sleep(1)
+                    service = discovery.build('people', 'v1', http=self.http_con,
+                                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                    resultsc = service.people().createContact(body=buf_contact).execute()
+                # Добавляем в текущую группу
+                try:
+                    group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                    resultsg = service.contactGroups().members().modify(
+                        resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                        body=group_body
+                    ).execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
+                    time.sleep(1)
+                    group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                    resultsg = service.contactGroups().members().modify(
+                        resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                        body=group_body
+                    ).execute()
+        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
+        self.setup_twGroups()
+        q=0
 
     def click_gluckGooglePatch(self):  # пересоздаем удаленные контакты (глюки Гугля при удалении)
         try:
-            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем глюки календаря
+            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)         # Считываем глюки календаря
             start = datetime(1999, 12, 31, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time)
             end = datetime(2017, 12, 31, 0, 0).isoformat() + 'Z'
             calendars_result = service_cal.events().list(
