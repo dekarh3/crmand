@@ -1046,10 +1046,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for calendar in calendars:                                                          # Переводим в удобную форму
             event = {}
             event['id'] = calendar['id']
-            event['start'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-                            '%d.%m.%Y').date(),datetime.strptime('15:00','%H:%M').time()).isoformat() + 'Z'}
-            event['end'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-                            '%d.%m.%Y').date(),datetime.strptime('15:15','%H:%M').time()).isoformat() + 'Z'}
+            event['start'] = calendar['start']
+            event['end'] = calendar['end']
+#            event['start'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
+#                            '%d.%m.%Y').date(),datetime.strptime('15:00','%H:%M').time()).isoformat() + 'Z'}
+#            event['end'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
+#                            '%d.%m.%Y').date(),datetime.strptime('15:15','%H:%M').time()).isoformat() + 'Z'}
             event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
             phones = ''
             memos = ''
@@ -1122,41 +1124,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
         self.changed = False            # обновляем информацию о контакте
         self.google2db4one()
-        self.changed = True
-        return
-
-    def change_deCalendar(self):                          # выключил из-за глюков deCalendar
-#        self.deCalendar.setCalendarPopup(False)
-        if not self.changed:
-            return
-        print(self.deCalendar.date().toString("dd.MM.yyyy"), self.contacts_filtered[self.FIO_cur_id]['calendar'])
-        if self.deCalendar.date().toString("dd.MM.yyyy") == self.contacts_filtered[self.FIO_cur_id]['calendar']:
-            return
-        buf_contact = {}
-        buf_contact['userDefined'] = [{},{},{}]
-        buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
-        buf_contact['userDefined'][0]['key'] = 'stage'
-        buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
-        buf_contact['userDefined'][1]['key'] = 'calendar'
-        try:
-            buf_contact['userDefined'][2]['value'] = str(float(self.leCost.text()))
-        except ValueError:
-            buf_contact['userDefined'][2]['value'] = '0'
-        buf_contact['userDefined'][2]['key'] = 'cost'
-        buf_contact['biographies'] = [{}]
-        buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
-        buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
-        # Обновление контакта
-        service = discovery.build('people', 'v1', http=self.http_con,
-                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        resultsc = service.people().updateContact(
-            resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
-            updatePersonFields='biographies,userDefined',
-            body=buf_contact).execute()
-        print(resultsc['userDefined'][0]['value'], resultsc['userDefined'][1]['value'])
-        self.changed = False            # обновляем информацию о контакте и карточку
-        self.google2db4one()
-        self.db2form4one()
         self.changed = True
         return
 
@@ -1299,7 +1266,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             str_ = str_.replace('.', '_')
         self.leIOF.setText(str_)
 
-    def click_clbAvito(self):
+    def click_clbAvito(self):                       # Переключение с каледаря на карточку avito
         if self.avito:
             self.clbAvito.setIcon(QIcon('gcal.png'))
             self.avito = False
@@ -1308,14 +1275,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         else:
             self.clbAvito.setIcon(QIcon('avito.png'))
             self.avito = True
-#        if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10:
-#            self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
-#            self.preview.show()
+            if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.avito:
+                self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+                self.preview.show()
 
     def click_clbGCal(self):
         q=0
+        self.clbExport.show()
 
-    def click_clbExport(self):                                  # ищем на странице отсутствующие в БД ссылки avito
+
+    def click_clbExport(self):                     # ищем на странице отсутствующие в БД ссылки avito и создаем карточки
         #print(self.preview.page().url().url())
         self.preview.page().toHtml(self.processHtml)
         if len(self.my_html) < 1000:
@@ -1348,6 +1317,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 buf_contact['userDefined'][2]['key'] = 'cost'
                 buf_contact['names'] = [{'givenName': str(j)}]
                 buf_contact['urls'] = {'value': avito}
+                buf_contact['biographies'] = [{}]
+                buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|'
                 #buf_contact['phoneNumbers'] = ['0']
                 # Создаем контакт
                 try:
@@ -1375,10 +1346,29 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
                         body=group_body
                     ).execute()
+                # Добавляем событие через 14 дней
+                event = {}
+                event['id'] = resultsc['resourceName'].split('/')[1]
+                event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=14)),
+                                          datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
+                event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=14)),
+                                          datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
+                event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + avito
+                event['summary'] = '- пауза'
+                try:
+                    service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+                    calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
+                    service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+                    calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
         self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
         q=0
 
+    def qwe(self):
+        q4 = """
     def click_gluckGooglePatch(self):  # пересоздаем удаленные контакты (глюки Гугля при удалении)
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)         # Считываем глюки календаря
@@ -1488,8 +1478,41 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     result = service.people().deleteContact(resourceName=resourceName).execute()
                 q=0
 
-    def qwe(self):
-        q4 = """
+    def change_deCalendar(self):                          # выключил из-за глюков deCalendar
+#        self.deCalendar.setCalendarPopup(False)
+        if not self.changed:
+            return
+        print(self.deCalendar.date().toString("dd.MM.yyyy"), self.contacts_filtered[self.FIO_cur_id]['calendar'])
+        if self.deCalendar.date().toString("dd.MM.yyyy") == self.contacts_filtered[self.FIO_cur_id]['calendar']:
+            return
+        buf_contact = {}
+        buf_contact['userDefined'] = [{},{},{}]
+        buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
+        buf_contact['userDefined'][0]['key'] = 'stage'
+        buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
+        buf_contact['userDefined'][1]['key'] = 'calendar'
+        try:
+            buf_contact['userDefined'][2]['value'] = str(float(self.leCost.text()))
+        except ValueError:
+            buf_contact['userDefined'][2]['value'] = '0'
+        buf_contact['userDefined'][2]['key'] = 'cost'
+        buf_contact['biographies'] = [{}]
+        buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
+        buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
+        # Обновление контакта
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        resultsc = service.people().updateContact(
+            resourceName=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+            updatePersonFields='biographies,userDefined',
+            body=buf_contact).execute()
+        print(resultsc['userDefined'][0]['value'], resultsc['userDefined'][1]['value'])
+        self.changed = False            # обновляем информацию о контакте и карточку
+        self.google2db4one()
+        self.db2form4one()
+        self.changed = True
+        return
+
         
     def click_label_3(self, index=None):
         if index == None or index.row() < 0 or index.row() > 0 or index.column() < 0:
