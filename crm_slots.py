@@ -191,28 +191,57 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.groups_resourcenames[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
             self.groups_resourcenames_reversed[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
 # Контакты
-        try:
-            results = service.people().connections() \
-                .list(
-                resourceName='people/me',
-                pageSize=2000,
-                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                             'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                             'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                             'residences,skills,taglines,urls,userDefined') \
-                .execute()
-        except Exception as ee:
-            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
-            results = service.people().connections() \
-                .list(
-                resourceName='people/me',
-                pageSize=2000,
-                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                             'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                             'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                             'residences,skills,taglines,urls,userDefined') \
-                .execute()
-        connections = results.get('connections', [])
+        connections = []
+        results = {'nextPageToken':''}
+        while str(results.keys()).find('nextPageToken') > -1:
+            if results['nextPageToken'] == '':
+                try:
+                    results = service.people().connections() \
+                        .list(
+                        resourceName='people/me',
+                        pageSize=2000,
+                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                                     'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                                     'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                                     'residences,skills,taglines,urls,userDefined') \
+                        .execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                    results = service.people().connections() \
+                        .list(
+                        resourceName='people/me',
+                        pageSize=2000,
+                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                                     'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                                     'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                                     'residences,skills,taglines,urls,userDefined') \
+                        .execute()
+            else:
+                try:
+                    results = service.people().connections() \
+                        .list(
+                        resourceName='people/me',
+                        pageToken=results['nextPageToken'],
+                        pageSize=2000,
+                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                                     'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                                     'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                                     'residences,skills,taglines,urls,userDefined') \
+                        .execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                    results = service.people().connections() \
+                        .list(
+                        resourceName='people/me',
+                        pageToken=results['nextPageToken'],
+                        pageSize=2000,
+                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                                     'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                                     'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                                     'residences,skills,taglines,urls,userDefined') \
+                        .execute()
+
+            connections.extend(results.get('connections', []))
 # Календарь
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
@@ -1303,7 +1332,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         is_double = True
                 if not is_double:
                     avitos.append('https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0])
-        j = 0
+        j = round(random()*1000000)
         for avito in avitos:
             has_in_db = False
             for contact in self.contacts:
