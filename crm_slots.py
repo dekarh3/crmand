@@ -1296,8 +1296,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for i, avito_raw in enumerate(avitos_raw):
             if i == 0:
                 continue
+            is_double = False
             if avito_raw[:6] != 'prodam':
-                avitos.append('https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0])
+                for davito in avitos:
+                    if davito == 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0]:
+                        is_double = True
+                if not is_double:
+                    avitos.append('https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0])
         j = 0
         for avito in avitos:
             has_in_db = False
