@@ -695,11 +695,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         groups.add(group)
         else:
             for contact in self.contacts:
+                if self.chbToToday.isChecked():
+                    to_today = utc.localize(datetime.now())
+                else:
+                    to_today = utc.localize(datetime(2100,12,31,0,0))
+                has_to_today = contact['event'] <= to_today
                 has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
                 has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
                 has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
                             and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
-                if has_FIO and has_note and has_stage:
+                if has_FIO and has_note and has_stage and has_to_today:
                     for group in contact['groups']:
                         groups.add(group)
         self.groups = []
@@ -765,6 +770,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     i += 1
         else:
             for ind, contact in enumerate(self.contacts):
+                if self.chbToToday.isChecked():
+                    to_today = utc.localize(datetime.now())
+                else:
+                    to_today = utc.localize(datetime(2100,12,31,0,0))
+                has_to_today = contact['event'] <= to_today
                 has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
                 has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
                 has_group = False
@@ -773,7 +783,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         has_group = True
                 has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
                             and (self.all_stages_reverce[contact['stage']] >= self.cbStageFrom.currentIndex())
-                if has_FIO and has_note and has_group and has_stage:
+                if has_FIO and has_note and has_group and has_stage and has_to_today:
                     contacts_f.append(contact)
                     contacts_f[i]['contact_ind'] = ind
                     contacts_f_event[i] = contacts_f[i]['event']
@@ -1156,6 +1166,161 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.changed = True
         return
 
+    def click_clbCreateContact(self):  # Ищем дубли и выводим в print()
+        for i, contact in enumerate(self.contacts_filtered):
+            for j, contact2 in enumerate(self.contacts_filtered):
+                if contact['avito'] != '' and contact['avito'] == contact2['avito'] and i != j:
+                    if l(contact['fio']) > l(contact2['fio']):
+                        print(contact['iof'],contact2['iof'])
+                    else:
+                        print(contact2['iof'], contact['iof'])
+
+    def click_clbGoURL1(self):
+        if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 0:
+            if len(self.contacts_filtered[self.FIO_cur_id]['urls'][0]) > 5:
+                proc = Popen('firefox --new-tab ' + self.contacts_filtered[self.FIO_cur_id]['urls'][0],
+                             shell=True, stdout=PIPE, stderr=PIPE)
+                proc.wait()  # дождаться выполнения
+                res = proc.communicate()  # получить tuple('stdout', 'stderr')
+                if proc.returncode:
+                    print(res[1])
+                    print('result:', res[0])
+
+    def click_clbGoURL2(self):
+        if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 1:
+            if len(self.contacts_filtered[self.FIO_cur_id]['urls'][1]) > 5:
+                proc = Popen('firefox --new-tab ' + self.contacts_filtered[self.FIO_cur_id]['urls'][1],
+                             shell=True, stdout=PIPE, stderr=PIPE)
+                proc.wait()  # дождаться выполнения
+                res = proc.communicate()  # получить tuple('stdout', 'stderr')
+                if proc.returncode:
+                    print(res[1])
+                    print('result:', res[0])
+
+    def leIOF_changed(self, text):
+        str_ = text
+        if str_.find(' на участке ') > -1:
+            str_ = str_.replace(' на участке ', '+')
+        if str_.find(' м²') > -1:
+            str_ = str_.replace(' м²', 'м²')
+        if str_.find(' сот') > -1:
+            str_ = str_.replace(' сот', 'сот')
+        if str_.find(' га') > -1:
+            str_ = str_.replace(' га', 'га')
+        if str_.find('.') > -1:
+            str_ = str_.replace('.', '_')
+        self.leIOF.setText(str_)
+
+    def click_clbAvito(self):                       # Переключение с каледаря на карточку avito
+        if self.avito:
+            self.clbAvito.setIcon(QIcon('gcal.png'))
+            self.avito = False
+            self.preview.load(QUrl('https://calendar.google.com'))
+            self.preview.show()
+        else:
+            self.clbAvito.setIcon(QIcon('avito.png'))
+            self.avito = True
+            if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.avito:
+                self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+                self.preview.show()
+
+    def click_clbGCal(self):
+        q=0
+        self.clbExport.show()
+
+
+    def click_clbExport(self):                     # ищем на странице отсутствующие в БД ссылки avito и создаем карточки
+        #print(self.preview.page().url().url())
+        self.preview.page().toHtml(self.processHtml)
+        if len(self.my_html) < 1000:
+            return
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+        avitos = []
+        avitos_raw = self.my_html.split('href="/sochi/doma_dachi_kottedzhi/')
+        for i, avito_raw in enumerate(avitos_raw):
+            if i == 0:
+                continue
+            is_double = False
+            if avito_raw[:6] != 'prodam':
+                for davito in avitos:
+                    if davito == 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0]:
+                        is_double = True
+                if not is_double:
+                    avitos.append('https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0])
+        j = round(random()*1000000)
+        for avito in avitos:
+            has_in_db = False
+            for contact in self.contacts:
+                if str(contact.keys()).find('avito') > -1:
+                    if contact['avito'] == avito:
+                        has_in_db = True
+            if not has_in_db:
+                j += 1
+                buf_contact = {}
+                buf_contact['userDefined'] = [{}, {}, {}]
+                buf_contact['userDefined'][0]['value'] = 'пауза'
+                buf_contact['userDefined'][0]['key'] = 'stage'
+                buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
+                buf_contact['userDefined'][1]['key'] = 'calendar'
+                buf_contact['userDefined'][2]['value'] = '0'
+                buf_contact['userDefined'][2]['key'] = 'cost'
+                buf_contact['names'] = [{'givenName': str(j)}]
+                buf_contact['urls'] = {'value': avito}
+                buf_contact['biographies'] = [{}]
+                buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
+                                                          + '|0м|\n'
+                #buf_contact['phoneNumbers'] = ['0']
+                # Создаем контакт
+                try:
+                    service = discovery.build('people', 'v1', http=self.http_con,
+                                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                    resultsc = service.people().createContact(body=buf_contact).execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
+                    time.sleep(1)
+                    service = discovery.build('people', 'v1', http=self.http_con,
+                                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                    resultsc = service.people().createContact(body=buf_contact).execute()
+                # Добавляем в текущую группу
+                try:
+                    group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                    resultsg = service.contactGroups().members().modify(
+                        resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                        body=group_body
+                    ).execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
+                    time.sleep(1)
+                    group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                    resultsg = service.contactGroups().members().modify(
+                        resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                        body=group_body
+                    ).execute()
+                # Добавляем событие через 14 дней
+                event = {}
+                event['id'] = resultsc['resourceName'].split('/')[1]
+                event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=14)),
+                                          datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
+                event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=14)),
+                                          datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
+                event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + avito
+                event['summary'] = '- пауза'
+                try:
+                    service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+                    calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
+                    service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+                    calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
+        self.setup_twGroups()
+        q=0
+
+    def qwe(self):
+        q4 = """
+        
     def click_clbCreateContact(self):
         buf_contact = {}
         buf_contact['biographies'] = [{}]
@@ -1258,151 +1423,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.google2db4all()
         self.setup_twGroups()
         return
-
-    def click_clbGoURL1(self):
-        if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 0:
-            if len(self.contacts_filtered[self.FIO_cur_id]['urls'][0]) > 5:
-                proc = Popen('firefox --new-tab ' + self.contacts_filtered[self.FIO_cur_id]['urls'][0],
-                             shell=True, stdout=PIPE, stderr=PIPE)
-                proc.wait()  # дождаться выполнения
-                res = proc.communicate()  # получить tuple('stdout', 'stderr')
-                if proc.returncode:
-                    print(res[1])
-                    print('result:', res[0])
-
-    def click_clbGoURL2(self):
-        if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 1:
-            if len(self.contacts_filtered[self.FIO_cur_id]['urls'][1]) > 5:
-                proc = Popen('firefox --new-tab ' + self.contacts_filtered[self.FIO_cur_id]['urls'][1],
-                             shell=True, stdout=PIPE, stderr=PIPE)
-                proc.wait()  # дождаться выполнения
-                res = proc.communicate()  # получить tuple('stdout', 'stderr')
-                if proc.returncode:
-                    print(res[1])
-                    print('result:', res[0])
-
-    def leIOF_changed(self, text):
-        str_ = text
-        if str_.find(' на участке ') > -1:
-            str_ = str_.replace(' на участке ', '+')
-        if str_.find(' м²') > -1:
-            str_ = str_.replace(' м²', 'м²')
-        if str_.find(' сот') > -1:
-            str_ = str_.replace(' сот', 'сот')
-        if str_.find(' га') > -1:
-            str_ = str_.replace(' га', 'га')
-        if str_.find('.') > -1:
-            str_ = str_.replace('.', '_')
-        self.leIOF.setText(str_)
-
-    def click_clbAvito(self):                       # Переключение с каледаря на карточку avito
-        if self.avito:
-            self.clbAvito.setIcon(QIcon('gcal.png'))
-            self.avito = False
-            self.preview.load(QUrl('https://calendar.google.com'))
-            self.preview.show()
-        else:
-            self.clbAvito.setIcon(QIcon('avito.png'))
-            self.avito = True
-            if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.avito:
-                self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
-                self.preview.show()
-
-    def click_clbGCal(self):
-        q=0
-        self.clbExport.show()
-
-
-    def click_clbExport(self):                     # ищем на странице отсутствующие в БД ссылки avito и создаем карточки
-        #print(self.preview.page().url().url())
-        self.preview.page().toHtml(self.processHtml)
-        if len(self.my_html) < 1000:
-            return
-        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
-        avitos = []
-        avitos_raw = self.my_html.split('href="/sochi/doma_dachi_kottedzhi/')
-        for i, avito_raw in enumerate(avitos_raw):
-            if i == 0:
-                continue
-            is_double = False
-            if avito_raw[:6] != 'prodam':
-                for davito in avitos:
-                    if davito == 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0]:
-                        is_double = True
-                if not is_double:
-                    avitos.append('https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0])
-        j = round(random()*1000000)
-        for avito in avitos:
-            has_in_db = False
-            for contact in self.contacts:
-                if str(contact.keys()).find('avito') > -1:
-                    if contact['avito'] == avito:
-                        has_in_db = True
-            if not has_in_db:
-                j += 1
-                buf_contact = {}
-                buf_contact['userDefined'] = [{}, {}, {}]
-                buf_contact['userDefined'][0]['value'] = 'пауза'
-                buf_contact['userDefined'][0]['key'] = 'stage'
-                buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
-                buf_contact['userDefined'][1]['key'] = 'calendar'
-                buf_contact['userDefined'][2]['value'] = '0'
-                buf_contact['userDefined'][2]['key'] = 'cost'
-                buf_contact['names'] = [{'givenName': str(j)}]
-                buf_contact['urls'] = {'value': avito}
-                buf_contact['biographies'] = [{}]
-                buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|'
-                #buf_contact['phoneNumbers'] = ['0']
-                # Создаем контакт
-                try:
-                    service = discovery.build('people', 'v1', http=self.http_con,
-                                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                    resultsc = service.people().createContact(body=buf_contact).execute()
-                except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
-                    time.sleep(1)
-                    service = discovery.build('people', 'v1', http=self.http_con,
-                                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                    resultsc = service.people().createContact(body=buf_contact).execute()
-                # Добавляем в текущую группу
-                try:
-                    group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                    resultsg = service.contactGroups().members().modify(
-                        resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                        body=group_body
-                    ).execute()
-                except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
-                    time.sleep(1)
-                    group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                    resultsg = service.contactGroups().members().modify(
-                        resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                        body=group_body
-                    ).execute()
-                # Добавляем событие через 14 дней
-                event = {}
-                event['id'] = resultsc['resourceName'].split('/')[1]
-                event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=14)),
-                                          datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
-                event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=14)),
-                                          datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
-                event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-                event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + avito
-                event['summary'] = '- пауза'
-                try:
-                    service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
-                    calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-                except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
-                    service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
-                    calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
-        self.setup_twGroups()
-        q=0
-
-    def qwe(self):
-        q4 = """
+    
     def click_gluckGooglePatch(self):  # пересоздаем удаленные контакты (глюки Гугля при удалении)
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)         # Считываем глюки календаря

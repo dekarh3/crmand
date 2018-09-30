@@ -415,7 +415,7 @@
           <widget class="QComboBox" name="cbStage">
            <property name="minimumSize">
             <size>
-             <width>130</width>
+             <width>100</width>
              <height>0</height>
             </size>
            </property>
@@ -435,6 +435,21 @@
           </spacer>
          </item>
          <item>
+          <widget class="QCheckBox" name="chbToToday">
+           <property name="minimumSize">
+            <size>
+             <width>36</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="icon">
+            <iconset>
+             <selectedoff>toToday.png</selectedoff>
+            </iconset>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QDateEdit" name="deCalendar">
            <property name="calendarPopup">
             <bool>true</bool>
@@ -443,8 +458,16 @@
          </item>
          <item>
           <widget class="QCheckBox" name="chbDateSort">
-           <property name="text">
-            <string/>
+           <property name="minimumSize">
+            <size>
+             <width>36</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="icon">
+            <iconset>
+             <selectedoff>sort.png</selectedoff>
+            </iconset>
            </property>
           </widget>
          </item>
