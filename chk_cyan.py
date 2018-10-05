@@ -37,7 +37,7 @@ APPLICATION_NAME = 'People API Python Quickstart'
 IN_SNILS = ['ID']
 IN_NAME = ['ID', 'Телефоны', 'Площадь, м2', 'Участок', 'Цена', 'Ссылка на объявление']
 OUT_NAME = ['Дом+Участок']
-USED_GROUPS = ['_Квартиры', '_Коттеджи', '_Недвижимость']
+USED_GROUPS = ['_КвартирыСочи', '_КоттеджиСочи', 'Квартиры', 'Коттеджи', 'Недвижимость']
 
 def get_credentials_con():
     """Gets valid user credentials from storage.

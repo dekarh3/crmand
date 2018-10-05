@@ -1167,8 +1167,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_clbCreateContact(self):  # Ищем дубли и выводим в print()
-        for i, contact in enumerate(self.contacts_filtered):
-            for j, contact2 in enumerate(self.contacts_filtered):
+        for i, contact in enumerate(self.contacts):
+            for j, contact2 in enumerate(self.contacts):
                 if contact['avito'] != '' and contact['avito'] == contact2['avito'] and i != j:
                     if l(contact['fio']) > l(contact2['fio']):
                         print(contact['iof'],contact2['iof'])
