@@ -36,12 +36,15 @@ from lib import unique, l, s, fine_phone, format_phone
 
 ALL_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
-                     'нет на месте', 'недозвон', 'пауза', 'недоступен', 'нет объявления', '---', 'когда получится',
+                     'нет на месте', 'недозвон', 'пауза', 'нет объявления', 'недоступен', '---', 'когда получится',
                     'нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'уже продали', 'не верит', 'дубль',
                     'рыпу']
 WORK_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте', 'недозвон', 'пауза']
+LOST_STAGES_CONST = ['нет объявления']
+
+
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
@@ -371,7 +374,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact['urls'] = urls
             self.contacts.append(contact)
             if contact['event'] > utc.localize(datetime(2013, 1, 1, 0, 0)) \
-                    and contact['stage'] not in WORK_STAGES_CONST:
+                    and contact['stage'] not in WORK_STAGES_CONST and contact['stage'] not in LOST_STAGES_CONST:
                 events4delete.append(contact['resourceName'].split('/')[1])
         for event4delete in events4delete:
             event4 = service_cal.events().get(calendarId='primary', eventId=event4delete).execute()
@@ -1031,7 +1034,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # Календарь
 #        if cal_cancel or self.deCalendar.date() < datetime.today().date():
 #            return         # Если Дата не изменилась или поставили дату меньшую сегодняшней - ничего не изменяем
-        if self.cbStage.currentText() not in WORK_STAGES_CONST:  # Если стадия не рабочая, уходим поставив прошлую дату
+        if self.cbStage.currentText() not in WORK_STAGES_CONST and self.cbStage.currentText() not in LOST_STAGES_CONST:  # Если стадия не рабочая, уходим поставив прошлую дату
             try:
                 service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
                 event4 = service_cal.events().get(calendarId='primary',
@@ -1054,6 +1057,45 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 body=event4).execute()
             self.contacts_filtered[self.FIO_cur_id]['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
             return
+        if self.cbStage.currentText() not in WORK_STAGES_CONST:   # Если нет объявления, ставим ближайшую субботу
+            lost_date = datetime(2018, 10, 13)
+            try:
+                service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+                event4 = service_cal.events().get(calendarId='primary',
+                         eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]).execute()
+                event4_date = parse(event4['start']['dateTime'])
+                lost_date = datetime(2018, 10, 13)
+                while lost_date.year == datetime.now().year:
+                    if event4_date < utc.localize(lost_date):
+                        event4['start']['dateTime'] = (lost_date + timedelta(hours=19)).isoformat() + '+04:00'
+                        event4['end']['dateTime'] = (lost_date + timedelta(hours=19,minutes=15)).isoformat() + '+04:00'
+                        break
+                    else:
+                        lost_date += timedelta(days=7)
+                updated_event = service_cal.events().update(calendarId='primary',
+                                eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1],
+                                body=event4).execute()
+            except Exception as ee:
+                print(datetime.now().strftime("%H:%M:%S") + ' попробуем поставить прошлую дату еще раз')
+                time.sleep(1)
+                service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+                event4 = service_cal.events().get(calendarId='primary',
+                         eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1]).execute()
+                event4_date = parse(event4['start']['dateTime'])
+                lost_date = datetime(2018, 10, 13)
+                while lost_date.year == datetime.now().year:
+                    if event4_date < utc.localize(lost_date):
+                        event4['start']['dateTime'] = (lost_date + timedelta(hours=19)).isoformat() + '+04:00'
+                        event4['end']['dateTime'] = (lost_date + timedelta(hours=19,minutes=15)).isoformat() + '+04:00'
+                        break
+                    else:
+                        lost_date += timedelta(days=7)
+                updated_event = service_cal.events().update(calendarId='primary',
+                                eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1],
+                                body=event4).execute()
+            self.contacts_filtered[self.FIO_cur_id]['event'] = lost_date
+            return
+
         try:
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)                # Считываем весь календарь
             start = datetime(2012, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
