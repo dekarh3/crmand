@@ -338,7 +338,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QCommandLinkButton" name="clbCreateContact_4">
+             <widget class="QCommandLinkButton" name="clbPreviewLoading">
               <property name="maximumSize">
                <size>
                 <width>33</width>

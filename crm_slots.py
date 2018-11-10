@@ -19,9 +19,9 @@ import time
 import pytz
 utc=pytz.UTC
 
-from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer, QUrl
+from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer, QUrl, QEventLoop
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtWidgets import QTableWidgetItem, QMessageBox, QMainWindow, QWidget
+from PyQt5.QtWidgets import QTableWidgetItem, QMessageBox, QMainWindow, QWidget, QApplication
 
 
 from crm_win import Ui_Form
@@ -106,7 +106,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def setupUi(self, form):
         Ui_Form.setupUi(self,form)
-        self.avito = True
+        self.show_site = 'avito'
         self.my_html = ''
         self.contacts = []
         self.contacts_filtered = []
@@ -363,7 +363,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         email += oemailAddresses[0].get('value') + ' '
             contact['email'] = email
             contact['etag'] = connection['etag']
-            contact['avito'] = ''
+            contact['avito'] = ''                           # Фильтруем все ссылки на avito в поле 'avito'
+            contact['instagram'] = ''                       # а ссылки на instagram в поле 'instagram'
             urls = []
             ourls = connection.get('urls', [])
             if len(ourls) > 0:
@@ -371,6 +372,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     urls.append(ourl['value'])
                     if ourl['value'].find('www.avito.ru') > -1:
                         contact['avito'] = ourl['value']
+                    if ourl['value'].find('instagram.com') > -1:
+                        contact['instagram'] = ourl['value']
             contact['urls'] = urls
             self.contacts.append(contact)
             if contact['event'] > utc.localize(datetime(2013, 1, 1, 0, 0)) \
@@ -525,6 +528,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contact['email'] = email
         contact['etag'] = connection['etag']
         contact['avito'] = ''
+        contact['instagram'] = ''
         urls = []
         ourls = connection.get('urls', [])
         if len(ourls) > 0:
@@ -532,6 +536,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 urls.append(ourl['value'])
                 if ourl['value'].find('www.avito.ru') > -1:
                     contact['avito'] = ourl['value']
+                if ourl['value'].find('instagram.com') > -1:
+                    contact['instagram'] = ourl['value']
         contact['urls'] = urls
         ind = self.contacts_filtered[self.FIO_cur_id]['contact_ind']
         self.contacts_filtered[self.FIO_cur_id] = contact
@@ -596,8 +602,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.deCalendar.setDate(self.contacts_filtered[self.FIO_cur_id]['event'])
         self.cbTime.setTime(self.contacts_filtered[self.FIO_cur_id]['event'].time())
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
-        if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.avito:
+        if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.show_site == 'avito':
             self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+            self.preview.show()
+        elif len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 10 and self.show_site == 'instagram':
+            self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
             self.preview.show()
         self.setup_twCalls()
 
@@ -697,7 +706,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     for group in contact['groups']:
                         groups.add(group)
         else:
-            for contact in self.contacts:
+            for i, contact in enumerate(self.contacts):
                 if self.chbToToday.isChecked():
                     to_today = utc.localize(datetime.now())
                 else:
@@ -821,10 +830,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.click_twFIO()
         return
 
-    def processHtml(self, html):
-        self.my_html = html
-        time.sleep(5)
-
     def click_twFIO(self, index=None):
         if index == None:
             index = self.twFIO.model().index(0, 0)
@@ -867,6 +872,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.twCalls.setItem(0, i, QTableWidgetItem(t.strftime('%d.%m.%y %H:%M') + '#'
                                                             + s(l(a.split(']_[')[1]))[9:]))
         self.twCalls.resizeColumnsToContents()
+        return
 
     def click_twCalls(self, index=None):
         audios = ''
@@ -1093,7 +1099,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 updated_event = service_cal.events().update(calendarId='primary',
                                 eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'].split('/')[1],
                                 body=event4).execute()
-            self.contacts_filtered[self.FIO_cur_id]['event'] = lost_date
+            self.contacts_filtered[self.FIO_cur_id]['event'] = utc.localize(lost_date)
             return
 
         try:
@@ -1253,23 +1259,42 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             str_ = str_.replace('.', '_')
         self.leIOF.setText(str_)
 
-    def click_clbAvito(self):                       # Переключение с каледаря на карточку avito
-        if self.avito:
-            self.clbAvito.setIcon(QIcon('gcal.png'))
-            self.avito = False
-            self.preview.load(QUrl('https://calendar.google.com'))
-            self.preview.show()
-        else:
+    def click_clbAvito(self):                       # Переключение с календаря на карточку avito или instagram
+        if self.show_site == 'instagram':
             self.clbAvito.setIcon(QIcon('avito.png'))
-            self.avito = True
-            if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.avito:
+            self.show_site = 'avito'
+            if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10:
                 self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
                 self.preview.show()
+        elif self.show_site == 'calendar':
+            self.clbAvito.setIcon(QIcon('instagram.png'))
+            self.show_site = 'instagram'
+            if len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 10:
+                self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
+                self.preview.show()
+        else:
+            self.clbAvito.setIcon(QIcon('gcal.png'))
+            self.show_site = 'calendar'
+            self.preview.load(QUrl('https://calendar.google.com'))
+            self.preview.show()
 
     def click_clbGCal(self):
         q=0
         self.clbExport.show()
 
+    def preview_loading(self):
+        self.clbPreviewLoading.setIcon(QIcon('load.gif'))
+
+    def preview_loaded(self):
+        self.clbPreviewLoading.setIcon(QIcon('plus.png'))
+
+    def click_clbPreviewLoading(self):
+        self.preview.page().toHtml(self.processHtml)
+        self.teNote.setPlainText(self.my_html)
+
+    def processHtml(self, html_x):
+        self.my_html = str(html_x)
+        return
 
     def click_clbExport(self):                     # ищем на странице отсутствующие в БД ссылки avito и создаем карточки
         #print(self.preview.page().url().url())
