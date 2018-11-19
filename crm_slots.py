@@ -7,6 +7,7 @@ from string import digits
 from random import random
 from dateutil.parser import parse
 from collections import OrderedDict
+from urllib import request
 
 from apiclient import discovery                             # Механизм запроса данных
 from googleapiclient import errors
@@ -37,8 +38,8 @@ from lib import unique, l, s, fine_phone, format_phone
 ALL_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте', 'недозвон', 'пауза', 'нет объявления', 'недоступен', '---', 'когда получится',
-                    'нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'уже продали', 'не верит', 'дубль',
-                    'рыпу']
+                    'нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'мне не интересно', 'уже продали',
+                    'не верит', 'дубль', 'рыпу']
 WORK_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте', 'недозвон', 'пауза']
@@ -605,6 +606,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.show_site == 'avito':
             self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
             self.preview.show()
+            avito_x = self.contacts_filtered[self.FIO_cur_id]['avito'].strip()
+            for i in range(len(avito_x)-1,0,-1):
+                if avito_x[i] not in digits:
+                    break
+            response = request.urlopen('https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0')
+            html_х = response.read().decode('utf-8')
+            self.leDateStart.setText(html_х.split('<strong>')[1].split('</strong>')[0])
         elif len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 10 and self.show_site == 'instagram':
             self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
             self.preview.show()
@@ -682,8 +690,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_pbPeopleFilter(self):  # Кнопка фильтр
-        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+        try:
+            self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+            self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+        except IndexError:
+            q=0
 #        self.changed = False  # обновляем информацию о контакте
 #        self.google2db4one()
 #        self.changed = True
@@ -929,8 +940,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_clbRedo(self):
-        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+        try:
+            self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+            self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+        except IndexError:
+            q=0
         self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
         return
