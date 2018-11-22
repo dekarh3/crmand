@@ -290,6 +290,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
         self.contacts = []
         events4delete = []
+        number_of_new = 0
         for i, connection in enumerate(connections):
             contact = {}
             contact['resourceName'] = connection['resourceName']
@@ -1309,6 +1310,39 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def processHtml(self, html_x):
         self.my_html = str(html_x)
         return
+
+    def click_clbTrash(self):
+        if self.group_cur != '_КоттеджиСочи':
+            return
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        print('Всего:', len(self.contacts_filtered))
+        number_of_new = 0
+        for contact in self.contacts_filtered:
+            if not len(contact['phones']):
+                number_of_new += 1
+                print(str(number_of_new), contact['fio'])
+                try:
+                    event4 = service_cal.events().get(calendarId='primary',
+                                                             eventId=contact['resourceName'].split('/')[1]).execute()
+                    event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
+                    event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                    updated_event = service_cal.events().update(calendarId='primary',
+                                                eventId=contact['resourceName'].split('/')[1], body=event4).execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить событие еще раз')
+                    event4 = service_cal.events().get(calendarId='primary',
+                                                             eventId=contact['resourceName'].split('/')[1]).execute()
+                    event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
+                    event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                    updated_event = service_cal.events().update(calendarId='primary',
+                                                eventId=contact['resourceName'].split('/')[1], body=event4).execute()
+                try:
+                    resultsc = service.people().deleteContact(resourceName=contact['resourceName']).execute()
+                except Exception as ee:
+                    print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз')
+                    resultsc = service.people().deleteContact(resourceName=contact['resourceName']).execute()
 
     def click_clbExport(self):                     # ищем на странице отсутствующие в БД ссылки avito и создаем карточки
         #print(self.preview.page().url().url())
