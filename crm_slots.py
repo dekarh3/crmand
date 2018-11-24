@@ -45,7 +45,7 @@ WORK_STAGES_CONST = ['работаем', 'отработали', 'проводн
                      'нет на месте', 'недозвон', 'пауза']
 LOST_STAGES_CONST = ['нет объявления']
 
-
+MAX_PAGE = 20
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
@@ -154,6 +154,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.setup_twGroups()
         self.changed = True
         self.clbExport.hide()
+        self.progressBar.hide()
         return
 
     def errMessage(self, err_text): ## Method to open a message box
@@ -612,8 +613,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if avito_x[i] not in digits:
                     break
             response = request.urlopen('https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0')
-            html_х = response.read().decode('utf-8')
-            self.leDateStart.setText(html_х.split('<strong>')[1].split('</strong>')[0])
+            html_x = response.read().decode('utf-8')
+            self.leDateStart.setText(html_x.split('<strong>')[1].split('</strong>')[0])
         elif len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 10 and self.show_site == 'instagram':
             self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
             self.preview.show()
@@ -1311,15 +1312,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.my_html = str(html_x)
         return
 
-    def click_clbTrash(self):
+    def click_clbTrashLoad(self):
         if self.group_cur != '_КоттеджиСочи':
             return
+        self.progressBar.show()
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         print('Всего:', len(self.contacts_filtered))
         number_of_new = 0
-        for contact in self.contacts_filtered:
+        self.progressBar.setMaximum(len(self.contacts_filtered) - 1)
+        for i, contact in enumerate(self.contacts_filtered):
+            self.progressBar.setValue(i)
             if not len(contact['phones']):
                 number_of_new += 1
                 print(str(number_of_new), contact['fio'])
@@ -1343,6 +1349,102 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 except Exception as ee:
                     print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз')
                     resultsc = service.people().deleteContact(resourceName=contact['resourceName']).execute()
+        html_x = ''
+        self.progressBar.setMaximum(MAX_PAGE)
+        for i in range(1, MAX_PAGE):
+            self.progressBar.setValue(i)
+            if i == 1:
+                response = request.urlopen('https://www.avito.ru/sochi/doma_dachi_kottedzhi/prodam?s=2&user=1')
+            else:
+                response = request.urlopen('https://www.avito.ru/sochi/doma_dachi_kottedzhi/prodam?p=' + str(i) +
+                                           '&s=2&user=1')
+            html_x = response.read().decode('utf-8')
+            if len(html_x) < 1000:
+                continue
+            avitos = []
+            avitos_raw = html_x.split('href="/sochi/doma_dachi_kottedzhi/')
+            for i, avito_raw in enumerate(avitos_raw):
+                if i == 0:
+                    continue
+                is_double = False
+                if avito_raw[:6] != 'prodam':
+                    for davito in avitos:
+                        if davito == 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0]:
+                            is_double = True
+                    if not is_double:
+                        avitos.append('https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + avito_raw.split('"')[0])
+            j = round(random() * 1000000)
+            for avito in avitos:
+                has_in_db = False
+                for contact in self.contacts:
+                    if str(contact.keys()).find('avito') > -1:
+                        if contact['avito'] == avito:
+                            has_in_db = True
+                if not has_in_db:
+                    j += 1
+                    buf_contact = {}
+                    buf_contact['userDefined'] = [{}, {}, {}]
+                    buf_contact['userDefined'][0]['value'] = 'пауза'
+                    buf_contact['userDefined'][0]['key'] = 'stage'
+                    buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
+                    buf_contact['userDefined'][1]['key'] = 'calendar'
+                    buf_contact['userDefined'][2]['value'] = '0'
+                    buf_contact['userDefined'][2]['key'] = 'cost'
+                    buf_contact['names'] = [{'givenName': str(j)}]
+                    buf_contact['urls'] = {'value': avito}
+                    buf_contact['biographies'] = [{}]
+                    buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
+                                                             + '|0м|\n'
+                    # buf_contact['phoneNumbers'] = ['0']
+                    # Создаем контакт
+                    try:
+                        service = discovery.build('people', 'v1', http=self.http_con,
+                                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                        resultsc = service.people().createContact(body=buf_contact).execute()
+                    except Exception as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
+                        time.sleep(1)
+                        service = discovery.build('people', 'v1', http=self.http_con,
+                                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                        resultsc = service.people().createContact(body=buf_contact).execute()
+                    # Добавляем в текущую группу
+                    try:
+                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                        resultsg = service.contactGroups().members().modify(
+                            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                            body=group_body
+                        ).execute()
+                    except Exception as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
+                        time.sleep(1)
+                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                        resultsg = service.contactGroups().members().modify(
+                            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                            body=group_body
+                        ).execute()
+                    # Добавляем событие через 14 дней
+                    event = {}
+                    event['id'] = resultsc['resourceName'].split('/')[1]
+                    event['start'] = {'dateTime': datetime.combine((datetime.now().date() + timedelta(days=14)),
+                                                                   datetime.strptime('19:00',
+                                                                                     '%H:%M').time()).isoformat() + '+04:00'}
+                    event['end'] = {'dateTime': datetime.combine((datetime.now().date() + timedelta(days=14)),
+                                                                 datetime.strptime('19:15',
+                                                                                   '%H:%M').time()).isoformat() + '+04:00'}
+                    event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                    event['description'] = '|пауза|' + str(
+                        datetime.now().date() + timedelta(days=14)) + '|0м|\n' + avito
+                    event['summary'] = '- пауза'
+                    try:
+                        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+                        calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                    except Exception as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
+                        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+                        calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+        self.google2db4all()  # Перезагружаем ВСЕ контакты из gmail
+        self.setup_twGroups()
+        self.progressBar.hide()
 
     def click_clbExport(self):                     # ищем на странице отсутствующие в БД ссылки avito и создаем карточки
         #print(self.preview.page().url().url())
