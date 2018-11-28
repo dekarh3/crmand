@@ -45,7 +45,7 @@ WORK_STAGES_CONST = ['работаем', 'отработали', 'проводн
                      'нет на месте', 'недозвон', 'пауза']
 LOST_STAGES_CONST = ['нет объявления']
 
-MAX_PAGE = 2
+MAX_PAGE = 20
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
@@ -209,10 +209,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         pageSize=2000,
 #                        requestSyncToken=True,
 #                        syncToken=self.contacts_syncToken,
-                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                                     'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                                     'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                                     'residences,skills,taglines,urls,userDefined') \
+                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                     'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                     'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                     'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                     'userDefined') \
                         .execute()
                 except Exception as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
@@ -222,10 +223,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         pageSize=2000,
 #                        requestSyncToken=True,
 #                        syncToken=self.contacts_syncToken,
-                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                                     'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                                     'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                                     'residences,skills,taglines,urls,userDefined') \
+                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                     'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                     'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                     'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                     'userDefined') \
                         .execute()
             else:
                 try:
@@ -236,10 +238,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         pageSize=2000,
 #                        requestSyncToken=True,
 #                        syncToken=self.contacts_syncToken,
-                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                                     'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                                     'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                                     'residences,skills,taglines,urls,userDefined') \
+                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                     'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                     'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                     'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                     'userDefined') \
                         .execute()
                 except Exception as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
@@ -248,12 +251,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         resourceName='people/me',
                         pageToken=results['nextPageToken'],
                         pageSize=2000,
-                        requestSyncToken=True,
-                        syncToken=self.contacts_syncToken,
-                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                                     'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                                     'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                                     'residences,skills,taglines,urls,userDefined') \
+#                        requestSyncToken=True,
+#                        syncToken=self.contacts_syncToken,
+                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                     'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                     'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                     'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                     'userDefined') \
                         .execute()
             connections.extend(results.get('connections', []))
 #        self.contacts_syncToken = results['nextSyncToken']
