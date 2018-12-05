@@ -8,6 +8,8 @@ from random import random
 from dateutil.parser import parse
 from collections import OrderedDict
 from urllib import request
+import locale
+
 
 from apiclient import discovery                             # Механизм запроса данных
 from googleapiclient import errors
@@ -45,7 +47,7 @@ WORK_STAGES_CONST = ['работаем', 'отработали', 'проводн
                      'нет на месте', 'недозвон', 'пауза']
 LOST_STAGES_CONST = ['нет объявления']
 
-MAX_PAGE = 20
+MAX_PAGE = 2
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
@@ -53,7 +55,6 @@ SCOPES_CON = 'https://www.googleapis.com/auth/contacts' #.readonly'       #!!!!!
 SCOPES_CAL = 'https://www.googleapis.com/auth/calendar'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'People API Python Quickstart'
-
 
 def get_credentials_con():
     """Gets valid user credentials from storage.
@@ -1658,6 +1659,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_clbTrashLoad(self):
         if self.group_cur != '_КоттеджиСочи':
             return
+        locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
         self.progressBar.show()
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
@@ -1738,67 +1740,75 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         if avito_id == avito_x[k+1:]:
                             has_in_db = True
                 if not has_in_db:
-                    j += 1
-                    buf_contact = {}
-                    buf_contact['userDefined'] = [{}, {}, {}]
-                    buf_contact['userDefined'][0]['value'] = 'пауза'
-                    buf_contact['userDefined'][0]['key'] = 'stage'
-                    buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
-                    buf_contact['userDefined'][1]['key'] = 'calendar'
-                    buf_contact['userDefined'][2]['value'] = '0'
-                    buf_contact['userDefined'][2]['key'] = 'cost'
-                    buf_contact['names'] = [{'givenName': str(j)}]
-                    buf_contact['urls'] = {'value': avitos[avito_i]}
-                    buf_contact['biographies'] = [{}]
-                    buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
-                                                             + '|0м|\n'
-                    # buf_contact['phoneNumbers'] = ['0']
-                    # Создаем контакт
-                    try:
-                        service = discovery.build('people', 'v1', http=self.http_con,
-                                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                        resultsc = service.people().createContact(body=buf_contact).execute()
-                    except Exception as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
-                        time.sleep(1)
-                        service = discovery.build('people', 'v1', http=self.http_con,
-                                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                        resultsc = service.people().createContact(body=buf_contact).execute()
-                    # Добавляем в текущую группу
-                    try:
-                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                        resultsg = service.contactGroups().members().modify(
-                            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                            body=group_body
-                        ).execute()
-                    except Exception as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
-                        time.sleep(1)
-                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                        resultsg = service.contactGroups().members().modify(
-                            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                            body=group_body
-                        ).execute()
-                    # Добавляем событие через 14 дней
-                    event = {}
-                    event['id'] = resultsc['resourceName'].split('/')[1]
-                    event['start'] = {'dateTime': datetime.combine((datetime.now().date() + timedelta(days=14)),
-                                                                   datetime.strptime('19:00',
-                                                                                     '%H:%M').time()).isoformat() + '+04:00'}
-                    event['end'] = {'dateTime': datetime.combine((datetime.now().date() + timedelta(days=14)),
-                                                                 datetime.strptime('19:15',
-                                                                                   '%H:%M').time()).isoformat() + '+04:00'}
-                    event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-                    event['description'] = '|пауза|' + str(
-                        datetime.now().date() + timedelta(days=14)) + '|0м|\n' + avitos[avito_i]
-                    event['summary'] = '- пауза'
-                    try:
-                        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
-                        calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-                    except Exception as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
-                        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
-                        calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+# Если возраст объявления меньше месяца - не добавляем
+                    response = request.urlopen('https://www.avito.ru/items/stat/' + avito_id + '?step=0')
+                    html_x = response.read().decode('utf-8')
+                    avito_date = datetime.strptime((html_x.split('<strong>')[1].split('</strong>')[0]).strip(),
+                                                   '%d %B %Y')
+                    if avito_date < datetime.now() - timedelta(days=31):
+                        j += 1
+                        buf_contact = {}
+                        buf_contact['userDefined'] = [{}, {}, {}]
+                        buf_contact['userDefined'][0]['value'] = 'пауза'
+                        buf_contact['userDefined'][0]['key'] = 'stage'
+                        buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
+                        buf_contact['userDefined'][1]['key'] = 'calendar'
+                        buf_contact['userDefined'][2]['value'] = '0'
+                        buf_contact['userDefined'][2]['key'] = 'cost'
+                        buf_contact['names'] = [{'givenName': str(j)}]
+                        buf_contact['urls'] = {'value': avitos[avito_i]}
+                        buf_contact['biographies'] = [{}]
+                        buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
+                                                                 + '|0м|\n'
+                        # buf_contact['phoneNumbers'] = ['0']
+                        # Создаем контакт
+                        try:
+                            service = discovery.build('people', 'v1', http=self.http_con,
+                                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                            resultsc = service.people().createContact(body=buf_contact).execute()
+                        except Exception as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
+                            time.sleep(1)
+                            service = discovery.build('people', 'v1', http=self.http_con,
+                                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                            resultsc = service.people().createContact(body=buf_contact).execute()
+                        # Добавляем в текущую группу
+                        try:
+                            group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                            resultsg = service.contactGroups().members().modify(
+                                resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                                body=group_body
+                            ).execute()
+                        except Exception as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
+                            time.sleep(1)
+                            group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                            resultsg = service.contactGroups().members().modify(
+                                resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                                body=group_body
+                            ).execute()
+                        # Добавляем событие через 31 день
+                        if avito_date.weekday() == 5:
+                            avito_date += timedelta(days=2)
+                        if avito_date.weekday() == 6:
+                            avito_date += timedelta(days=1)
+                        event = {}
+                        event['id'] = resultsc['resourceName'].split('/')[1]
+                        event['start'] = {'dateTime': datetime.combine((avito_date + timedelta(days=31)),
+                                            datetime.strptime('19:00', '%H:%M').time()).isoformat() + '+04:00'}
+                        event['end'] = {'dateTime': datetime.combine((avito_date + timedelta(days=31)),
+                                            datetime.strptime('19:15', '%H:%M').time()).isoformat() + '+04:00'}
+                        event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                        event['description'] = '|пауза|' + str(
+                            datetime.now().date() + timedelta(days=14)) + '|0м|\n' + avitos[avito_i]
+                        event['summary'] = '- пауза'
+                        try:
+                            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+                            calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                        except Exception as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
+                            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+                            calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
         self.google2db4allFull()  # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
         self.progressBar.hide()
