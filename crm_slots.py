@@ -118,8 +118,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacty_syncToken = ''
         self.show_site = 'avito'
         self.my_html = ''
-        self.contacty = []
-        self.contacty_filtered = []
+        self.contacty = {}
+        self.contacty_filtered = {}
         self.contacty_filtered_reverced = {}
         self.groups = []
         self.groups_resourcenames = {}
@@ -127,8 +127,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.group_cur_id = 0
         self.group_saved_id = None
         self.FIO_cur = ''
-        self.FIO_cur_id = 0
-        self.FIO_saved_id = 0
+        self.FIO_cur_id = ''
+        self.FIO_saved_id = ''
         credentials_con = get_credentials_con()
         self.http_con = credentials_con.authorize(Http())
         credentials_cal = get_credentials_cal()
@@ -891,7 +891,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             result = service.people().get(
-                resourceName='people/' + elf.contacts_filtered[self.FIO_cur_id]['resourceName'],
+                resourceName='people/' + self.contacts_filtered[self.FIO_cur_id]['resourceName'],
                 personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                              'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                              'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
@@ -1108,7 +1108,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def setup_twFIO(self):
-        self.contacts_filtered = []
+        self.contacty_filtered = {}
         contacts_f = []
         contacts_f_event = {}
         contacts_f_cost = {}
@@ -1158,18 +1158,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.chbDateSort.isChecked():                                        # Сортировка по дате
             contacts_f_event_sorted = OrderedDict(sorted(contacts_f_event.items(), reverse = True, key=lambda t: t[1]))
             for j, contact_f_event_sorted in enumerate(contacts_f_event_sorted):
-                self.contacts_filtered.append(contacts_f[contact_f_event_sorted])
-                self.contacts_filtered_reverced[contacts_f[contact_f_event_sorted]['resourceName']] = j
+                self.contacty_filtered.append(contacts_f[contact_f_event_sorted])
+                self.contacty_filtered_reverced[contacts_f[contact_f_event_sorted]['resourceName']] = j
         elif self.chbCostSort.isChecked():                                      # Сортировка по цене
             contacts_f_cost_sorted = OrderedDict(sorted(contacts_f_cost.items(), reverse = True, key=lambda t: t[1]))
             for j, contact_f_cost_sorted in enumerate(contacts_f_cost_sorted):
                 self.contacts_filtered.append(contacts_f[contact_f_cost_sorted])
-                self.contacts_filtered_reverced[contacts_f[contact_f_cost_sorted]['resourceName']] = j
+                self.contacty_filtered_reverced[contacts_f[contact_f_cost_sorted]['resourceName']] = j
         else:                                                                   # Сортировка по фамилии
             contacts_f_fio_sorted = OrderedDict(sorted(contacts_f_fio.items(), key=lambda t: t[1]))
             for j, contact_f_fio_sorted in enumerate(contacts_f_fio_sorted):
                 self.contacts_filtered.append(contacts_f[contact_f_fio_sorted])
-                self.contacts_filtered_reverced[contacts_f[contact_f_fio_sorted]['resourceName']] = j
+                self.contacty_filtered_reverced[contacts_f[contact_f_fio_sorted]['resourceName']] = j
         self.twFIO.setColumnCount(1)                                # Устанавливаем кол-во колонок
         self.twFIO.setRowCount(len(self.contacts_filtered))         # Кол-во строк из таблицы
         for i, contact in enumerate(self.contacts_filtered):
@@ -1189,7 +1189,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.twFIO.setCurrentIndex(index)
         if self.FIO_saved_id:
             try:
-                index = self.twFIO.model().index(self.contacts_filtered_reverced[self.FIO_saved_id], 0)
+                index = self.twFIO.model().index(self.contacty_filtered_reverced[self.FIO_saved_id], 0)
             except KeyError:
                 index = self.twFIO.model().index(0, 0)
             self.twFIO.setCurrentIndex(index)
@@ -1287,7 +1287,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
         except IndexError:
             q=0
-        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
+        self.google2db4allFull() # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
         return
 
@@ -1729,9 +1729,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for i in range(1, MAX_PAGE):
             self.progressBar.setValue(i)
             if i == 1:
-                response = request.urlopen('https://www.avito.ru/sochi/doma_dachi_kottedzhi/prodam?s=2&user=1')
+                response = urllib.request.urlopen('https://www.avito.ru/sochi/doma_dachi_kottedzhi/prodam?s=2&user=1')
             else:
-                response = request.urlopen('https://www.avito.ru/sochi/doma_dachi_kottedzhi/prodam?p=' + str(i) +
+                response = urllib.request.urlopen('https://www.avito.ru/sochi/doma_dachi_kottedzhi/prodam?p=' + str(i) +
                                            '&s=2&user=1')
             html_x = response.read().decode('utf-8')
             if len(html_x) < 1000:
@@ -1773,7 +1773,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # Если возраст объявления меньше месяца - не добавляем
                     html_avito = ''
                     while not html_avito:
-                        response = request.urlopen('https://www.avito.ru/items/stat/' + avito_id + '?step=0')
+                        response = urllib.request.urlopen('https://www.avito.ru/items/stat/' + avito_id + '?step=0')
                         html_avito = response.read().decode('utf-8')
                     avito_date = datetime.strptime((html_avito.split('<strong>')[1].split('</strong>')[0]).strip(),
                                                    '%d %B %Y')
