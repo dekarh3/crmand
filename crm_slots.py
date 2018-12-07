@@ -7,7 +7,7 @@ from string import digits
 from random import random
 from dateutil.parser import parse
 from collections import OrderedDict
-from urllib import request
+import urllib.request, urllib.parse
 import locale
 
 
@@ -25,6 +25,7 @@ utc=pytz.UTC
 from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer, QUrl, QEventLoop
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QTableWidgetItem, QMessageBox, QMainWindow, QWidget, QApplication
+from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineProfile
 
 
 from crm_win import Ui_Form
@@ -55,6 +56,11 @@ SCOPES_CON = 'https://www.googleapis.com/auth/contacts' #.readonly'       #!!!!!
 SCOPES_CAL = 'https://www.googleapis.com/auth/calendar'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'People API Python Quickstart'
+
+#USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) QtWebEngine/5.11.1 ' \
+#             'Chrome/65.0.3325.230 Safari/537.36'
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) snap ' \
+             'Chromium/70.0.3538.110 Chrome/70.0.3538.110 Safari/537.36'
 
 def get_credentials_con():
     """Gets valid user credentials from storage.
@@ -668,17 +674,32 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.cbTime.setTime(self.contacts_filtered[self.FIO_cur_id]['event'].time())
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
         if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.show_site == 'avito':
+            profile = QWebEngineProfile(self.preview)
+            profile.setHttpUserAgent(USER_AGENT)
+            page = QWebEnginePage(profile, self.preview)
+            page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+            self.preview.setPage(page)
             self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
             self.preview.show()
-            avito_x = self.contacts_filtered[self.FIO_cur_id]['avito'].strip()
-            for i in range(len(avito_x)-1,0,-1):
-                if avito_x[i] not in digits:
-                    break
-            response = request.urlopen('https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0')
-            html_x = response.read().decode('utf-8')
-            self.leDateStart.setText(html_x.split('<strong>')[1].split('</strong>')[0])
+#            avito_x = self.contacts_filtered[self.FIO_cur_id]['avito'].strip()
+#            for i in range(len(avito_x)-1,0,-1):
+#                if avito_x[i] not in digits:
+#                    break
+#            html_x = ''
+#            while not html_x:
+#                avito_data = {'page-url' : avito_x}
+#                adata = urllib.parse.urlencode(avito_data).encode("utf-8")
+#                req = urllib.request.Request('https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0', data=adata,
+#                                             headers={'User-Agent' : USER_AGENT})                #, 'Referer' : avito_x})
+#                response = urllib.request.urlopen(req)   #'https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0', data=req)
+#                html_x = response.read().decode('utf-8')
+#            self.leDateStart.setText(html_x.split('<strong>')[1].split('</strong>')[0])
         elif len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 10 and self.show_site == 'instagram':
-            self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
+            profile = QWebEngineProfile(self.preview)
+            profile.setHttpUserAgent(USER_AGENT)
+            page = QWebEnginePage(profile, self.preview)
+            page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
+            self.preview.setPage(page)
             self.preview.show()
         self.setup_twCalls()
 
@@ -1367,13 +1388,22 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.clbAvito.setIcon(QIcon('avito.png'))
             self.show_site = 'avito'
             if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10:
+                profile = QWebEngineProfile(self.preview)
+                profile.setHttpUserAgent(USER_AGENT)
+                page = QWebEnginePage(profile, self.preview)
+                page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+                self.preview.setPage(page)
                 self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
                 self.preview.show()
         elif self.show_site == 'calendar':
             self.clbAvito.setIcon(QIcon('instagram.png'))
             self.show_site = 'instagram'
             if len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 10:
-                self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
+                profile = QWebEngineProfile(self.preview)
+                profile.setHttpUserAgent(USER_AGENT)
+                page = QWebEnginePage(profile, self.preview)
+                page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
+                self.preview.setPage(page)
                 self.preview.show()
         else:
             self.clbAvito.setIcon(QIcon('gcal.png'))
@@ -1484,9 +1514,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             has_in_db = True
                 if not has_in_db:
 # Если возраст объявления меньше месяца - не добавляем
-                    response = request.urlopen('https://www.avito.ru/items/stat/' + avito_id + '?step=0')
-                    html_x = response.read().decode('utf-8')
-                    avito_date = datetime.strptime((html_x.split('<strong>')[1].split('</strong>')[0]).strip(),
+                    html_avito = ''
+                    while not html_avito:
+                        response = request.urlopen('https://www.avito.ru/items/stat/' + avito_id + '?step=0')
+                        html_avito = response.read().decode('utf-8')
+                    avito_date = datetime.strptime((html_avito.split('<strong>')[1].split('</strong>')[0]).strip(),
                                                    '%d %B %Y')
                     if avito_date < datetime.now() - timedelta(days=31):
                         j += 1
