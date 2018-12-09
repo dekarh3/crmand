@@ -1197,7 +1197,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.FIO_saved_id:
             try:
                 index = self.twFIO.model().index(self.contacts_filtered_reverced.index(self.FIO_saved_id), 0)
-            except KeyError:
+            except ValueError:
                 index = self.twFIO.model().index(0, 0)
                 self.FIO_saved_id = self.contacts_filtered_reverced[0]
             self.twFIO.setCurrentIndex(index)
