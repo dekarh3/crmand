@@ -119,8 +119,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.show_site = 'avito'
         self.my_html = ''
         self.contacty = {}
-        self.contacty_filtered = {}
-        self.contacty_filtered_reverced = {}
+        self.contacts_filtered = {}
+        self.contacts_filtered_reverced = []
         self.groups = []
         self.groups_resourcenames = {}
         self.group_cur = ''
@@ -333,6 +333,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for i, connection in enumerate(connections):
             contact = {}
             contact['resourceName'] = connection['resourceName'].split('/')[1]
+            if not self.FIO_cur_id:
+                self.FIO_cur_id = connection['resourceName'].split('/')[1]
+            if not self.FIO_saved_id:
+                self.FIO_saved_id = connection['resourceName'].split('/')[1]
             name = ''
             iof = ''
             onames = connection.get('names', [])
@@ -1034,7 +1038,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_pbPeopleFilter(self):  # Кнопка фильтр
         try:
             self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-            self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+            self.FIO_saved_id = self.FIO_cur_id
         except IndexError:
             q=0
 #        self.changed = False  # обновляем информацию о контакте
@@ -1108,7 +1112,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def setup_twFIO(self):
-        self.contacty_filtered = {}
+        self.contacts_filtered = {}
         contacts_f = []
         contacts_f_event = {}
         contacts_f_cost = {}
@@ -1158,22 +1162,25 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.chbDateSort.isChecked():                                        # Сортировка по дате
             contacts_f_event_sorted = OrderedDict(sorted(contacts_f_event.items(), reverse = True, key=lambda t: t[1]))
             for j, contact_f_event_sorted in enumerate(contacts_f_event_sorted):
-                self.contacty_filtered.append(contacts_f[contact_f_event_sorted])
-                self.contacty_filtered_reverced[contacts_f[contact_f_event_sorted]['resourceName']] = j
+                self.contact_filtered[contacts_f[contact_f_event_sorted]['resourceName']] = \
+                                                                                    contacts_f[contact_f_event_sorted]
+                self.contacts_filtered_reverced.append(contacts_f[contact_f_event_sorted]['resourceName'])
         elif self.chbCostSort.isChecked():                                      # Сортировка по цене
             contacts_f_cost_sorted = OrderedDict(sorted(contacts_f_cost.items(), reverse = True, key=lambda t: t[1]))
             for j, contact_f_cost_sorted in enumerate(contacts_f_cost_sorted):
-                self.contacts_filtered.append(contacts_f[contact_f_cost_sorted])
-                self.contacty_filtered_reverced[contacts_f[contact_f_cost_sorted]['resourceName']] = j
+                self.contacts_filtered[contacts_f[contact_f_cost_sorted]['resourceName']] = \
+                                                                                    contacts_f[contact_f_cost_sorted]
+                self.contacts_filtered_reverced.append(contacts_f[contact_f_cost_sorted]['resourceName'])
         else:                                                                   # Сортировка по фамилии
             contacts_f_fio_sorted = OrderedDict(sorted(contacts_f_fio.items(), key=lambda t: t[1]))
             for j, contact_f_fio_sorted in enumerate(contacts_f_fio_sorted):
-                self.contacts_filtered.append(contacts_f[contact_f_fio_sorted])
-                self.contacty_filtered_reverced[contacts_f[contact_f_fio_sorted]['resourceName']] = j
+                self.contacts_filtered[contacts_f[contact_f_fio_sorted]['resourceName']] = \
+                                                                                    contacts_f[contact_f_fio_sorted]
+                self.contacts_filtered_reverced.append(contacts_f[contact_f_fio_sorted]['resourceName'])
         self.twFIO.setColumnCount(1)                                # Устанавливаем кол-во колонок
         self.twFIO.setRowCount(len(self.contacts_filtered))         # Кол-во строк из таблицы
-        for i, contact in enumerate(self.contacts_filtered):
-            self.twFIO.setItem(i-1, 1, QTableWidgetItem(contact['fio']))
+        for i, contact_id in enumerate(self.contacts_filtered):
+            self.twFIO.setItem(i-1, 1, QTableWidgetItem(self.contacts_filtered[contact_id]['fio']))
         # Устанавливаем заголовки таблицы
         self.twFIO.setHorizontalHeaderLabels(["Ф.И.О."])
         # Устанавливаем выравнивание на заголовки
@@ -1189,15 +1196,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.twFIO.setCurrentIndex(index)
         if self.FIO_saved_id:
             try:
-                index = self.twFIO.model().index(self.contacty_filtered_reverced[self.FIO_saved_id], 0)
+                index = self.twFIO.model().index(self.contacts_filtered_reverced.index(self.FIO_saved_id), 0)
             except KeyError:
                 index = self.twFIO.model().index(0, 0)
+                self.FIO_saved_id = self.contacts_filtered_reverced[0]
             self.twFIO.setCurrentIndex(index)
-            self.FIO_saved_id = 0
         if index.row() < 0:
             return None
         self.changed = False # обновляем информацию о контакте и карточку
-        self.FIO_cur_id = index.row()
+        self.FIO_cur_id = self.contacts_filtered_reverced[index.row()]
         self.google2db4one()
         self.db2form4one()
         self.changed = True
@@ -1284,7 +1291,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_clbRedo(self):
         try:
             self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-            self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+            self.FIO_saved_id = self.FIO_cur_id
         except IndexError:
             q=0
         self.google2db4allFull() # Перезагружаем ВСЕ контакты из gmail
@@ -1692,7 +1699,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
         self.progressBar.show()
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+        self.FIO_saved_id = self.FIO_cur_id
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
@@ -1851,7 +1858,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if len(self.my_html) < 1000:
             return
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-        self.FIO_saved_id = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+        self.FIO_saved_id = self.FIO_cur_id
         avitos = []
         avitos_raw = self.my_html.split('href="/sochi/doma_dachi_kottedzhi/')
         for i, avito_raw in enumerate(avitos_raw):
