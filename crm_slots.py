@@ -121,6 +121,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacty = {}
         self.contacts_filtered = {}
         self.contacts_filtered_reverced = []
+        self.events = {}
         self.groups = []
         self.groups_resourcenames = {}
         self.group_cur = ''
@@ -335,8 +336,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact['resourceName'] = connection['resourceName'].split('/')[1]
             if not self.FIO_cur_id:
                 self.FIO_cur_id = connection['resourceName'].split('/')[1]
-            if not self.FIO_saved_id:
-                self.FIO_saved_id = connection['resourceName'].split('/')[1]
+#            if not self.FIO_saved_id:
+#                self.FIO_saved_id = connection['resourceName'].split('/')[1]
             name = ''
             iof = ''
             onames = connection.get('names', [])
@@ -458,7 +459,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.groups_resourcenames[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
             self.groups_resourcenames_reversed[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
         # Контакты
-        connections = []
+        connections = []                                                # Считываем изменения в контактах
         results = {'nextPageToken': ''}
         while str(results.keys()).find('nextPageToken') > -1:
             if results['nextPageToken'] == '':
@@ -523,7 +524,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.contacty_syncToken = results['nextSyncToken']
 
         # Календарь
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем изменения в календаре
         calendars = []
         calendars_result = {'nextPageToken': ''}
         start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
@@ -540,7 +541,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         orderBy='startTime'
                     ).execute()
                 except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать изменения в календаре еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
                         showDeleted=True,
@@ -563,7 +564,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         orderBy='startTime'
                     ).execute()
                 except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать изменения в календаре еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
                         showDeleted=True,
@@ -698,7 +699,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             result = service.people().get(
-                resourceName='people/' + self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+                resourceName='people/' + self.FIO_cur_id,
                 personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,'
                              'events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,'
                              'occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,'
@@ -711,7 +712,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             result = service.people().get(
-                resourceName='people/' + self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+                resourceName='people/' + self.FIO_cur_id,
                 personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,'
                              'events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,'
                              'occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,'
@@ -882,7 +883,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             result = service.people().get(
-                resourceName='people/' + self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+                resourceName='people/' + self.FIO_cur_id,
                 personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                              'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                              'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
@@ -895,7 +896,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             result = service.people().get(
-                resourceName='people/' + self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+                resourceName='people/' + self.FIO_cur_id,
                 personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                              'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                              'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
@@ -1113,6 +1114,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def setup_twFIO(self):
         self.contacts_filtered = {}
+        self.contacts_filtered_reverced = []
         contacts_f = []
         contacts_f_event = {}
         contacts_f_cost = {}
@@ -1162,7 +1164,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.chbDateSort.isChecked():                                        # Сортировка по дате
             contacts_f_event_sorted = OrderedDict(sorted(contacts_f_event.items(), reverse = True, key=lambda t: t[1]))
             for j, contact_f_event_sorted in enumerate(contacts_f_event_sorted):
-                self.contact_filtered[contacts_f[contact_f_event_sorted]['resourceName']] = \
+                self.contacts_filtered[contacts_f[contact_f_event_sorted]['resourceName']] = \
                                                                                     contacts_f[contact_f_event_sorted]
                 self.contacts_filtered_reverced.append(contacts_f[contact_f_event_sorted]['resourceName'])
         elif self.chbCostSort.isChecked():                                      # Сортировка по цене
@@ -1194,12 +1196,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if index == None:
             index = self.twFIO.model().index(0, 0)
             self.twFIO.setCurrentIndex(index)
-        if self.FIO_saved_id:
+        elif self.FIO_saved_id:
             try:
                 index = self.twFIO.model().index(self.contacts_filtered_reverced.index(self.FIO_saved_id), 0)
             except ValueError:
                 index = self.twFIO.model().index(0, 0)
-                self.FIO_saved_id = self.contacts_filtered_reverced[0]
+#                self.FIO_saved_id = self.contacts_filtered_reverced[0]
             self.twFIO.setCurrentIndex(index)
         if index.row() < 0:
             return None
@@ -1207,6 +1209,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.FIO_cur_id = self.contacts_filtered_reverced[index.row()]
         self.google2db4one()
         self.db2form4one()
+        self.FIO_saved_id = ''
         self.changed = True
         return
 
@@ -1270,7 +1273,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             resultsc = service.people().updateContact(
-                resourceName='people/' + self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+                resourceName='people/' + self.FIO_cur_id,
                 updatePersonFields='biographies,userDefined',
                 body=buf_contact).execute()
         except Exception as ee:
@@ -1279,7 +1282,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             resultsc = service.people().updateContact(
-                resourceName='people/' + self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+                resourceName='people/' + self.FIO_cur_id,
                 updatePersonFields='biographies,userDefined',
                 body=buf_contact).execute()
         self.changed = False # обновляем информацию о контакте и карточку
@@ -1381,7 +1384,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             resultsc = service.people().updateContact(
-                resourceName='people/' + self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+                resourceName='people/' + self.FIO_cur_id,
                 updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
                 body=buf_contact).execute()
         except Exception as ee:
@@ -1390,7 +1393,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             resultsc = service.people().updateContact(
-                resourceName='people/' + self.contacts_filtered[self.FIO_cur_id]['resourceName'],
+                resourceName='people/' + self.FIO_cur_id,
                 updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
                 body=buf_contact).execute()
 
