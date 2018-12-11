@@ -121,7 +121,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacty = {}
         self.contacts_filtered = {}
         self.contacts_filtered_reverced = []
-        self.events = {}
         self.groups = []
         self.groups_resourcenames = {}
         self.group_cur = ''
@@ -459,7 +458,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.groups_resourcenames[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
             self.groups_resourcenames_reversed[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
         # Контакты
-        connections = []                                                # Считываем изменения в контактах
+        connections = []
         results = {'nextPageToken': ''}
         while str(results.keys()).find('nextPageToken') > -1:
             if results['nextPageToken'] == '':
@@ -524,7 +523,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.contacty_syncToken = results['nextSyncToken']
 
         # Календарь
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем изменения в календаре
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
         calendars = []
         calendars_result = {'nextPageToken': ''}
         start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
@@ -541,7 +540,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         orderBy='startTime'
                     ).execute()
                 except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать изменения в календаре еще раз')
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
                         showDeleted=True,
@@ -564,7 +563,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         orderBy='startTime'
                     ).execute()
                 except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать изменения в календаре еще раз')
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
                         showDeleted=True,
@@ -577,20 +576,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     ).execute()
             calendars.extend(calendars_result.get('items', []))
 
-        eventds = {}
+        self.all_events = {}
         for calendar in calendars:
-            eventd = {}
-            eventd['id'] = calendar['id']
+            event = {}
+            event['id'] = calendar['id']
             if str(calendar['start'].keys()).find('dateTime') > -1:
-                eventd['start'] = calendar['start']['dateTime']
+                event['start'] = calendar['start']['dateTime']
             else:
-                eventd['start'] = str(
+                event['start'] = str(
                     utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M")))
             if str(calendar.keys()).find('htmlLink') > -1:
-                eventd['www'] = calendar['htmlLink']
+                event['www'] = calendar['htmlLink']
             else:
-                eventd['www'] = ''
-            eventds[calendar['id']] = eventd
+                event['www'] = ''
+            self.all_events[calendar['id']] = event
 
         self.contacty = {}
         events4delete = []
@@ -652,7 +651,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact['calendar'] = calendar
             contact['cost'] = cost + random() * 1e-5
             try:  # есть такой event - берем
-                eventn = eventds[contact['resourceName']]
+                eventn = self.all_events[contact['resourceName']]
                 contact['event'] = parse(eventn['start'])
                 contact['event-www'] = eventn['www']
             except KeyError:  # нет такого event'а - ставим дряхлую дату
