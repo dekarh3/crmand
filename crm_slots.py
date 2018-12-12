@@ -270,7 +270,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'userDefined') \
                                 .execute()
                         except errors.HttpError as ee:
-                            if ee.resp['static'] == '410':
+                            if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
                                 need_full_reload = True
                                 break
@@ -293,7 +293,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'userDefined') \
                                 .execute()
                         except errors.HttpError as ee:
-                            if ee.resp['static'] == '410':
+                            if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
                                 need_full_reload = True
                                 break
@@ -362,13 +362,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 calendarId='primary',
                                 showDeleted=True,
                                 showHiddenInvitations=True,
-                                timeMin=start,
                                 maxResults=2000,
                                 syncToken=self.events_syncToken,
                                 singleEvents=True
                             ).execute()
                         except errors.HttpError as ee:
-                            if ee.resp['static'] == '410':
+                            if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
                                 need_full_reload = True
                                 break
@@ -382,14 +381,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 calendarId='primary',
                                 showDeleted=True,
                                 showHiddenInvitations=True,
-                                timeMin=start,
                                 maxResults=2000,
                                 syncToken=self.events_syncToken,
                                 pageToken=calendars_result['nextPageToken'],
                                 singleEvents=True
                             ).execute()
                         except errors.HttpError as ee:
-                            if ee.resp['static'] == '410':
+                            if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
                                 need_full_reload = True
                                 break
