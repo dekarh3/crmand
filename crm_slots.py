@@ -1006,7 +1006,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts_filtered[self.FIO_cur_id]['phones'] = phones
         self.contacts_filtered[self.FIO_cur_id]['stage'] = self.cbStage.currentText()
         self.contacts_filtered[self.FIO_cur_id]['calendar'] = self.deCalendar.date().toString("dd.MM.yyyy")
-        self.contacts_filtered[self.FIO_cur_id]['cost'] = float(self.leCost.text()) + random() * 1e-5
+        try:
+            self.contacts_filtered[self.FIO_cur_id]['cost'] = float(self.leCost.text()) + random() * 1e-5
+        except ValueError:
+            self.contacts_filtered[self.FIO_cur_id]['cost'] = 0
         self.contacts_filtered[self.FIO_cur_id]['town'] = self.leTown.text().strip()
         emails = []
         if len(self.leEmail.text().strip().split(' ')) > 0:
@@ -1270,37 +1273,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_clbSave(self):
-#        self.google2db4allPart()
+        self.google2db4allPart()
         pred_cal = self.contacts_filtered[self.FIO_cur_id]['event']
-        pred_stage = self.contacts_filtered[self.FIO_cur_id]['stage']
         self.form2db4one()
-        if len(self.teNote.toPlainText()) > 0:
-            if self.teNote.toPlainText()[0] != '|':
-                self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
-                                    '|' + '{0:0g}'.format(round(self.contacts_filtered[self.FIO_cur_id]['cost']*1000)/1000)+
-                                    'м|' + '\n' + self.teNote.toPlainText())
-            else:
-                txt = self.teNote.toPlainText()
-                self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
-                                    '|' + '{0:0g}'.format(round(self.contacts_filtered[self.FIO_cur_id]['cost']*1000)/1000)+
-                                    'м|' + '\n' + txt[txt.find('\n') + 1:])
-        else:
-            self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
-                                '|' + '{0:0g}'.format(round(self.contacts_filtered[self.FIO_cur_id]['cost'] * 1000) / 1000) +
-                                'м|' + '\n' + self.teNote.toPlainText())
         buf_contact = {}
         buf_contact['userDefined'] = [{},{},{}]
-        buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
+        buf_contact['userDefined'][0]['value'] = self.contacts_filtered[self.FIO_cur_id]['stage']
         buf_contact['userDefined'][0]['key'] = 'stage'
-        buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
+        buf_contact['userDefined'][1]['value'] = self.contacts_filtered[self.FIO_cur_id]['calendar'].toString(
+                                                                                                        "dd.MM.yyyy")
         buf_contact['userDefined'][1]['key'] = 'calendar'
-        try:
-            buf_contact['userDefined'][2]['value'] = str(float(self.leCost.text()))
-        except ValueError:
-            buf_contact['userDefined'][2]['value'] = '0'
+        buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4))
         buf_contact['userDefined'][2]['key'] = 'cost'
         buf_contact['biographies'] = [{}]
-        buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
+        buf_contact['biographies'][0]['value'] = self.contacts_filtered[self.FIO_cur_id]['note']
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
         givenName = ''
         middleName = ''
@@ -1342,9 +1328,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         buf_contact['emailAddresses'].append({'value': email})
         if self.leTown.text():
             if len(self.leTown.text().strip()) > 0:
-                buf_contact['addresses'] = [{'streetAddress': self.leTown.text().strip()}]
-        time.sleep(5)
-        self.google2db4etag()       # обновляем информацию о контакте
+                buf_contact['addresses'] = [{'streetAddress': self.contacts_filtered[self.FIO_cur_id]['town']}]
         buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
         # Обновление контакта
         try:
@@ -1367,157 +1351,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         cal_cancel = False
         if pred_cal.date() == self.deCalendar.date(): #.toString("dd.MM.yyyy"):  #
             cal_cancel = True
-#        self.google2db4one()       # обновляем информацию о контакте
-
 # Календарь
-#        if cal_cancel or self.deCalendar.date() < datetime.today().date():
-#            return         # Если Дата не изменилась или поставили дату меньшую сегодняшней - ничего не изменяем
-        if self.cbStage.currentText() not in WORK_STAGES_CONST and self.cbStage.currentText() not in LOST_STAGES_CONST:  # Если стадия не рабочая, уходим поставив прошлую дату
-            try:
-                service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-                event4 = service_cal.events().get(calendarId='primary',
-                         eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName']).execute()
-                event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-                event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
-                updated_event = service_cal.events().update(calendarId='primary',
-                                eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
-                                body=event4).execute()
-            except Exception as ee:
-                print(datetime.now().strftime("%H:%M:%S") + ' попробуем поставить прошлую дату еще раз')
-                time.sleep(1)
-                service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-                event4 = service_cal.events().get(calendarId='primary',
-                         eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName']).execute()
-                event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-                event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
-                updated_event = service_cal.events().update(calendarId='primary',
-                                eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
-                                body=event4).execute()
-            self.contacts_filtered[self.FIO_cur_id]['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
-            return
-        if self.cbStage.currentText() not in WORK_STAGES_CONST:   # Если нет объявления, ставим ближайшую субботу
-            lost_date = datetime(2012, 1, 7)
-            try:
-                service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-                event4 = service_cal.events().get(calendarId='primary',
-                         eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName']).execute()
-                event4_date = parse(event4['start']['dateTime'])
-                lost_date = datetime(2012, 1, 7)
-                while lost_date.year == datetime.now().year:
-                    if event4_date < utc.localize(lost_date):
-                        event4['start']['dateTime'] = (lost_date + timedelta(hours=19)).isoformat() + '+04:00'
-                        event4['end']['dateTime'] = (lost_date + timedelta(hours=19,minutes=15)).isoformat() + '+04:00'
-                        break
-                    else:
-                        lost_date += timedelta(days=7)
-                updated_event = service_cal.events().update(calendarId='primary',
-                                eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
-                                body=event4).execute()
-            except Exception as ee:
-                print(datetime.now().strftime("%H:%M:%S") + ' попробуем поставить прошлую дату еще раз')
-                time.sleep(1)
-                service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-                event4 = service_cal.events().get(calendarId='primary',
-                         eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName']).execute()
-                event4_date = parse(event4['start']['dateTime'])
-                lost_date = datetime(2012, 1, 7)
-                while lost_date.year == datetime.now().year:
-                    if event4_date < utc.localize(lost_date):
-                        event4['start']['dateTime'] = (lost_date + timedelta(hours=19)).isoformat() + '+04:00'
-                        event4['end']['dateTime'] = (lost_date + timedelta(hours=19,minutes=15)).isoformat() + '+04:00'
-                        break
-                    else:
-                        lost_date += timedelta(days=7)
-                updated_event = service_cal.events().update(calendarId='primary',
-                                eventId=self.contacts_filtered[self.FIO_cur_id]['resourceName'],
-                                body=event4).execute()
-            self.contacts_filtered[self.FIO_cur_id]['event'] = utc.localize(lost_date)
-            return
 
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-        calendars = []
-        calendars_result = {'nextPageToken':''}
-        start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
-        while str(calendars_result.keys()).find('nextPageToken') > -1:
-            if calendars_result['nextPageToken'] == '':
-                try:
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-                except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-            else:
-                try:
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        pageToken=calendars_result['nextPageToken'],
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-                except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        pageToken=calendars_result['nextPageToken'],
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-            calendars.extend(calendars_result.get('items', []))
-        self.events = {}
-        for calendar in calendars:                                                          # Переводим в удобную форму
-            event = {}
-            event['id'] = calendar['id']
-            event['start'] = calendar['start']
-            event['end'] = calendar['end']
-#            event['start'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-#                            '%d.%m.%Y').date(),datetime.strptime('15:00','%H:%M').time()).isoformat() + 'Z'}
-#            event['end'] = {'dateTime' : datetime.combine(datetime.strptime(buf_contact['userDefined'][1]['value'],
-#                            '%d.%m.%Y').date(),datetime.strptime('15:15','%H:%M').time()).isoformat() + 'Z'}
-            event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-            phones = ''
-            memos = ''
-            if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
-                phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
-                for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
-                    if i == 0:
-                        continue
-                    phones += ', ' + fine_phone(phone)
-            if len(self.contacts_filtered[self.FIO_cur_id]['urls']):
-                memos = self.contacts_filtered[self.FIO_cur_id]['urls'][0] + '\n'
-                for i, memo in enumerate(self.contacts_filtered[self.FIO_cur_id]['urls']):
-                    if i == 0:
-                        continue
-                    memos += memo + '\n'
-            event['description'] = phones + '\n' + memos + '\n' + self.contacts_filtered[self.FIO_cur_id]['note']
-            event['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
-                               self.contacts_filtered[self.FIO_cur_id]['stage']
-            self.events[calendar['id']] = event
         has_event = False
         try:                                                    # есть такой event - update'им
-            event = self.events[self.contacts_filtered[self.FIO_cur_id]['resourceName']]
+            event = self.all_events[self.FIO_cur_id]
             has_event = True
         except KeyError:  # нет такого event'а - создаем
             has_event = False
@@ -1532,6 +1370,24 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         event['end'] = {'dateTime' : (datetime.combine(self.deCalendar.date().toPyDate(),
                                         self.cbTime.time().toPyTime()) + timedelta(minutes=15)).isoformat() + '+04:00'}
         event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+        # Если стадия не рабочая - ставим прошлую дату
+        if self.cbStage.currentText() not in WORK_STAGES_CONST and self.cbStage.currentText() not in LOST_STAGES_CONST:
+            event['start'] = {'dateTime' : datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'}
+            event['end'] = {'dateTime' : datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'}
+        # Если нет объявления, ставим ближайшую субботу
+        if self.cbStage.currentText() not in WORK_STAGES_CONST:
+            event_date = parse(event['start']['dateTime'])
+            if event_date > datetime(2012, 1, 7) + timedelta(days=30):
+                lost_date = event_date - timedelta(days=30)
+            else:
+                lost_date = datetime(2012, 1, 7)
+            while lost_date < datetime.now():
+                if event_date < utc.localize(lost_date):
+                    event['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat() + '+04:00'}
+                    event['end'] = {'dateTime' : (lost_date + timedelta(hours=19,minutes=15)).isoformat() + '+04:00'}
+                    break
+                else:
+                    lost_date += timedelta(days=7)
         phones = ''
         if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
             phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
@@ -1552,6 +1408,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                            self.contacts_filtered[self.FIO_cur_id]['stage']
         self.events[self.contacts_filtered[self.FIO_cur_id]['resourceName']] = event
 
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
         try:
             if has_event:
                 calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \
@@ -1559,14 +1416,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             else:
                 calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
         except Exception as ee:
-            print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить event еще раз')
+            print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить/обновить event еще раз')
             time.sleep(1)
             if has_event:
                 calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \
                     .execute()
             else:
                 calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-#        self.google2db4one()            # обновляем информацию о контакте
         return
 
     def click_clbCreateContact(self):  # Ищем дубли и выводим в print()
