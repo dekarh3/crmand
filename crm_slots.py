@@ -305,6 +305,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     contacts_ok = True
 
 
+
+
         # Календарь
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
         calendars = []
