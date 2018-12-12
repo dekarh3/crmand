@@ -304,6 +304,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     self.contacty_syncToken = results['nextSyncToken']
                     contacts_ok = True
 
+
         # Календарь
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
         calendars = []
