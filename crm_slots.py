@@ -179,87 +179,162 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         infoBox.exec_()
 
     def google2db4allFull(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
+        # Доступы
         credentials_con = get_credentials_con()
         self.http_con = credentials_con.authorize(Http())
-        try:
-            service = discovery.build('people', 'v1', http=self.http_con,
-                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
+                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
 
-# Вытаскиваем названия групп
-            serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
-                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            resultsg = serviceg.contactGroups().list(pageSize=200).execute()
-        except Exception as ee:
-            print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
-            time.sleep(1)
-            service = discovery.build('people', 'v1', http=self.http_con,
-                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-
-            serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
-                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            resultsg = serviceg.contactGroups().list(pageSize=200).execute()
+        # Вытаскиваем названия групп
+        groups_ok= False
+        while not groups_ok:
+            try:
+                resultsg = serviceg.contactGroups().list(pageSize=200).execute()
+                groups_ok = True
+            except errors.HttpError as ee:
+                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
+                time.sleep(1)
+                continue
         self.groups_resourcenames = {}
         self.groups_resourcenames_reversed = {}
         contactGroups = resultsg.get('contactGroups', [])
         for i, contactGroup in enumerate(contactGroups):
             self.groups_resourcenames[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
             self.groups_resourcenames_reversed[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
-# Контакты
-        connections = []
-        results = {'nextPageToken':''}
-        while str(results.keys()).find('nextPageToken') > -1:
-            if results['nextPageToken'] == '':
-                try:
-                    results = service.people().connections() \
-                        .list(
-                        resourceName='people/me',
-                        pageSize=2000,
-                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
-                                     'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
-                                     'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
-                                     'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
-                                     'userDefined') \
-                        .execute()
-                except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
-                    results = service.people().connections() \
-                        .list(
-                        resourceName='people/me',
-                        pageSize=2000,
-                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
-                                     'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
-                                     'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
-                                     'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
-                                     'userDefined') \
-                        .execute()
-            else:
-                try:
-                    results = service.people().connections() \
-                        .list(
-                        resourceName='people/me',
-                        pageToken=results['nextPageToken'],
-                        pageSize=2000,
-                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
-                                     'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
-                                     'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
-                                     'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
-                                     'userDefined') \
-                        .execute()
-                except Exception as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
-                    results = service.people().connections() \
-                        .list(
-                        resourceName='people/me',
-                        pageToken=results['nextPageToken'],
-                        pageSize=2000,
-                        personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
-                                     'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
-                                     'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
-                                     'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
-                                     'userDefined') \
-                        .execute()
-            connections.extend(results.get('connections', []))
-# Календарь
+
+        # Контакты
+        contacts_ok = False
+        while not contacts_ok:
+            if not self.contacty_syncToken:                             # Пустой syncToken - полное обновление
+                connections = []
+                results = {'nextPageToken':''}
+                while str(results.keys()).find('nextPageToken') > -1:
+                    if results['nextPageToken'] == '':
+                        try:
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                    else:
+                        try:
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageToken=results['nextPageToken'],
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageToken=results['nextPageToken'],
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                    connections.extend(results.get('connections', []))
+                contacts_ok = True
+                self.contacty_syncToken = results['nextSyncToken']
+            else:                                                       # Частичное обновление
+                connections = []
+                results = {'nextPageToken': ''}
+                while str(results.keys()).find('nextPageToken') > -1:
+                    if results['nextPageToken'] == '':
+                        try:
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                syncToken=self.contacty_syncToken,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                syncToken=self.contacty_syncToken,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                    else:
+                        try:
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageToken=results['nextPageToken'],
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                syncToken=self.contacty_syncToken,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageToken=results['nextPageToken'],
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                syncToken=self.contacty_syncToken,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                    connections.extend(results.get('connections', []))
+                self.contacty_syncToken = results['nextSyncToken']
+                contacts_ok = True
+
+        # Календарь
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
         calendars = []
         calendars_result = {'nextPageToken':''}
@@ -276,7 +351,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         singleEvents=True,
                         orderBy='startTime'
                     ).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
@@ -299,7 +374,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         singleEvents=True,
                         orderBy='startTime'
                     ).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
@@ -312,7 +387,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         orderBy='startTime'
                     ).execute()
             calendars.extend(calendars_result.get('items', []))
-
+        self.events_syncToken = results['nextSyncToken']
         self.all_events = {}
         for calendar in calendars:
             event = {}
@@ -442,7 +517,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
                                        discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             resultsg = serviceg.contactGroups().list(pageSize=200).execute()
-        except Exception as ee:
+        except errors.HttpError as ee:
             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
             time.sleep(1)
             service = discovery.build('people', 'v1', http=self.http_con,
@@ -475,7 +550,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                      'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                      'userDefined') \
                         .execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
                     results = service.people().connections() \
                         .list(
@@ -504,7 +579,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                      'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                      'userDefined') \
                         .execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
                     results = service.people().connections() \
                         .list(
@@ -536,12 +611,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         showHiddenInvitations=True,
                         timeMin=start,
                         maxResults=2000,
-                        requestSyncToken=True,
                         syncToken=self.events_syncToken,
-                        singleEvents=True,
-                        orderBy='startTime'
+                        singleEvents=True
                     ).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
@@ -549,10 +622,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         showHiddenInvitations=True,
                         timeMin=start,
                         maxResults=2000,
-                        requestSyncToken=True,
                         syncToken=self.events_syncToken,
-                        singleEvents=True,
-                        orderBy='startTime'
+                        singleEvents=True
                     ).execute()
             else:
                 try:
@@ -562,13 +633,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         showHiddenInvitations=True,
                         timeMin=start,
                         maxResults=2000,
-                        requestSyncToken=True,
                         syncToken=self.events_syncToken,
                         pageToken=calendars_result['nextPageToken'],
-                        singleEvents=True,
-                        orderBy='startTime'
+                        singleEvents=True
                     ).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
@@ -576,11 +645,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         showHiddenInvitations=True,
                         timeMin=start,
                         maxResults=2000,
-                        requestSyncToken=True,
                         syncToken=self.events_syncToken,
                         pageToken=calendars_result['nextPageToken'],
-                        singleEvents=True,
-                        orderBy='startTime'
+                        singleEvents=True
                     ).execute()
             calendars.extend(calendars_result.get('items', []))
         self.events_syncToken = results['nextSyncToken']
@@ -720,7 +787,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                              'relationshipStatuses,residences,skills,taglines,urls,userDefined') \
             .execute()
             connection = result
-        except Exception as ee:
+        except errors.HttpError as ee:
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
             service = discovery.build('people', 'v1', http=self.http_con,
@@ -751,7 +818,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         singleEvents=True,
                         orderBy='startTime'
                     ).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
@@ -774,7 +841,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         singleEvents=True,
                         orderBy='startTime'
                     ).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
@@ -904,7 +971,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                              'residences,skills,taglines,urls,userDefined') \
                 .execute()
             connection = result
-        except Exception as ee:
+        except errors.HttpError as ee:
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
             service = discovery.build('people', 'v1', http=self.http_con,
@@ -1338,7 +1405,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 resourceName='people/' + self.FIO_cur_id,
                 updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
                 body=buf_contact).execute()
-        except Exception as ee:
+        except errors.HttpError as ee:
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
             service = discovery.build('people', 'v1', http=self.http_con,
@@ -1415,7 +1482,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     .execute()
             else:
                 calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-        except Exception as ee:
+        except errors.HttpError as ee:
             print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить/обновить event еще раз')
             time.sleep(1)
             if has_event:
@@ -1541,7 +1608,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
                     updated_event = service_cal.events().update(calendarId='primary',
                                                 eventId=contact['resourceName'], body=event4).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить событие еще раз')
                     event4 = service_cal.events().get(calendarId='primary',
                                                              eventId=contact['resourceName']).execute()
@@ -1551,7 +1618,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                 eventId=contact['resourceName'], body=event4).execute()
                 try:
                     resultsc = service.people().deleteContact(resourceName='people/' + contact['resourceName']).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз')
                     resultsc = service.people().deleteContact(resourceName='people/' + contact['resourceName']).execute()
         html_x = ''
@@ -1628,7 +1695,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             service = discovery.build('people', 'v1', http=self.http_con,
                                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
                             resultsc = service.people().createContact(body=buf_contact).execute()
-                        except Exception as ee:
+                        except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
                             time.sleep(1)
                             service = discovery.build('people', 'v1', http=self.http_con,
@@ -1641,7 +1708,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
                                 body=group_body
                             ).execute()
-                        except Exception as ee:
+                        except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
                             time.sleep(1)
                             group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
@@ -1667,7 +1734,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
                             calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-                        except Exception as ee:
+                        except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
                             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
                             calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
@@ -1722,7 +1789,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     service = discovery.build('people', 'v1', http=self.http_con,
                                               discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
                     resultsc = service.people().createContact(body=buf_contact).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
                     time.sleep(1)
                     service = discovery.build('people', 'v1', http=self.http_con,
@@ -1735,7 +1802,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
                         body=group_body
                     ).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
                     time.sleep(1)
                     group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
@@ -1756,7 +1823,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:
                     service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
                     calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
                     service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
                     calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
@@ -1795,7 +1862,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 resourceName='people/' + self.FIO_cur_id,
                 updatePersonFields='biographies,userDefined',
                 body=buf_contact).execute()
-        except Exception as ee:
+        except errors.HttpError as ee:
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
             service = discovery.build('people', 'v1', http=self.http_con,
@@ -1891,7 +1958,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             resultsc = service.people().createContact(body=buf_contact).execute()
-        except Exception as ee:
+        except errors.HttpError as ee:
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
             service = discovery.build('people', 'v1', http=self.http_con,
@@ -1929,7 +1996,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 singleEvents=True,
                 orderBy='startTime'
             ).execute()
-        except Exception as ee:
+        except errors.HttpError as ee:
             print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
             time.sleep(1)
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
@@ -1963,7 +2030,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                              'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
                              'residences,skills,taglines,urls,userDefined') \
                 .execute()
-        except Exception as ee:
+        except errors.HttpError as ee:
             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
             results = service.people().connections() \
                 .list(
@@ -2006,18 +2073,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 print(contact['names'][0]['displayName'], '-', groups)
                 try:
                     contact_res = service.people().createContact(body=contact).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     time.sleep(1)
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать еще раз')
                     try:
                         contact_res = service.people().createContact(body=contact).execute()
-                    except Exception as ee:
+                    except errors.HttpError as ee:
                         time.sleep(1)
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать третий раз')
                         contact_res = service.people().createContact(body=contact).execute()
                 try:
                     result = service.people().deleteContact(resourceName=resourceName).execute()
-                except Exception as ee:
+                except errors.HttpError as ee:
                     time.sleep(1)
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить еще раз')
                     result = service.people().deleteContact(resourceName=resourceName).execute()
