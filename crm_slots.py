@@ -1159,7 +1159,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if format_phone(call.split(']_[')[1]) == format_phone(phone):
                     self.calls_ids.append(i)
         self.leTown.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
-        self.leEmail.setText(self.contacts_filtered[self.FIO_cur_id]['email'])
+        email = ''
+        oemailAddresses = self.contacts_filtered[self.FIO_cur_id]['email']
+        if len(oemailAddresses) > 0:
+            for oemailAddress in oemailAddresses:
+                if oemailAddress:
+                    email += oemailAddresses[0].get('value') + ' '
+        self.leEmail.setText(email.strip())
         self.leIOF.setText(self.contacts_filtered[self.FIO_cur_id]['iof'])
         urls = ''
         for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
