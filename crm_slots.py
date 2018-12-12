@@ -134,7 +134,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.http_con = credentials_con.authorize(Http())
         credentials_cal = get_credentials_cal()
         self.http_cal = credentials_cal.authorize(Http())
-        self.google2db4allFull()
+        self.google2db4all()
         self.all_stages = []
         self.all_stages_reverce = {}
         self.all_events = {}
@@ -178,7 +178,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 #        infoBox.setEscapeButton(QMessageBox.Close)
         infoBox.exec_()
 
-    def google2db4allFull(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
+    def google2db4all(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
         credentials_con = get_credentials_con()
         self.http_con = credentials_con.authorize(Http())
@@ -186,6 +186,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
                                    discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
 
         # Вытаскиваем названия групп
         groups_ok= False
@@ -206,6 +207,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
         # Контакты
         contacts_ok = False
+        contacts_full = 'None'
         while not contacts_ok:
             if not self.contacty_syncToken:                             # Пустой syncToken - полное обновление
                 connections = []
@@ -246,6 +248,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             continue
                     connections.extend(results.get('connections', []))
                 contacts_ok = True
+                contacts_full = 'Full'
                 self.contacty_syncToken = results['nextSyncToken']
             else:                                                       # Частичное обновление
                 need_full_reload = False
@@ -303,180 +306,354 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 else:
                     self.contacty_syncToken = results['nextSyncToken']
                     contacts_ok = True
-
-
-
+                    contacts_full = 'Part'
 
         # Календарь
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-        calendars = []
-        calendars_result = {'nextPageToken':''}
-        start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
-        while str(calendars_result.keys()).find('nextPageToken') > -1:
-            if calendars_result['nextPageToken'] == '':
-                try:
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-                except errors.HttpError as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-            else:
-                try:
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        pageToken=calendars_result['nextPageToken'],
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-                except errors.HttpError as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        pageToken=calendars_result['nextPageToken'],
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-            calendars.extend(calendars_result.get('items', []))
-        self.events_syncToken = results['nextSyncToken']
-        self.all_events = {}
-        for calendar in calendars:
-            event = {}
-            event['id'] = calendar['id']
-            if str(calendar['start'].keys()).find('dateTime') > -1:
-                event['start'] = calendar['start']['dateTime']
-            else:
-                event['start'] = str(utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M")))
-            if str(calendar.keys()).find('htmlLink') > -1:
-                event['www'] =calendar['htmlLink']
-            else:
-                event['www'] = ''
-            self.all_events[calendar['id']] = event
+        events_ok = False
+        events_full = 'None'
+        while not events_ok:
+            if not self.events_syncToken:                             # Пустой syncToken - полное обновление
+                calendars = []
+                calendars_result = {'nextPageToken':''}
+                start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
+                while str(calendars_result.keys()).find('nextPageToken') > -1:
+                    if calendars_result['nextPageToken'] == '':
+                        try:
+                            calendars_result = service_cal.events().list(
+                                calendarId='primary',
+                                showDeleted=True,
+                                showHiddenInvitations=True,
+                                timeMin=start,
+                                maxResults=2000,
+                                singleEvents=True,
+                                orderBy='startTime'
+                            ).execute()
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
+                            continue
+                    else:
+                        try:
+                            calendars_result = service_cal.events().list(
+                                calendarId='primary',
+                                showDeleted=True,
+                                showHiddenInvitations=True,
+                                timeMin=start,
+                                maxResults=2000,
+                                pageToken=calendars_result['nextPageToken'],
+                                singleEvents=True,
+                                orderBy='startTime'
+                            ).execute()
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
+                            continue
+                    calendars.extend(calendars_result.get('items', []))
+                events_ok = True
+                events_full = 'Full'
+                self.events_syncToken = results['nextSyncToken']
+            else:                                                    # Частичное обновление
+                need_full_reload = False
+                calendars = []
+                calendars_result = {'nextPageToken': ''}
+                start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
+                while str(calendars_result.keys()).find('nextPageToken') > -1:
+                    if calendars_result['nextPageToken'] == '':
+                        try:
+                            calendars_result = service_cal.events().list(
+                                calendarId='primary',
+                                showDeleted=True,
+                                showHiddenInvitations=True,
+                                timeMin=start,
+                                maxResults=2000,
+                                syncToken=self.events_syncToken,
+                                singleEvents=True
+                            ).execute()
+                        except errors.HttpError as ee:
+                            if ee.resp['static'] == '410':
+                                print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
+                                need_full_reload = True
+                                break
+                            else:
+                                print(datetime.now().strftime("%H:%M:%S") +
+                                      ' попробуем считать изменения в календаре еще раз')
+                                continue
+                    else:
+                        try:
+                            calendars_result = service_cal.events().list(
+                                calendarId='primary',
+                                showDeleted=True,
+                                showHiddenInvitations=True,
+                                timeMin=start,
+                                maxResults=2000,
+                                syncToken=self.events_syncToken,
+                                pageToken=calendars_result['nextPageToken'],
+                                singleEvents=True
+                            ).execute()
+                        except errors.HttpError as ee:
+                            if ee.resp['static'] == '410':
+                                print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
+                                need_full_reload = True
+                                break
+                            else:
+                                print(datetime.now().strftime("%H:%M:%S") +
+                                      ' попробуем считать изменения в календаре еще раз')
+                                continue
+                    calendars.extend(calendars_result.get('items', []))
+                if need_full_reload:
+                    self.events_syncToken = ''
+                else:
+                    self.events_syncToken = results['nextSyncToken']
+                    events_ok = True
+                    events_full = 'Part'
 
-        self.contacty = {}
-        events4delete = []
-        number_of_new = 0
-        for i, connection in enumerate(connections):
-            contact = {}
-            contact['resourceName'] = connection['resourceName'].split('/')[1]
-            if not self.FIO_cur_id:
-                self.FIO_cur_id = connection['resourceName'].split('/')[1]
-#            if not self.FIO_saved_id:
-#                self.FIO_saved_id = connection['resourceName'].split('/')[1]
-            name = ''
-            iof = ''
-            onames = connection.get('names', [])
-            if len(onames) > 0:
-                if onames[0].get('familyName'):
-                    name += onames[0].get('familyName').title() + ' '
-                if onames[0].get('givenName'):
-                    name += onames[0].get('givenName').title() + ' '
-                    iof +=  onames[0].get('givenName').title() + ' '
-                if onames[0].get('middleName'):
-                    name += onames[0].get('middleName').title()
-                    iof += onames[0].get('middleName').title() + ' '
-                if onames[0].get('familyName'):
-                    iof += onames[0].get('familyName').title() + ' '
-            contact['fio'] = name
-            contact['iof'] = iof
-            biographie = ''
-            obiographies = connection.get('biographies', [])
-            if len(obiographies) > 0:
-                biographie = obiographies[0].get('value')
-            contact['note'] = biographie
-            phones = []
-            ophones = connection.get('phoneNumbers', [])
-            if len(ophones) > 0:
-                for ophone in ophones:
-                    if ophone:
-                        if ophone.get('canonicalForm'):
-                            phones.append(format_phone(ophone.get('canonicalForm')))
-                        else:
-                            phones.append(format_phone(ophone.get('value')))
-            contact['phones'] = phones
-            memberships = []
-            omemberships = connection.get('memberships', [])
-            if len(omemberships) > 0:
-                for omembership in omemberships:
-                    memberships.append(self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
-            contact['groups'] = memberships
-            stage = '---'
-            calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
-            cost = 0
-            ostages = connection.get('userDefined', [])
-            if len(ostages) > 0:
-                for ostage in ostages:
-                    if ostage['key'].lower() == 'stage':
-                        stage = ostage['value'].lower()
-                    if ostage['key'].lower() == 'calendar':
-                        calendar = ostage['value']
-                    if ostage['key'].lower() == 'cost':
-                        cost = float(ostage['value'])
-            contact['stage'] = stage
-            contact['calendar'] = calendar
-            contact['cost'] = cost + random() * 1e-5
-            try:  # есть такой event - берем
-                eventn = self.all_events[contact['resourceName']]
-                contact['event'] = parse(eventn['start'])
-                contact['event-www'] = eventn['www']
-            except KeyError:  # нет такого event'а - ставим дряхлую дату
-                contact['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
-            town = ''
-            oaddresses = connection.get('addresses', [])
-            if len(oaddresses) > 0:
-                town = oaddresses[0].get('formattedValue')
-            contact['town'] = town
-            email = ''
-            oemailAddresses = connection.get('emailAddresses', [])
-            if len(oemailAddresses) > 0:
-                for oemailAddress in oemailAddresses:
-                    if oemailAddress:
-                        email += oemailAddresses[0].get('value') + ' '
-            contact['email'] = email
-            contact['etag'] = connection['etag']
-            contact['avito'] = ''                           # Фильтруем все ссылки на avito в поле 'avito'
-            contact['instagram'] = ''                       # а ссылки на instagram в поле 'instagram'
-            urls = []
-            ourls = connection.get('urls', [])
-            if len(ourls) > 0:
-                for ourl in ourls:
-                    urls.append(ourl['value'])
-                    if ourl['value'].find('www.avito.ru') > -1:
-                        contact['avito'] = ourl['value']
-                    if ourl['value'].find('instagram.com') > -1:
-                        contact['instagram'] = ourl['value']
-            contact['urls'] = urls
-            self.contacty[contact['resourceName']] = contact
-            if contact['event'] > utc.localize(datetime(2013, 1, 1, 0, 0)) \
-                    and contact['stage'] not in WORK_STAGES_CONST and contact['stage'] not in LOST_STAGES_CONST:
-                events4delete.append(contact['resourceName'])
-        for event4delete in events4delete:
-            event4 = service_cal.events().get(calendarId='primary', eventId=event4delete).execute()
-            event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-            event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
-            updated_event = service_cal.events().update(calendarId='primary', eventId=event4delete, body=event4).execute()
+        self.changed_ids = set()                                    # Для частичного обновления
+        calendars_d = {}
+        connections_d = {}
+        if events_full == 'Part':
+            for calendar in calendars:
+                self.changed_ids.add(calendar['id'])
+                calendars_d[calendar['id']] = calendar
+        if contacts_full == 'Part':
+            for connection in enumerate(connections):
+                self.changed_ids.add(connection['resourceName'].split('/')[1])
+                connections_d[connection['resourceName'].split('/')[1]] = connection
+
+        if events_full == 'None':
+            print(datetime.now().strftime("%H:%M:%S") + ' синхронизация не удалась')
+            return
+        elif events_full == 'Full':
+            self.all_events = {}
+            for calendar in calendars:
+                event = {}
+                event['id'] = calendar['id']
+                if str(calendar['start'].keys()).find('dateTime') > -1:
+                    event['start'] = calendar['start']['dateTime']
+                else:
+                    event['start'] = str(utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M")))
+                if str(calendar.keys()).find('htmlLink') > -1:
+                    event['www'] =calendar['htmlLink']
+                else:
+                    event['www'] = ''
+                self.all_events[calendar['id']] = event
+        elif events_full == 'Part':
+            for changed_id in self.changed_ids:
+                try:                                            # Если обновилось - обновляем в БД
+                    calendar = calendars_d[changed_id]
+                    event = {}
+                    event['id'] = calendar['id']
+                    if str(calendar['start'].keys()).find('dateTime') > -1:
+                        event['start'] = calendar['start']['dateTime']
+                    else:
+                        event['start'] = str(
+                            utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M")))
+                    if str(calendar.keys()).find('htmlLink') > -1:
+                        event['www'] = calendar['htmlLink']
+                    else:
+                        event['www'] = ''
+                    self.all_events[calendar['id']] = event
+                except Exception as ee:
+                    q = 0
+
+        if contacts_full == 'None':
+            print(datetime.now().strftime("%H:%M:%S") + ' синхронизация не удалась')
+            return
+        elif contacts_full == 'Full':
+            self.contacty = {}
+            events4delete = []
+            number_of_new = 0
+            for i, connection in enumerate(connections):
+                contact = {}
+                contact['resourceName'] = connection['resourceName'].split('/')[1]
+                if not self.FIO_cur_id:
+                    self.FIO_cur_id = connection['resourceName'].split('/')[1]
+                #            if not self.FIO_saved_id:
+                #                self.FIO_saved_id = connection['resourceName'].split('/')[1]
+                name = ''
+                iof = ''
+                onames = connection.get('names', [])
+                if len(onames) > 0:
+                    if onames[0].get('familyName'):
+                        name += onames[0].get('familyName').title() + ' '
+                    if onames[0].get('givenName'):
+                        name += onames[0].get('givenName').title() + ' '
+                        iof += onames[0].get('givenName').title() + ' '
+                    if onames[0].get('middleName'):
+                        name += onames[0].get('middleName').title()
+                        iof += onames[0].get('middleName').title() + ' '
+                    if onames[0].get('familyName'):
+                        iof += onames[0].get('familyName').title() + ' '
+                contact['fio'] = name
+                contact['iof'] = iof
+                biographie = ''
+                obiographies = connection.get('biographies', [])
+                if len(obiographies) > 0:
+                    biographie = obiographies[0].get('value')
+                contact['note'] = biographie
+                phones = []
+                ophones = connection.get('phoneNumbers', [])
+                if len(ophones) > 0:
+                    for ophone in ophones:
+                        if ophone:
+                            if ophone.get('canonicalForm'):
+                                phones.append(format_phone(ophone.get('canonicalForm')))
+                            else:
+                                phones.append(format_phone(ophone.get('value')))
+                contact['phones'] = phones
+                memberships = []
+                omemberships = connection.get('memberships', [])
+                if len(omemberships) > 0:
+                    for omembership in omemberships:
+                        memberships.append(
+                            self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
+                contact['groups'] = memberships
+                stage = '---'
+                calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+                cost = 0
+                ostages = connection.get('userDefined', [])
+                if len(ostages) > 0:
+                    for ostage in ostages:
+                        if ostage['key'].lower() == 'stage':
+                            stage = ostage['value'].lower()
+                        if ostage['key'].lower() == 'calendar':
+                            calendar = ostage['value']
+                        if ostage['key'].lower() == 'cost':
+                            cost = float(ostage['value'])
+                contact['stage'] = stage
+                contact['calendar'] = calendar
+                contact['cost'] = cost + random() * 1e-5
+                try:  # есть такой event - берем
+                    eventn = self.all_events[contact['resourceName']]
+                    contact['event'] = parse(eventn['start'])
+                    contact['event-www'] = eventn['www']
+                except KeyError:  # нет такого event'а - ставим дряхлую дату
+                    contact['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
+                town = ''
+                oaddresses = connection.get('addresses', [])
+                if len(oaddresses) > 0:
+                    town = oaddresses[0].get('formattedValue')
+                contact['town'] = town
+                email = ''
+                oemailAddresses = connection.get('emailAddresses', [])
+                if len(oemailAddresses) > 0:
+                    for oemailAddress in oemailAddresses:
+                        if oemailAddress:
+                            email += oemailAddresses[0].get('value') + ' '
+                contact['email'] = email
+                contact['etag'] = connection['etag']
+                contact['avito'] = ''  # Фильтруем все ссылки на avito в поле 'avito'
+                contact['instagram'] = ''  # а ссылки на instagram в поле 'instagram'
+                urls = []
+                ourls = connection.get('urls', [])
+                if len(ourls) > 0:
+                    for ourl in ourls:
+                        urls.append(ourl['value'])
+                        if ourl['value'].find('www.avito.ru') > -1:
+                            contact['avito'] = ourl['value']
+                        if ourl['value'].find('instagram.com') > -1:
+                            contact['instagram'] = ourl['value']
+                contact['urls'] = urls
+                self.contacty[contact['resourceName']] = contact
+                if contact['event'] > utc.localize(datetime(2013, 1, 1, 0, 0)) \
+                        and contact['stage'] not in WORK_STAGES_CONST and contact['stage'] not in LOST_STAGES_CONST:
+                    events4delete.append(contact['resourceName'])
+            for event4delete in events4delete:
+                event4 = service_cal.events().get(calendarId='primary', eventId=event4delete).execute()
+                event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
+                event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                updated_event = service_cal.events().update(calendarId='primary', eventId=event4delete,
+                                                            body=event4).execute()
+        elif contacts_full == 'Part':
+            for changed_id in self.changed_ids:
+                try:                                            # Если обновилось - обновляем в БД
+                    connection = connections_d[changed_id]
+                    contact = {}
+                    contact['resourceName'] = connection['resourceName'].split('/')[1]
+                    name = ''
+                    iof = ''
+                    onames = connection.get('names', [])
+                    if len(onames) > 0:
+                        if onames[0].get('familyName'):
+                            name += onames[0].get('familyName').title() + ' '
+                        if onames[0].get('givenName'):
+                            name += onames[0].get('givenName').title() + ' '
+                            iof += onames[0].get('givenName').title() + ' '
+                        if onames[0].get('middleName'):
+                            name += onames[0].get('middleName').title()
+                            iof += onames[0].get('middleName').title() + ' '
+                        if onames[0].get('familyName'):
+                            iof += onames[0].get('familyName').title() + ' '
+                    contact['fio'] = name
+                    contact['iof'] = iof
+                    biographie = ''
+                    obiographies = connection.get('biographies', [])
+                    if len(obiographies) > 0:
+                        biographie = obiographies[0].get('value')
+                    contact['note'] = biographie
+                    phones = []
+                    ophones = connection.get('phoneNumbers', [])
+                    if len(ophones) > 0:
+                        for ophone in ophones:
+                            if ophone:
+                                if ophone.get('canonicalForm'):
+                                    phones.append(format_phone(ophone.get('canonicalForm')))
+                                else:
+                                    phones.append(format_phone(ophone.get('value')))
+                    contact['phones'] = phones
+                    memberships = []
+                    omemberships = connection.get('memberships', [])
+                    if len(omemberships) > 0:
+                        for omembership in omemberships:
+                            memberships.append(
+                                self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
+                    contact['groups'] = memberships
+                    stage = '---'
+                    calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+                    cost = 0
+                    ostages = connection.get('userDefined', [])
+                    if len(ostages) > 0:
+                        for ostage in ostages:
+                            if ostage['key'].lower() == 'stage':
+                                stage = ostage['value'].lower()
+                            if ostage['key'].lower() == 'calendar':
+                                calendar = ostage['value']
+                            if ostage['key'].lower() == 'cost':
+                                cost = float(ostage['value'])
+                    contact['stage'] = stage
+                    contact['calendar'] = calendar
+                    contact['cost'] = cost + random() * 1e-5
+                    try:  # есть такой event - берем
+                        eventn = self.all_events[contact['resourceName']]
+                        contact['event'] = parse(eventn['start'])
+                        contact['event-www'] = eventn['www']
+                    except KeyError:  # нет такого event'а - ставим дряхлую дату
+                        contact['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
+                    town = ''
+                    oaddresses = connection.get('addresses', [])
+                    if len(oaddresses) > 0:
+                        town = oaddresses[0].get('formattedValue')
+                    contact['town'] = town
+                    email = ''
+                    oemailAddresses = connection.get('emailAddresses', [])
+                    if len(oemailAddresses) > 0:
+                        for oemailAddress in oemailAddresses:
+                            if oemailAddress:
+                                email += oemailAddresses[0].get('value') + ' '
+                    contact['email'] = email
+                    contact['etag'] = connection['etag']
+                    contact['avito'] = ''  # Фильтруем все ссылки на avito в поле 'avito'
+                    contact['instagram'] = ''  # а ссылки на instagram в поле 'instagram'
+                    urls = []
+                    ourls = connection.get('urls', [])
+                    if len(ourls) > 0:
+                        for ourl in ourls:
+                            urls.append(ourl['value'])
+                            if ourl['value'].find('www.avito.ru') > -1:
+                                contact['avito'] = ourl['value']
+                            if ourl['value'].find('instagram.com') > -1:
+                                contact['instagram'] = ourl['value']
+                    contact['urls'] = urls
+                    self.contacty[contact['resourceName']] = contact
+                except Exception as ee:
+                    q = 0
         return
 
     def google2db4allPart(self):  # Google -> Внутр БД (все контакты) с частичным обновлением
@@ -1261,7 +1438,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if index.row() < 0:
             return None
         self.FIO_cur_id = self.contacts_filtered_reverced[index.row()] # обновляем информацию о контакте и карточку
-        self.google2db4allPart()
+        self.google2db4all()
         if self.FIO_cur_id in self.changed_ids:
             self.db2form4one()
         self.FIO_saved_id = ''
@@ -1308,12 +1485,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.FIO_saved_id = self.FIO_cur_id
         except IndexError:
             q=0
-        self.google2db4allFull() # Перезагружаем ВСЕ контакты из gmail
+        self.events_syncToken = ''
+        self.contacty_syncToken = ''
+        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
         return
 
     def click_clbSave(self):
-        self.google2db4allPart()
+        self.google2db4all()
         pred_cal = self.contacts_filtered[self.FIO_cur_id]['event']
         self.form2db4one()
         buf_contact = {}
@@ -1711,7 +1890,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
                             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
                             calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-        self.google2db4allFull()  # Перезагружаем ВСЕ контакты из gmail
+        self.contacty_syncToken = ''
+        self.events_syncToken = ''
+        self.google2db4all()  # Перезагружаем ВСЕ контакты из google
         self.setup_twGroups()
         self.progressBar.hide()
 
@@ -1800,7 +1981,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз')
                     service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
                     calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-        self.google2db4allFull() # Перезагружаем ВСЕ контакты из gmail
+        self.contacty_syncToken = ''
+        self.events_syncToken = ''
+        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
         q=0
 
