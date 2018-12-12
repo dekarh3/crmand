@@ -114,8 +114,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def setupUi(self, form):
         Ui_Form.setupUi(self,form)
-#        self.calendars_syncToken = ''
-#        self.contacts_syncToken = ''
         self.show_site = 'avito'
         self.my_html = ''
         self.contacts = []
@@ -214,8 +212,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         .list(
                         resourceName='people/me',
                         pageSize=2000,
-#                        requestSyncToken=True,
-#                        syncToken=self.contacts_syncToken,
                         personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                                      'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                                      'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
@@ -227,8 +223,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         .list(
                         resourceName='people/me',
                         pageSize=2000,
-#                        requestSyncToken=True,
-#                        syncToken=self.contacts_syncToken,
                         personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                                      'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                                      'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
@@ -241,8 +235,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         resourceName='people/me',
                         pageToken=results['nextPageToken'],
                         pageSize=2000,
-#                        requestSyncToken=True,
-#                        syncToken=self.contacts_syncToken,
                         personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                                      'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                                      'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
@@ -255,8 +247,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         resourceName='people/me',
                         pageToken=results['nextPageToken'],
                         pageSize=2000,
-                        requestSyncToken=True,
-                        syncToken=self.contacts_syncToken,
                         personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
                                      'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
                                      'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
