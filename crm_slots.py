@@ -328,6 +328,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 singleEvents=True,
                                 orderBy='startTime'
                             ).execute()
+                            if str(calendars_result.values()).find('nextSyncToken') > -1:
+                                self.events_syncToken = calendars_result['nextSyncToken']
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                             continue
@@ -343,13 +345,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 singleEvents=True,
                                 orderBy='startTime'
                             ).execute()
+                            if str(calendars_result.values()).find('nextSyncToken') > -1:
+                                self.events_syncToken = calendars_result['nextSyncToken']
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                             continue
                     calendars.extend(calendars_result.get('items', []))
                 events_ok = True
                 events_full = 'Full'
-                self.events_syncToken = results['nextSyncToken']
             else:                                                    # Частичное обновление
                 need_full_reload = False
                 calendars = []
@@ -366,6 +369,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 syncToken=self.events_syncToken,
                                 singleEvents=True
                             ).execute()
+                            if str(calendars_result.values()).find('nextSyncToken') > -1:
+                                self.events_syncToken = calendars_result['nextSyncToken']
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -386,6 +391,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 pageToken=calendars_result['nextPageToken'],
                                 singleEvents=True
                             ).execute()
+                            if str(calendars_result.values()).find('nextSyncToken') > -1:
+                                self.events_syncToken = calendars_result['nextSyncToken']
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -399,7 +406,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if need_full_reload:
                     self.events_syncToken = ''
                 else:
-                    self.events_syncToken = results['nextSyncToken']
                     events_ok = True
                     events_full = 'Part'
 
@@ -411,7 +417,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.changed_ids.add(calendar['id'])
                 calendars_d[calendar['id']] = calendar
         if contacts_full == 'Part':
-            for connection in enumerate(connections):
+            for connection in connections:
                 self.changed_ids.add(connection['resourceName'].split('/')[1])
                 connections_d[connection['resourceName'].split('/')[1]] = connection
 
@@ -1437,8 +1443,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             return None
         self.FIO_cur_id = self.contacts_filtered_reverced[index.row()] # обновляем информацию о контакте и карточку
         self.google2db4all()
-        if self.FIO_cur_id in self.changed_ids:
-            self.db2form4one()
+#        if self.FIO_cur_id in self.changed_ids:
+        self.db2form4one()
         self.FIO_saved_id = ''
         return
 
@@ -1497,8 +1503,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         buf_contact['userDefined'] = [{},{},{}]
         buf_contact['userDefined'][0]['value'] = self.contacts_filtered[self.FIO_cur_id]['stage']
         buf_contact['userDefined'][0]['key'] = 'stage'
-        buf_contact['userDefined'][1]['value'] = self.contacts_filtered[self.FIO_cur_id]['calendar'].toString(
-                                                                                                        "dd.MM.yyyy")
+        buf_contact['userDefined'][1]['value'] = self.contacts_filtered[self.FIO_cur_id]['calendar']
         buf_contact['userDefined'][1]['key'] = 'calendar'
         buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4))
         buf_contact['userDefined'][2]['key'] = 'cost'
@@ -1565,9 +1570,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
                 body=buf_contact).execute()
 
-        cal_cancel = False
-        if pred_cal.date() == self.deCalendar.date(): #.toString("dd.MM.yyyy"):  #
-            cal_cancel = True
+#        cal_cancel = False
+#        if pred_cal.date() == self.deCalendar.date(): #.toString("dd.MM.yyyy"):  #
+#            cal_cancel = True
 # Календарь
 
         has_event = False
@@ -1623,7 +1628,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                + self.contacts_filtered[self.FIO_cur_id]['note']
         event['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
                            self.contacts_filtered[self.FIO_cur_id]['stage']
-        self.events[self.contacts_filtered[self.FIO_cur_id]['resourceName']] = event
+        self.all_events[self.contacts_filtered[self.FIO_cur_id]['resourceName']] = event
 
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
         try:
