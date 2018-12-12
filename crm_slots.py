@@ -226,17 +226,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 .execute()
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
-                            results = service.people().connections() \
-                                .list(
-                                resourceName='people/me',
-                                pageSize=2000,
-                                requestSyncToken=True,
-                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
-                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
-                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
-                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
-                                             'userDefined') \
-                                .execute()
+                            continue
                     else:
                         try:
                             results = service.people().connections() \
@@ -253,22 +243,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 .execute()
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
-                            results = service.people().connections() \
-                                .list(
-                                resourceName='people/me',
-                                pageToken=results['nextPageToken'],
-                                pageSize=2000,
-                                requestSyncToken=True,
-                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
-                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
-                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
-                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
-                                             'userDefined') \
-                                .execute()
+                            continue
                     connections.extend(results.get('connections', []))
                 contacts_ok = True
                 self.contacty_syncToken = results['nextSyncToken']
             else:                                                       # Частичное обновление
+                need_full_reload = False
                 connections = []
                 results = {'nextPageToken': ''}
                 while str(results.keys()).find('nextPageToken') > -1:
@@ -287,19 +267,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'userDefined') \
                                 .execute()
                         except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
-                            results = service.people().connections() \
-                                .list(
-                                resourceName='people/me',
-                                pageSize=2000,
-                                requestSyncToken=True,
-                                syncToken=self.contacty_syncToken,
-                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
-                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
-                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
-                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
-                                             'userDefined') \
-                                .execute()
+                            if ee.resp['static'] == '410':
+                                print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
+                                need_full_reload = True
+                                break
+                            else:
+                                print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                                continue
                     else:
                         try:
                             results = service.people().connections() \
@@ -316,23 +290,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'userDefined') \
                                 .execute()
                         except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
-                            results = service.people().connections() \
-                                .list(
-                                resourceName='people/me',
-                                pageToken=results['nextPageToken'],
-                                pageSize=2000,
-                                requestSyncToken=True,
-                                syncToken=self.contacty_syncToken,
-                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
-                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
-                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
-                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
-                                             'userDefined') \
-                                .execute()
+                            if ee.resp['static'] == '410':
+                                print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
+                                need_full_reload = True
+                                break
+                            else:
+                                print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз')
+                                continue
                     connections.extend(results.get('connections', []))
-                self.contacty_syncToken = results['nextSyncToken']
-                contacts_ok = True
+                if need_full_reload:
+                    self.contacty_syncToken = ''
+                else:
+                    self.contacty_syncToken = results['nextSyncToken']
+                    contacts_ok = True
 
         # Календарь
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
