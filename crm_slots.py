@@ -1587,12 +1587,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         # Если нет объявления, ставим ближайшую субботу
         if self.cbStage.currentText() not in WORK_STAGES_CONST:
             event_date = parse(event['start']['dateTime'])
-            if event_date > datetime(2012, 1, 7) + timedelta(days=30):
+            if event_date > utc.localize(datetime(2012, 1, 7) + timedelta(days=30)):
                 lost_date = event_date - timedelta(days=30)
             else:
-                lost_date = datetime(2012, 1, 7)
-            while lost_date < datetime.now():
-                if event_date < utc.localize(lost_date):
+                lost_date = utc.localize(datetime(2012, 1, 7))
+            while lost_date < utc.localize(datetime.now()):
+                if event_date < lost_date:
                     event['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat() + '+04:00'}
                     event['end'] = {'dateTime' : (lost_date + timedelta(hours=19,minutes=15)).isoformat() + '+04:00'}
                     break
