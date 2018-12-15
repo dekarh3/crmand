@@ -195,9 +195,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 resultsg = serviceg.contactGroups().list(pageSize=200).execute()
                 groups_ok = True
             except errors.HttpError as ee:
-                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
-                time.sleep(1)
-                continue
+                print(datetime.now().strftime("%H:%M:%S") +' вытаскиваем названия групп еще раз')
         self.groups_resourcenames = {}
         self.groups_resourcenames_reversed = {}
         contactGroups = resultsg.get('contactGroups', [])
@@ -930,30 +928,22 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def google2db4one(self):               # Google -> Внутр БД (текущий контакт)
-        try:
-            service = discovery.build('people', 'v1', http=self.http_con,
-                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            result = service.people().get(
-                resourceName='people/' + self.FIO_cur_id,
-                personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,'
-                             'events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,'
-                             'occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,'
-                             'relationshipStatuses,residences,skills,taglines,urls,userDefined') \
-            .execute()
-            connection = result
-        except errors.HttpError as ee:
-            print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
-            time.sleep(1)
-            service = discovery.build('people', 'v1', http=self.http_con,
-                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            result = service.people().get(
-                resourceName='people/' + self.FIO_cur_id,
-                personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,'
-                             'events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,'
-                             'occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,'
-                             'relationshipStatuses,residences,skills,taglines,urls,userDefined') \
-            .execute()
-            connection = result
+        ok_google = False
+        while not ok_google:
+            try:
+                service = discovery.build('people', 'v1', http=self.http_con,
+                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                result = service.people().get(
+                    resourceName='people/' + self.FIO_cur_id,
+                    personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,'
+                                 'events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,'
+                                 'occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,'
+                                 'relationshipStatuses,residences,skills,taglines,urls,userDefined') \
+                .execute()
+                connection = result
+                ok_google = True
+            except errors.HttpError as ee:
+                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
 # Календарь
 
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
@@ -1114,30 +1104,22 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def google2db4etag(self):  # Google -> etag внутр БД (текущий контакт)
-        try:
-            service = discovery.build('people', 'v1', http=self.http_con,
-                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            result = service.people().get(
-                resourceName='people/' + self.FIO_cur_id,
-                personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                             'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                             'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                             'residences,skills,taglines,urls,userDefined') \
-                .execute()
-            connection = result
-        except errors.HttpError as ee:
-            print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
-            time.sleep(1)
-            service = discovery.build('people', 'v1', http=self.http_con,
-                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            result = service.people().get(
-                resourceName='people/' + self.FIO_cur_id,
-                personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                             'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                             'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                             'residences,skills,taglines,urls,userDefined') \
-                .execute()
-            connection = result
+        ok_google = False
+        while not ok_google:
+            try:
+                service = discovery.build('people', 'v1', http=self.http_con,
+                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                result = service.people().get(
+                    resourceName='people/' + self.FIO_cur_id,
+                    personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
+                                 'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
+                                 'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
+                                 'residences,skills,taglines,urls,userDefined') \
+                    .execute()
+                connection = result
+                ok_google = True
+            except errors.HttpError as ee:
+                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
         self.contacts_filtered[self.FIO_cur_id]['etag'] = connection['etag']
         return
 
@@ -1637,20 +1619,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.all_events[self.contacts_filtered[self.FIO_cur_id]['resourceName']] = event
 
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
-        try:
-            if has_event:
-                calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \
-                    .execute()
-            else:
-                calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-        except errors.HttpError as ee:
-            print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить/обновить event еще раз')
-            time.sleep(1)
-            if has_event:
-                calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \
-                    .execute()
-            else:
-                calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+        ok_google = False
+        while not ok_google:
+            try:
+                if has_event:
+                    calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \
+                        .execute()
+                else:
+                    calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                ok_google = True
+            except errors.HttpError as ee:
+                print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить/обновить event еще раз')
         return
 
     def click_clbCreateContact(self):  # Ищем дубли и выводим в print()
@@ -1848,35 +1827,33 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         buf_contact['names'] = [{'givenName': str(j)}]
                         buf_contact['urls'] = {'value': avitos[avito_i]}
                         buf_contact['biographies'] = [{}]
-                        buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
-                                                                 + '|0м|\n'
+                        buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() +
+                                                                                 timedelta(days=14)) + '|0м|\n'
                         # buf_contact['phoneNumbers'] = ['0']
                         # Создаем контакт
-                        try:
-                            service = discovery.build('people', 'v1', http=self.http_con,
-                                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                            resultsc = service.people().createContact(body=buf_contact).execute()
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
-                            time.sleep(1)
-                            service = discovery.build('people', 'v1', http=self.http_con,
-                                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                            resultsc = service.people().createContact(body=buf_contact).execute()
+                        ok_google = False
+                        while not ok_google:
+                            try:
+                                service = discovery.build('people', 'v1', http=self.http_con,
+                                                    discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                                resultsc = service.people().createContact(body=buf_contact).execute()
+                                ok_google = True
+                            except errors.HttpError as ee:
+                                print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
+
                         # Добавляем в текущую группу
-                        try:
-                            group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                            resultsg = service.contactGroups().members().modify(
-                                resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                                body=group_body
-                            ).execute()
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
-                            time.sleep(1)
-                            group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                            resultsg = service.contactGroups().members().modify(
-                                resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                                body=group_body
-                            ).execute()
+                        ok_google = False
+                        while not ok_google:
+                            try:
+                                group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                                resultsg = service.contactGroups().members().modify(
+                                    resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                                    body=group_body
+                                ).execute()
+                                ok_google = True
+                            except errors.HttpError as ee:
+                                print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
+
                         # Добавляем событие через 31 день
                         if avito_date.weekday() == 5:
                             avito_date += timedelta(days=2)
@@ -1948,31 +1925,28 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                           + '|0м|\n'
                 #buf_contact['phoneNumbers'] = ['0']
                 # Создаем контакт
-                try:
-                    service = discovery.build('people', 'v1', http=self.http_con,
-                                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                    resultsc = service.people().createContact(body=buf_contact).execute()
-                except errors.HttpError as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
-                    time.sleep(1)
-                    service = discovery.build('people', 'v1', http=self.http_con,
-                                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                    resultsc = service.people().createContact(body=buf_contact).execute()
+                ok_google = False
+                while not ok_google:
+                    try:
+                        service = discovery.build('people', 'v1', http=self.http_con,
+                                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                        resultsc = service.people().createContact(body=buf_contact).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз')
+
                 # Добавляем в текущую группу
-                try:
-                    group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                    resultsg = service.contactGroups().members().modify(
-                        resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                        body=group_body
-                    ).execute()
-                except errors.HttpError as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
-                    time.sleep(1)
-                    group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                    resultsg = service.contactGroups().members().modify(
-                        resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                        body=group_body
-                    ).execute()
+                ok_google = False
+                while not ok_google:
+                    try:
+                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                        resultsg = service.contactGroups().members().modify(
+                            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                            body=group_body
+                        ).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз')
                 # Добавляем событие через 14 дней
                 event = {}
                 event['id'] = resultsc['resourceName'].split('/')[1]
