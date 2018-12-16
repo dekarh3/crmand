@@ -134,10 +134,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.http_con = credentials_con.authorize(Http())
         credentials_cal = get_credentials_cal()
         self.http_cal = credentials_cal.authorize(Http())
+        self.all_events = {}
         self.google2db4all()
         self.all_stages = []
         self.all_stages_reverce = {}
-        self.all_events = {}
         self.refresh_stages()
         self.id_tek = 0
         self.show_clear = True
@@ -354,7 +354,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 need_full_reload = False
                 calendars = []
                 calendars_result = {'nextPageToken': ''}
-                start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z' # ('Z' indicates UTC time) с начала работы
                 while str(calendars_result.keys()).find('nextPageToken') > -1:
                     if calendars_result['nextPageToken'] == '':
                         try:
@@ -1278,6 +1277,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     contact_event = parse(self.all_events[contact['resourceName']]['start'])
                 except KeyError:
                     contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
+                except TypeError:
+                    print('=========ОШИБКА!!!!!!!!!!!!',self.all_events[contact['resourceName']]['start'])
                 has_to_today = contact_event <= to_today
                 has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
                 has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
