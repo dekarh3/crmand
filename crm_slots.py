@@ -313,7 +313,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             if not self.events_syncToken:                             # Пустой syncToken - полное обновление
                 calendars = []
                 calendars_result = {'nextPageToken':''}
-                start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
                 while str(calendars_result.keys()).find('nextPageToken') > -1:
                     if calendars_result['nextPageToken'] == '':
                         try:
@@ -321,14 +320,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 calendarId='primary',
                                 showDeleted=True,
                                 showHiddenInvitations=True,
-                                timeMin=start,
-                                maxResults=2000,
                                 singleEvents=True,
-                                orderBy='startTime'
+                                maxResults = 2000
                             ).execute()
-                            if str(calendars_result.values()).find('nextSyncToken') > -1:
-                                self.events_syncToken = calendars_result['nextSyncToken']
-                                print('==============',self.events_syncToken)
+                            token = calendars_result.get('nextSyncToken')
+                            if token:
+                                self.events_syncToken = token
+                                print('==============',token)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                             continue
@@ -338,15 +336,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 calendarId='primary',
                                 showDeleted=True,
                                 showHiddenInvitations=True,
-                                timeMin=start,
-                                maxResults=2000,
                                 pageToken=calendars_result['nextPageToken'],
                                 singleEvents=True,
-                                orderBy='startTime'
+                                maxResults = 2000
                             ).execute()
-                            if str(calendars_result.values()).find('nextSyncToken') > -1:
-                                self.events_syncToken = calendars_result['nextSyncToken']
-                                print('==============',self.events_syncToken)
+                            token = calendars_result.get('nextSyncToken')
+                            if token:
+                                self.events_syncToken = token
+#                                print('==============',token)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                             continue
@@ -363,15 +360,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             calendars_result = service_cal.events().list(
                                 calendarId='primary',
+                                maxResults=2000,
                                 showDeleted=True,
                                 showHiddenInvitations=True,
-                                maxResults=2000,
                                 syncToken=self.events_syncToken,
                                 singleEvents=True
                             ).execute()
-                            if str(calendars_result.values()).find('nextSyncToken') > -1:
-                                self.events_syncToken = calendars_result['nextSyncToken']
-                                print('==============',self.events_syncToken)
+                            token = calendars_result.get('nextSyncToken')
+                            if token:
+                                self.events_syncToken = token
+#                                print('==============',token)
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -385,16 +383,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             calendars_result = service_cal.events().list(
                                 calendarId='primary',
+                                maxResults=2000,
                                 showDeleted=True,
                                 showHiddenInvitations=True,
-                                maxResults=2000,
                                 syncToken=self.events_syncToken,
                                 pageToken=calendars_result['nextPageToken'],
                                 singleEvents=True
                             ).execute()
-                            if str(calendars_result.values()).find('nextSyncToken') > -1:
-                                self.events_syncToken = calendars_result['nextSyncToken']
-                                print('==============',self.events_syncToken)
+                            token = calendars_result.get('nextSyncToken')
+                            if token:
+                                self.events_syncToken = token
+#                                print('==============',token)
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -408,9 +407,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if need_full_reload:
                     self.events_syncToken = ''
                 else:
-                    if str(calendars_result.values()).find('nextSyncToken') > -1:
-                        self.events_syncToken = calendars_result['nextSyncToken']
-                        print('==============', self.events_syncToken)
                     events_ok = True
                     events_full = 'Part'
 
