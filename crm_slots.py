@@ -328,6 +328,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ).execute()
                             if str(calendars_result.values()).find('nextSyncToken') > -1:
                                 self.events_syncToken = calendars_result['nextSyncToken']
+                                print('==============',self.events_syncToken)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                             continue
@@ -345,6 +346,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ).execute()
                             if str(calendars_result.values()).find('nextSyncToken') > -1:
                                 self.events_syncToken = calendars_result['nextSyncToken']
+                                print('==============',self.events_syncToken)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз')
                             continue
@@ -369,6 +371,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ).execute()
                             if str(calendars_result.values()).find('nextSyncToken') > -1:
                                 self.events_syncToken = calendars_result['nextSyncToken']
+                                print('==============',self.events_syncToken)
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -391,6 +394,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ).execute()
                             if str(calendars_result.values()).find('nextSyncToken') > -1:
                                 self.events_syncToken = calendars_result['nextSyncToken']
+                                print('==============',self.events_syncToken)
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -404,6 +408,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if need_full_reload:
                     self.events_syncToken = ''
                 else:
+                    if str(calendars_result.values()).find('nextSyncToken') > -1:
+                        self.events_syncToken = calendars_result['nextSyncToken']
+                        print('==============', self.events_syncToken)
                     events_ok = True
                     events_full = 'Part'
 
@@ -522,12 +529,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 contact['stage'] = stage
                 contact['calendar'] = calendar
                 contact['cost'] = cost + random() * 1e-5
-                try:  # есть такой event - берем
-                    eventn = self.all_events[contact['resourceName']]
-                    contact['event'] = parse(eventn['start'])
-                    contact['event-www'] = eventn['www']
-                except KeyError:  # нет такого event'а - ставим дряхлую дату
-                    contact['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
                 town = ''
                 oaddresses = connection.get('addresses', [])
                 if len(oaddresses) > 0:
@@ -554,9 +555,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             contact['instagram'] = ourl['value']
                 contact['urls'] = urls
                 self.contacty[contact['resourceName']] = contact
-                if contact['event'] > utc.localize(datetime(2013, 1, 1, 0, 0)) \
-                        and contact['stage'] not in WORK_STAGES_CONST and contact['stage'] not in LOST_STAGES_CONST:
-                    events4delete.append(contact['resourceName'])
+                try:
+                    contact_event = parse(self.all_events[contact['resourceName']]['start'])
+                    if contact_event > utc.localize(datetime(2013, 1, 1, 0, 0)) \
+                            and contact['stage'] not in WORK_STAGES_CONST and contact['stage'] not in LOST_STAGES_CONST:
+                        events4delete.append(contact['resourceName'])
+                except KeyError:
+                    q=0
             for event4delete in events4delete:
                 event4 = service_cal.events().get(calendarId='primary', eventId=event4delete).execute()
                 event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
@@ -622,12 +627,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     contact['stage'] = stage
                     contact['calendar'] = calendar
                     contact['cost'] = cost + random() * 1e-5
-                    try:  # есть такой event - берем
-                        eventn = self.all_events[contact['resourceName']]
-                        contact['event'] = parse(eventn['start'])
-                        contact['event-www'] = eventn['www']
-                    except KeyError:  # нет такого event'а - ставим дряхлую дату
-                        contact['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
                     town = ''
                     oaddresses = connection.get('addresses', [])
                     if len(oaddresses) > 0:
@@ -891,12 +890,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 contact['stage'] = stage
                 contact['calendar'] = calendar
                 contact['cost'] = cost + random() * 1e-5
-                try:  # есть такой event - берем
-                    eventn = self.all_events[contact['resourceName']]
-                    contact['event'] = parse(eventn['start'])
-                    contact['event-www'] = eventn['www']
-                except KeyError:  # нет такого event'а - ставим дряхлую дату
-                    contact['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
                 town = ''
                 oaddresses = connection.get('addresses', [])
                 if len(oaddresses) > 0:
@@ -1066,12 +1059,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contact['stage'] = stage
         contact['calendar'] = calendar
         contact['cost'] = cost + random() * 1e-5
-        try:  # есть такой event - берем
-            eventn = eventds[contact['resourceName']]
-            contact['event'] = parse(eventn['start'])
-            contact['event-www'] = eventn['www']
-        except KeyError:  # нет такого event'а - ставим дряхлую дату
-            contact['event'] = utc.localize(datetime(2012, 12, 31, 0, 0))
         town = ''
         oaddresses = connection.get('addresses', [])
         if len(oaddresses) > 0:
@@ -1110,18 +1097,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 service = discovery.build('people', 'v1', http=self.http_con,
                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
                 result = service.people().get(
-                    resourceName='people/' + self.FIO_cur_id,
-                    personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,events,'
-                                 'genders,imClients,interests,locales,memberships,metadata,names,nicknames,occupations,'
-                                 'organizations,phoneNumbers,photos,relations,relationshipInterests,relationshipStatuses,'
-                                 'residences,skills,taglines,urls,userDefined') \
-                    .execute()
-                connection = result
+                    resourceName='people/' + self.FIO_cur_id, personFields='metadata').execute()
                 ok_google = True
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз')
-        self.contacts_filtered[self.FIO_cur_id]['etag'] = connection['etag']
-        return
+        self.contacts_filtered[self.FIO_cur_id]['etag'] = result['etag']
+        return result['etag']
 
     def db2form4one(self):              #  внутр. БД -> Форма
         self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
@@ -1155,8 +1136,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.leUrls.setText(urls)
 #        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
 #        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
-        self.deCalendar.setDate(self.contacts_filtered[self.FIO_cur_id]['event'])
-        self.cbTime.setTime(self.contacts_filtered[self.FIO_cur_id]['event'].time())
+        try:
+            contact_event = parse(self.all_events[self.FIO_cur_id]['start'])
+        except KeyError:
+            contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
+        self.deCalendar.setDate(contact_event)
+        self.cbTime.setTime(contact_event.time())
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
         if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.show_site == 'avito':
             profile = QWebEngineProfile(self.preview)
@@ -1293,7 +1278,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     to_today = utc.localize(datetime.now())
                 else:
                     to_today = utc.localize(datetime(2100,12,31,0,0))
-                has_to_today = contact['event'] <= to_today
+                try:
+                    contact_event = parse(self.all_events[contact['resourceName']]['start'])
+                except KeyError:
+                    contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
+                has_to_today = contact_event <= to_today
                 has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
                 has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
                 has_stage = (self.all_stages_reverce[contact['stage']] <= self.cbStageTo.currentIndex())\
@@ -1359,7 +1348,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if has_phone:
                     contacts_f.append(contact)
                     contacts_f[i]['contact_ind'] = ind
-                    contacts_f_event[i] = contacts_f[i]['event']
+                    try:
+                        contacts_f_event[i] = parse(self.all_events[contacts_f[i]['resourceName']]['start'])
+                    except KeyError:
+                        contacts_f_event[i] = utc.localize(datetime(2012, 12, 31, 0, 0))
                     contacts_f_fio[i] = contacts_f[i]['fio']
                     contacts_f_cost[i] = contacts_f[i]['cost']
                     i += 1
@@ -1369,7 +1361,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     to_today = utc.localize(datetime.now())
                 else:
                     to_today = utc.localize(datetime(2100,12,31,0,0))
-                has_to_today = contact['event'] <= to_today
+                try:
+                    contact_event = parse(self.all_events[contact['resourceName']]['start'])
+                except KeyError:
+                    contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
+                has_to_today = contact_event <= to_today
                 has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
                 has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
                 has_group = False
@@ -1381,7 +1377,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if has_FIO and has_note and has_group and has_stage and has_to_today:
                     contacts_f.append(contact)
                     contacts_f[i]['contact_ind'] = ind
-                    contacts_f_event[i] = contacts_f[i]['event']
+                    try:
+                        contacts_f_event[i] = parse(self.all_events[contacts_f[i]['resourceName']]['start'])
+                    except KeyError:
+                        contacts_f_event[i] = utc.localize(datetime(2012, 12, 31, 0, 0))
                     contacts_f_fio[i] = contacts_f[i]['fio']
                     contacts_f_cost[i] = contacts_f[i]['cost']
                     i += 1
@@ -1485,7 +1484,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def click_clbSave(self):
         self.google2db4all()
-        pred_cal = self.contacts_filtered[self.FIO_cur_id]['event']
+        pred_stage = self.contacts_filtered[self.FIO_cur_id]['stage']
+        try:
+            contact_event = parse(self.all_events[self.FIO_cur_id]['start'])
+        except KeyError:
+            contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
+        pred_cal = contact_event
         self.form2db4one()
         buf_contact = {}
         buf_contact['userDefined'] = [{},{},{}]
@@ -1539,7 +1543,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.leTown.text():
             if len(self.leTown.text().strip()) > 0:
                 buf_contact['addresses'] = [{'streetAddress': self.contacts_filtered[self.FIO_cur_id]['town']}]
-        buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
+        buf_contact['etag'] = self.google2db4etag()
         # Обновление контакта
         try:
             service = discovery.build('people', 'v1', http=self.http_con,
@@ -1585,19 +1589,27 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             event['start'] = {'dateTime' : datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'}
             event['end'] = {'dateTime' : datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'}
         # Если нет объявления, ставим ближайшую субботу
-        if self.cbStage.currentText() not in WORK_STAGES_CONST:
+        elif self.cbStage.currentText() not in WORK_STAGES_CONST:
             event_date = parse(event['start']['dateTime'])
-            if event_date > utc.localize(datetime(2012, 1, 7) + timedelta(days=30)):
-                lost_date = event_date - timedelta(days=30)
-            else:
+            if event_date < utc.localize(datetime(2012, 1, 7)):
                 lost_date = utc.localize(datetime(2012, 1, 7))
-            while lost_date < utc.localize(datetime.now()):
-                if event_date < lost_date:
-                    event['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat() + '+04:00'}
-                    event['end'] = {'dateTime' : (lost_date + timedelta(hours=19,minutes=15)).isoformat() + '+04:00'}
-                    break
-                else:
-                    lost_date += timedelta(days=7)
+            else:
+                lost_date = event_date
+            while lost_date.weekday() != 5:
+                lost_date += timedelta(days=1)
+            event['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat()}
+            event['end'] = {'dateTime' : (lost_date + timedelta(hours=19,minutes=15)).isoformat()}
+        elif (self.cbStage.currentText() in WORK_STAGES_CONST or self.cbStage.currentText() in LOST_STAGES_CONST) and (
+                pred_stage not in WORK_STAGES_CONST and pred_stage not in LOST_STAGES_CONST):
+            event_date = parse(event['start']['dateTime'])
+            if event_date < utc.localize(datetime(2012, 1, 7)):
+                lost_date = utc.localize(datetime(2012, 1, 7))
+            else:
+                lost_date = event_date
+            lost_date -= timedelta(days=1)
+            event['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat()}
+            event['end'] = {'dateTime' : (lost_date + timedelta(hours=19,minutes=15)).isoformat()}
+
         phones = ''
         if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
             phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
