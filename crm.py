@@ -33,7 +33,7 @@ class MainWindow(MainWindowSlots):
         self.clbCreateContact.clicked.connect(self.click_clbCreateContact)
         self.clbGoURL1.clicked.connect(self.click_clbGoURL1)
         self.clbGoURL2.clicked.connect(self.click_clbGoURL2)
-        self.clbExport.clicked.connect(self.click_clbExport)
+#        self.clbExport.clicked.connect(self.click_clbExport)
         self.clbTrashLoad.clicked.connect(self.click_clbTrashLoad)
         self.leIOF.textChanged[str].connect(self.leIOF_changed)
         self.preview.loadFinished.connect(self.preview_loaded)

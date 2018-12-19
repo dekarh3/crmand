@@ -664,9 +664,6 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="lePhones"/>
-         </item>
-         <item>
           <widget class="QCheckBox" name="chbHasPhone">
            <property name="text">
             <string>Тел</string>
@@ -680,21 +677,23 @@
           </widget>
          </item>
          <item>
-          <widget class="QCommandLinkButton" name="clbCreateContact">
-           <property name="maximumSize">
-            <size>
-             <width>33</width>
-             <height>16777215</height>
-            </size>
+          <widget class="QLineEdit" name="lePhones"/>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_4">
+           <property name="font">
+            <font>
+             <pointsize>16</pointsize>
+            </font>
            </property>
            <property name="text">
-            <string/>
+            <string>Σ</string>
            </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>plus.png</normaloff>plus.png</iconset>
-           </property>
-           <property name="description">
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="chbSumm">
+           <property name="text">
             <string/>
            </property>
           </widget>
@@ -714,7 +713,7 @@
          <item>
           <widget class="QLabel" name="label_3">
            <property name="text">
-            <string>Гор:</string>
+            <string>Адр.</string>
            </property>
           </widget>
          </item>
