@@ -324,7 +324,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QCommandLinkButton" name="clbTrashLoad">
+             <widget class="QCommandLinkButton" name="clbStageRefresh">
               <property name="maximumSize">
                <size>
                 <width>33</width>

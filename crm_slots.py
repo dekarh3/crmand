@@ -561,10 +561,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 contact['urls'] = urls
                 if str(contact.keys()).find('avito') > -1:
                     avito_x = contact['avito'].strip()
+                    avito_i = len(avito_x) - 1
                     for j in range(len(avito_x) - 1, 0, -1):
                         if avito_x[j] not in digits:
+                            avito_i = j + 1
                             break
-                    contact['avito_id'] = avito_x[j + 1:]
+                    contact['avito_id'] = avito_x[avito_i:]
                 self.contacty[contact['resourceName']] = contact
                 try:
                     contact_event = parse(self.all_events[contact['resourceName']]['start'])
@@ -665,10 +667,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     contact['urls'] = urls
                     if str(contact.keys()).find('avito') > -1:
                         avito_x = contact['avito'].strip()
+                        avito_i = len(avito_x) - 1
                         for j in range(len(avito_x) - 1, 0, -1):
                             if avito_x[j] not in digits:
+                                avito_i = j + 1
                                 break
-                        contact['avito_id'] = avito_x[j + 1:]
+                        contact['avito_id'] = avito_x[avito_i:]
                     self.contacty[contact['resourceName']] = contact
                 except Exception as ee:
                     q = 0
@@ -843,29 +847,33 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contact['urls'] = urls
         if str(contact.keys()).find('avito') > -1:
             avito_x = contact['avito'].strip()
+            avito_i = len(avito_x) - 1
             for j in range(len(avito_x) - 1, 0, -1):
                 if avito_x[j] not in digits:
+                    avito_i = j + 1
                     break
-            contact['avito_id'] = avito_x[j + 1:]
+            contact['avito_id'] = avito_x[avito_i:]
         ind = self.contacts_filtered[self.FIO_cur_id]['contact_ind']
         self.contacts_filtered[self.FIO_cur_id] = contact
         self.contacts_filtered[self.FIO_cur_id]['contact_ind'] = ind
         self.contacty[self.contacts_filtered[self.FIO_cur_id]['contact_ind']] = contact
         return
 
-    def google2db4etag(self):  # Google -> etag внутр БД (текущий контакт)
+    def google2db4etag(self, cur_id=None):  # Google -> etag внутр БД (текущий контакт)
+        if not cur_id:
+            cur_id = self.FIO_cur_id
         ok_google = False
         while not ok_google:
             try:
                 service = discovery.build('people', 'v1', http=self.http_con,
                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
                 result = service.people().get(
-                    resourceName='people/' + self.FIO_cur_id, personFields='metadata').execute()
+                    resourceName='people/' + cur_id, personFields='metadata').execute()
                 ok_google = True
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
                               ee.resp['status'], str(ee.args[1].values))
-        self.contacts_filtered[self.FIO_cur_id]['etag'] = result['etag']
+        self.contacts_filtered[cur_id]['etag'] = result['etag']
         return result['etag']
 
     def db2form4one(self):              #  внутр. БД -> Форма
@@ -1312,27 +1320,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 buf_contact['addresses'] = [{'streetAddress': self.contacts_filtered[self.FIO_cur_id]['town']}]
         buf_contact['etag'] = self.google2db4etag()
         # Обновление контакта
-        try:
-            service = discovery.build('people', 'v1', http=self.http_con,
-                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            resultsc = service.people().updateContact(
-                resourceName='people/' + self.FIO_cur_id,
-                updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
-                body=buf_contact).execute()
-        except errors.HttpError as ee:
-            print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
-            time.sleep(1)
-            service = discovery.build('people', 'v1', http=self.http_con,
-                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            resultsc = service.people().updateContact(
-                resourceName='people/' + self.FIO_cur_id,
-                updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
-                body=buf_contact).execute()
-
-#        cal_cancel = False
-#        if pred_cal.date() == self.deCalendar.date(): #.toString("dd.MM.yyyy"):  #
-#            cal_cancel = True
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        ok_google = False
+        while not ok_google:
+            try:
+                resultsc = service.people().updateContact(
+                    resourceName='people/' + self.FIO_cur_id,
+                    updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
+                    body=buf_contact).execute()
+                ok_google = True
+            except errors.HttpError as ee:
+                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
 # Календарь
 
         has_event = False
@@ -1341,42 +1341,51 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             has_event = True
         except KeyError:  # нет такого event'а - создаем
             has_event = False
-
+        calendar = {}
         if not has_event:
             event = {}
             event['id'] = self.contacts_filtered[self.FIO_cur_id]['resourceName']
-
-        event['start'] = {'dateTime' : datetime.combine(self.deCalendar.date().toPyDate(),
+        calendar['id'] = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+        event['start'] = datetime.combine(self.deCalendar.date().toPyDate(), self.cbTime.time().toPyTime()).isoformat()\
+                         + '+04:00'
+        calendar['start'] = {'dateTime' : datetime.combine(self.deCalendar.date().toPyDate(),
                                         self.cbTime.time().toPyTime()).isoformat() + '+04:00'}
-
-        event['end'] = {'dateTime' : (datetime.combine(self.deCalendar.date().toPyDate(),
+        event['end'] = (datetime.combine(self.deCalendar.date().toPyDate(), self.cbTime.time().toPyTime())
+                        + timedelta(minutes=15)).isoformat() + '+04:00'
+        calendar['end'] = {'dateTime' : (datetime.combine(self.deCalendar.date().toPyDate(),
                                         self.cbTime.time().toPyTime()) + timedelta(minutes=15)).isoformat() + '+04:00'}
-        event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+        calendar['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
         # Если стадия не рабочая - ставим прошлую дату
         if self.cbStage.currentText() not in WORK_STAGES_CONST and self.cbStage.currentText() not in LOST_STAGES_CONST:
-            event['start'] = {'dateTime' : datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'}
-            event['end'] = {'dateTime' : datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'}
+            event['start'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
+            calendar['start'] = {'dateTime' : datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'}
+            event['end'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+            calendar['end'] = {'dateTime': datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'}
         # Если нет объявления, ставим ближайшую субботу
         elif self.cbStage.currentText() not in WORK_STAGES_CONST:
-            event_date = parse(event['start']['dateTime'])
+            event_date = parse(event['start'])
             if event_date < utc.localize(datetime(2012, 1, 7)):
                 lost_date = utc.localize(datetime(2012, 1, 7))
             else:
                 lost_date = event_date
             while lost_date.weekday() != 5:
                 lost_date += timedelta(days=1)
-            event['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat()}
-            event['end'] = {'dateTime' : (lost_date + timedelta(hours=19,minutes=15)).isoformat()}
-        elif (self.cbStage.currentText() in WORK_STAGES_CONST or self.cbStage.currentText() in LOST_STAGES_CONST) and (
-                pred_stage not in WORK_STAGES_CONST and pred_stage not in LOST_STAGES_CONST):
-            event_date = parse(event['start']['dateTime'])
+            event['start'] = (lost_date + timedelta(hours=19)).isoformat()
+            calendar['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat()}
+            event['end'] = (lost_date + timedelta(hours=19,minutes=15)).isoformat()
+            calendar['end'] = {'dateTime': (lost_date + timedelta(hours=19, minutes=15)).isoformat()}
+        # Если не было объявления, а сейчас есть - ОТЛАДИТЬ !!!!!
+        elif self.cbStage.currentText() in WORK_STAGES_CONST and pred_stage in LOST_STAGES_CONST:
+            event_date = parse(event['start'])
             if event_date < utc.localize(datetime(2012, 1, 7)):
                 lost_date = utc.localize(datetime(2012, 1, 7))
             else:
                 lost_date = event_date
             lost_date -= timedelta(days=1)
-            event['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat()}
-            event['end'] = {'dateTime' : (lost_date + timedelta(hours=19,minutes=15)).isoformat()}
+            event['start'] = (lost_date + timedelta(hours=19)).isoformat()
+            calendar['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat()}
+            event['end'] = (lost_date + timedelta(hours=19,minutes=15)).isoformat()
+            calendar['end'] = {'dateTime' : (lost_date + timedelta(hours=19,minutes=15)).isoformat()}
 
         phones = ''
         if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
@@ -1392,9 +1401,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if i == 0:
                     continue
                 memos += memo + '\n'
-        event['description'] = phones + '\n' + memos + '\n' \
+        calendar['description'] = phones + '\n' + memos + '\n' \
                                + self.contacts_filtered[self.FIO_cur_id]['note']
-        event['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
+        calendar['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
                            self.contacts_filtered[self.FIO_cur_id]['stage']
         self.all_events[self.contacts_filtered[self.FIO_cur_id]['resourceName']] = event
 
@@ -1403,24 +1412,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         while not ok_google:
             try:
                 if has_event:
-                    calendar_result = service_cal.events().update(calendarId='primary', eventId=event['id'], body=event) \
-                        .execute()
+                    calendar_result = service_cal.events().update(
+                        calendarId='primary',
+                        eventId=calendar['id'],
+                        body=calendar).execute()
                 else:
-                    calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                    calendar_result = service_cal.events().insert(calendarId='primary', body=calendar).execute()
                 ok_google = True
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить/обновить event еще раз - ошибка',
                               ee.resp['status'], str(ee.args[1].values))
         return
-
-    def click_clbCreateContact(self):  # Ищем дубли и выводим в print()
-        for i, contact in enumerate(self.contacty.values()):
-            for j, contact2 in enumerate(self.contacty.values()):
-                if contact['avito'] != '' and contact['avito'] == contact2['avito'] and i != j:
-                    if l(contact['fio']) > l(contact2['fio']):
-                        print(contact['iof'],contact2['iof'])
-                    else:
-                        print(contact2['iof'], contact['iof'])
 
     def click_clbGoURL1(self):
         if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 0:
@@ -1604,28 +1606,45 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.my_html = str(html_x)
         return
 
-    def click_clbTrashLoad(self):
+    def click_clbStageRefresh(self):
         if self.group_cur != '_КоттеджиСочи':
             return
         if self.leFIO.text() or self.leNote.text() or self.lePhone.text():
             return
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         for avito in self.avitos:
             has_in_db = False
             for contact in self.contacts_filtered:
                 if str(self.contacts_filtered[contact].keys()).find('avito') > -1:
                     if self.contacts_filtered[contact]['avito_id'] == avito:
                         has_in_db = True
-            if has_in_db:           # !!!!!!!!!!!!!Нужно сохранить в google
+            if has_in_db:
                 if self.contacts_filtered[contact]['stage'] == 'нет объявления':
                     self.contacts_filtered[contact]['stage'] = 'пауза'
             else:
                 if self.contacts_filtered[contact]['stage'] == 'пауза':
                     self.contacts_filtered[contact]['stage'] = 'нет объявления'
-
-
-
-
-
+            buf_contact = {}
+            buf_contact['userDefined'] = [{}, {}, {}]
+            buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
+            buf_contact['userDefined'][0]['key'] = 'stage'
+            buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
+            buf_contact['userDefined'][1]['key'] = 'calendar'
+            buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
+            buf_contact['userDefined'][2]['key'] = 'cost'
+            buf_contact['etag'] = self.google2db4etag(cur_id=contact)
+            ok_google = False
+            while not ok_google:
+                try:
+                    resultsc = service.people().updateContact(
+                        resourceName='people/' + contact,
+                        updatePersonFields='userDefined',
+                        body=buf_contact).execute()
+                    ok_google = True
+                except errors.HttpError as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
+                          ee.resp['status'], str(ee.args[1].values))
 
 #    def click_clbExport(self):
 
@@ -1839,6 +1858,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.changed = True
         return
 
+    def click_clbCreateContact(self):  # Ищем дубли и выводим в print()
+        for i, contact in enumerate(self.contacty.values()):
+            for j, contact2 in enumerate(self.contacty.values()):
+                if contact['avito'] != '' and contact['avito'] == contact2['avito'] and i != j:
+                    if l(contact['fio']) > l(contact2['fio']):
+                        print(contact['iof'],contact2['iof'])
+                    else:
+                        print(contact2['iof'], contact['iof'])
         
     def click_clbCreateContact(self):
         buf_contact = {}
