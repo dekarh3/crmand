@@ -1510,14 +1510,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-        self.FIO_saved_id = self.FIO_cur_id
+        #self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        #self.FIO_saved_id = self.FIO_cur_id
         #   Если переходим в другую группу делаем self.avitos = {} - пока не надо (одна группа)
+        avitos_last = {}
         avitos_raw = self.my_html.split('href="/sochi/doma_dachi_kottedzhi/')
         for i, avito_raw in enumerate(avitos_raw):
             if i == 0:
                 continue
-            is_double = False
             if avito_raw[:6] != 'prodam':
                 avito_x = avito_raw.split('"')[0].strip()
                 for j in range(len(avito_x) - 1, 0, -1):
@@ -1528,75 +1528,78 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 except KeyError:
                     self.avitos[avito_x[j + 1:]] = 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + \
                                                    avito_raw.split('"')[0]
-        j = round(random()*1000000)
-        for avito in self.avitos:
-            has_in_db = False
-            for contact in self.contacty.values():
-                if str(contact.keys()).find('avito_id') > -1:
-                    if contact['avito_id'] == avito:
-                        has_in_db = True
-            if not has_in_db:
-                j += 1
-                buf_contact = {}
-                buf_contact['userDefined'] = [{}, {}, {}]
-                buf_contact['userDefined'][0]['value'] = 'пауза'
-                buf_contact['userDefined'][0]['key'] = 'stage'
-                buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
-                buf_contact['userDefined'][1]['key'] = 'calendar'
-                buf_contact['userDefined'][2]['value'] = '0'
-                buf_contact['userDefined'][2]['key'] = 'cost'
-                buf_contact['names'] = [{'givenName': str(j)}]
-                buf_contact['urls'] = {'value': self.avitos[avito]}
-                buf_contact['biographies'] = [{}]
-                buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
-                                                          + '|0м|\n'
-                #buf_contact['phoneNumbers'] = ['0']
-                # Создаем контакт
-                ok_google = False
-                while not ok_google:
-                    try:
-                        resultsc = service.people().createContact(body=buf_contact).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                    avitos_last[avito_x[j + 1:]] = 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + \
+                                                   avito_raw.split('"')[0]
+        if self.chbNewAdd.isChecked():
+            j = round(random()*1000000)
+            for avito in avitos_last:
+                has_in_db = False
+                for contact in self.contacty.values():
+                    if str(contact.keys()).find('avito_id') > -1:
+                        if contact['avito_id'] == avito:
+                            has_in_db = True
+                if not has_in_db:
+                    j += 1
+                    buf_contact = {}
+                    buf_contact['userDefined'] = [{}, {}, {}]
+                    buf_contact['userDefined'][0]['value'] = 'пауза'
+                    buf_contact['userDefined'][0]['key'] = 'stage'
+                    buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
+                    buf_contact['userDefined'][1]['key'] = 'calendar'
+                    buf_contact['userDefined'][2]['value'] = '0'
+                    buf_contact['userDefined'][2]['key'] = 'cost'
+                    buf_contact['names'] = [{'givenName': str(j)}]
+                    buf_contact['urls'] = {'value': self.avitos[avito]}
+                    buf_contact['biographies'] = [{}]
+                    buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
+                                                              + '|0м|\n'
+                    #buf_contact['phoneNumbers'] = ['0']
+                    # Создаем контакт
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            resultsc = service.people().createContact(body=buf_contact).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
 
-                # Добавляем в текущую группу
-                ok_google = False
-                while not ok_google:
-                    try:
-                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                        resultsg = service.contactGroups().members().modify(
-                            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                            body=group_body
-                        ).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
-                # Добавляем событие через 30 дней
-                event = {}
-                event['id'] = resultsc['resourceName'].split('/')[1]
-                event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
-                                          datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
-                event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
-                                          datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
-                event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-                event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + \
-                                       self.avitos[avito]
-                event['summary'] = '- пауза'
-                ok_google = False
-                while not ok_google:
-                    try:
-                        calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
-        self.contacty_syncToken = ''
-        self.events_syncToken = ''
-        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
-        self.setup_twGroups()
+                    # Добавляем в текущую группу
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                            resultsg = service.contactGroups().members().modify(
+                                resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                                body=group_body
+                            ).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
+                    # Добавляем событие через 30 дней
+                    event = {}
+                    event['id'] = resultsc['resourceName'].split('/')[1]
+                    event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
+                                              datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
+                    event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
+                                              datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
+                    event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                    event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + \
+                                           self.avitos[avito]
+                    event['summary'] = '- пауза'
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
+        #self.contacty_syncToken = ''
+        #self.events_syncToken = ''
+        #self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
+        #self.setup_twGroups()
 
     def click_clbPreviewLoading(self):
         self.preview.page().toHtml(self.processHtml)
@@ -1619,32 +1622,91 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if str(self.contacts_filtered[contact].keys()).find('avito') > -1:
                     if self.contacts_filtered[contact]['avito_id'] == avito:
                         has_in_db = True
+            changed = False
             if has_in_db:
                 if self.contacts_filtered[contact]['stage'] == 'нет объявления':
                     self.contacts_filtered[contact]['stage'] = 'пауза'
+                    changed = True
             else:
                 if self.contacts_filtered[contact]['stage'] == 'пауза':
                     self.contacts_filtered[contact]['stage'] = 'нет объявления'
-            buf_contact = {}
-            buf_contact['userDefined'] = [{}, {}, {}]
-            buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
-            buf_contact['userDefined'][0]['key'] = 'stage'
-            buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
-            buf_contact['userDefined'][1]['key'] = 'calendar'
-            buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
-            buf_contact['userDefined'][2]['key'] = 'cost'
-            buf_contact['etag'] = self.google2db4etag(cur_id=contact)
-            ok_google = False
-            while not ok_google:
-                try:
-                    resultsc = service.people().updateContact(
-                        resourceName='people/' + contact,
-                        updatePersonFields='userDefined',
-                        body=buf_contact).execute()
-                    ok_google = True
-                except errors.HttpError as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
-                          ee.resp['status'], str(ee.args[1].values))
+                    changed = True
+            if changed:
+                buf_contact = {}
+                buf_contact['userDefined'] = [{}, {}, {}]
+                buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
+                buf_contact['userDefined'][0]['key'] = 'stage'
+                buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
+                buf_contact['userDefined'][1]['key'] = 'calendar'
+                buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
+                buf_contact['userDefined'][2]['key'] = 'cost'
+                buf_contact['etag'] = self.google2db4etag(cur_id=contact)
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = service.people().updateContact(
+                            resourceName='people/' + contact,
+                            updatePersonFields='userDefined',
+                            body=buf_contact).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
+                              ee.resp['status'], str(ee.args[1].values))
+
+    def click_clbTrash(self):
+        if self.group_cur != '_КоттеджиСочи':
+            return
+        locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        self.FIO_saved_id = self.FIO_cur_id
+        self.progressBar.show()
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        self.FIO_saved_id = self.FIO_cur_id
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        print('Всего:', len(self.contacts_filtered))
+        number_of_new = 0
+        self.progressBar.setMaximum(len(self.contacts_filtered) - 1)
+        for i, contact in enumerate(self.contacts_filtered.values()):
+            self.progressBar.setValue(i)
+            if not len(contact['phones']):
+                number_of_new += 1
+                print(str(number_of_new), contact['fio'])
+                ok_google = False
+                while not ok_google:
+                    try:
+                        event4 = service_cal.events().get(calendarId='primary', eventId=contact['resourceName'])\
+                                                                                                            .execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") +' попробуем запросить событие еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
+                event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
+                event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                ok_google = False
+                while not ok_google:
+                    try:
+                        updated_event = service_cal.events().update(calendarId='primary',
+                                                    eventId=contact['resourceName'], body=event4).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить событие еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
+
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = service.people().deleteContact(resourceName='people/' + contact['resourceName']).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
+        self.contacty_syncToken = ''
+        self.events_syncToken = ''
+        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
+        self.setup_twGroups()
+
 
 #    def click_clbExport(self):
 

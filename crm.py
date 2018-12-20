@@ -25,7 +25,7 @@ class MainWindow(MainWindowSlots):
         self.clbRedo.clicked.connect(self.click_clbRedo)
         self.clbSave.clicked.connect(self.click_clbSave)
         self.clbAvito.clicked.connect(self.click_clbAvito)
-        self.clbGCal.clicked.connect(self.click_clbGCal)
+        self.clbTrash.clicked.connect(self.click_clbTrash)
         self.twGroups.clicked.connect(self.click_twGroups)
         self.twFIO.clicked.connect(self.click_twFIO)
         self.twCalls.clicked.connect(self.click_twCalls)

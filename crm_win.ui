@@ -304,26 +304,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QCommandLinkButton" name="clbGCal">
-              <property name="maximumSize">
-               <size>
-                <width>33</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset>
-                <normaloff>plus.png</normaloff>plus.png</iconset>
-              </property>
-              <property name="description">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QCommandLinkButton" name="clbStageRefresh">
               <property name="maximumSize">
                <size>
@@ -357,6 +337,26 @@
               <property name="icon">
                <iconset>
                 <normaloff>plus.png</normaloff>plus.png</iconset>
+              </property>
+              <property name="description">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCommandLinkButton" name="clbTrash">
+              <property name="maximumSize">
+               <size>
+                <width>33</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>trash.png</normaloff>trash.png</iconset>
               </property>
               <property name="description">
                <string/>
@@ -543,6 +543,25 @@
          </item>
          <item>
           <widget class="QLineEdit" name="leEmail"/>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_5">
+           <property name="font">
+            <font>
+             <pointsize>16</pointsize>
+            </font>
+           </property>
+           <property name="text">
+            <string>N</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="chbNewAdd">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
