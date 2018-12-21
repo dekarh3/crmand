@@ -1614,13 +1614,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.group_cur != '_КоттеджиСочи':
             return
         if self.leFIO.text() or self.leNote.text() or self.lePhone.text():
+            print('!!!! С фильтрами - нельзя !!!')
             return
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
         for contact in self.contacts_filtered:
             has_in_db = False
-            if str(self.contacts_filtered[contact].keys()).find('avito') > -1:
+            if str(self.contacts_filtered[contact].keys()).find('avito_id') > -1:
                 for avito in self.avitos:
                     if self.contacts_filtered[contact]['avito_id'] == avito:
                         has_in_db = True
