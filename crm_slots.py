@@ -1626,8 +1626,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     if self.contacts_filtered[contact]['avito_id'] == avito:
                         has_in_db = True
                         break
-                else:
-                    continue
+            else:
+                continue
             changed = False
             if has_in_db:
                 if self.contacts_filtered[contact]['stage'] == 'нет объявления':
@@ -1639,6 +1639,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     changed = True
             if changed:
                 if self.contacts_filtered[contact]['stage'] == 'пауза':   # Было 'нет объявления' стало 'пауза'
+                    print(self.contacts_filtered[contact]['iof'], 'нет объявления -> пауза')
                     buf_contact = {}
                     buf_contact['userDefined'] = [{}, {}, {}]
                     buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
@@ -1660,7 +1661,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
                                   ee.resp['status'], str(ee.args[1].values))
                 elif not len(self.contacts_filtered[contact]['phones']):        # Было CHANGE_STAGES_CONST стало
-                    print('Удаляем', self.contacts_filtered[contact]['fio'])    # 'нет объявления' и нет телефонов
+                    print('пауза -> нет объявления и нет телефонов => Удаляем и контакт и событие',
+                          self.contacts_filtered[contact]['iof'])               # 'нет объявления' и нет телефонов
                     ok_google = False
                     while not ok_google:
                         try:
@@ -1692,7 +1694,50 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
                                   ee.resp['status'], str(ee.args[1].values))
-
+                else:
+                    print(self.contacts_filtered[contact]['iof'], 'пауза -> нет объявления и есть телефон(ы) '
+                                                                  '=> Удаляем и только событие')
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            event4 = service_cal.events().get(calendarId='primary', eventId=contact) \
+                                .execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
+                    event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
+                    event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            updated_event = service_cal.events().update(calendarId='primary',
+                                                                        eventId=contact,
+                                                                        body=event4).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
+                    buf_contact = {}
+                    buf_contact['userDefined'] = [{}, {}, {}]
+                    buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
+                    buf_contact['userDefined'][0]['key'] = 'stage'
+                    buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
+                    buf_contact['userDefined'][1]['key'] = 'calendar'
+                    buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
+                    buf_contact['userDefined'][2]['key'] = 'cost'
+                    buf_contact['etag'] = self.google2db4etag(cur_id=contact)
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            resultsc = service.people().updateContact(
+                                resourceName='people/' + contact,
+                                updatePersonFields='userDefined',
+                                body=buf_contact).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
+                                  ee.resp['status'], str(ee.args[1].values))
 
     def click_clbTrash(self):
         if self.group_cur != '_КоттеджиСочи':
