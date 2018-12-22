@@ -131,6 +131,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.FIO_cur = ''
         self.FIO_cur_id = ''
         self.FIO_saved_id = ''
+        self.FIO_last_id = []
         credentials_con = get_credentials_con()
         self.http_con = credentials_con.authorize(Http())
         credentials_cal = get_credentials_cal()
@@ -1203,11 +1204,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.twFIO.setCurrentIndex(index)
         if index.row() < 0:
             return None
+        self.twFIO.setCurrentIndex(index)
         self.FIO_cur_id = self.contacts_filtered_reverced[index.row()] # обновляем информацию о контакте и карточку
         self.google2db4all()
 #        if self.FIO_cur_id in self.changed_ids:
         self.db2form4one()
         self.FIO_saved_id = ''
+        if index != None:
+            try:
+                self.FIO_last_id.append(self.contacts_filtered_reverced[index.row()])
+            except IndexError:
+                q=0
         return
 
     def setup_twCalls(self):
@@ -1793,6 +1800,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
         self.setup_twGroups()
 
+    def click_clbBack(self):
+        try:
+            self.click_twFIO(index=self.twFIO.model().index(self.contacts_filtered_reverced.index(
+                self.FIO_last_id[len(self.FIO_last_id) - 2]), 0))
+        except ValueError:
+            q=0
 
 #    def click_clbExport(self):
 
