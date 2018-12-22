@@ -1801,9 +1801,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.setup_twGroups()
 
     def click_clbBack(self):
+        self.lePhone.setText('')
+        self.leFIO.setText('')
+        self.leNote.setText('')
+        self.setup_twFIO()
         try:
             self.click_twFIO(index=self.twFIO.model().index(self.contacts_filtered_reverced.index(
-                self.FIO_last_id[len(self.FIO_last_id) - 2]), 0))
+                self.FIO_last_id[len(self.FIO_last_id) - 3]), 0))
         except ValueError:
             q=0
 
