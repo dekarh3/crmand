@@ -1459,8 +1459,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     print('result:', res[0])
 
     def leIOF_changed(self, text):
-        str_ = text
-        if str_.find(' на участке ') > -1:
+        str_ = text.strip()
+        if str_.find('.') > -1:                             # Обработка точек
+            count = str_.count('.')
+            if str_.rfind('.') == len(str_) - 1:
+                count -= 1
+            if str_.find('.') < len(str_) - 1:
+                str_ = str_.replace('.', '_', count)
+            if str_.find('.') == len(str_) - 1:
+                str_ = str_.replace('.', '')
+        if str_.find('-') > -1:
+            str_ = str_.replace('-', '')
+        if str_.find(' на участке ') > -1:                  # Обработка дом/коттедж/дача
             str_ = str_.replace(' на участке ', '+')
         if str_.find(' м²') > -1:
             str_ = str_.replace(' м²', 'м²')
@@ -1468,8 +1478,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             str_ = str_.replace(' сот', 'сот')
         if str_.find(' га') > -1:
             str_ = str_.replace(' га', 'га')
-        if str_.find('.') > -1:
-            str_ = str_.replace('.', '_')
+        if str_.find('м², ') > -1:                          # Обработка квартира
+            str_ = str_.replace('м², ', 'м²')
+        if str_.find(' эт') > -1:
+            str_ = str_.replace(' эт', 'эт')
+        if str_.find('>') > -1:
+            str_ = str_.replace('>', '')
+        if str_.find(' квартира, ') > -1:
+            str_ = str_.replace(' квартира, ', '')
+        if str_.find('Студия, ') > -1:
+            str_ = str_.replace('Студия, ', 'студ')
         self.leIOF.setText(str_)
 
     def click_clbAvito(self):                       # Переключение с календаря на карточку avito или instagram
