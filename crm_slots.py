@@ -48,6 +48,10 @@ WORK_STAGES_CONST = ['работаем', 'отработали', 'проводн
                      'нет на месте', 'недозвон', 'пауза']
 LOST_STAGES_CONST = ['нет объявления']
 CHANGE_STAGES_CONST = ['недозвон', 'пауза'] # Откуда можно изменить на 'нет объявления'
+AVITO_GROUPS = {'_КоттеджиСочи': 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/',
+                '_КвартирыСочи': 'https://www.avito.ru/sochi/kvartiry/',
+                'КоттеджиАстр': 'https://www.avito.ru/astrahan/doma_dachi_kottedzhi/',
+                'КвартирыАстр': 'https://www.avito.ru/astrahan/kvartiry/'}
 
 MAX_PAGE = 2
 
@@ -1511,7 +1515,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             return
         if self.show_site != 'avito':
             return
-        if self.group_cur != '_КоттеджиСочи':
+        if self.group_cur not in AVITO_GROUPS.keys():
             return
         if not self.chbSumm.isChecked():
             return
@@ -1522,7 +1526,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         #self.FIO_saved_id = self.FIO_cur_id
         #   Если переходим в другую группу делаем self.avitos = {} - пока не надо (одна группа)
         avitos_last = {}
-        avitos_raw = self.my_html.split('href="/sochi/doma_dachi_kottedzhi/')
+        avitos_raw = self.my_html.split('href="' + AVITO_GROUPS[self.group_cur].split('https://www.avito.ru')[1])
         for i, avito_raw in enumerate(avitos_raw):
             if i == 0:
                 continue
@@ -1534,10 +1538,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:
                     q = self.avitos[avito_x[j + 1:]]
                 except KeyError:
-                    self.avitos[avito_x[j + 1:]] = 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + \
-                                                   avito_raw.split('"')[0]
-                    avitos_last[avito_x[j + 1:]] = 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/' + \
-                                                   avito_raw.split('"')[0]
+                    self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
+                    avitos_last[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
         if self.chbNewAdd.isChecked():
             j = round(random()*1000000)
             for avito in avitos_last:
@@ -1618,7 +1620,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_clbStageRefresh(self):
-        if self.group_cur != '_КоттеджиСочи':
+        if self.group_cur not in AVITO_GROUPS.keys():
             return
         if self.leFIO.text() or self.leNote.text() or self.lePhone.text():
             print('!!!! С фильтрами - нельзя !!!')
@@ -1746,8 +1748,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
                                   ee.resp['status'], str(ee.args[1].values))
 
-    def click_clbTrash(self):
-        if self.group_cur != '_КоттеджиСочи':
+    def click_clbTrash(self): # Удаляем все контакты (и их события) без телефона
+        if self.group_cur not in AVITO_GROUPS.keys():
             return
         locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
