@@ -1459,7 +1459,23 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     print('result:', res[0])
 
     def leIOF_changed(self, text):
-        str_ = text.strip()
+        self.leIOF.setText(self.filter_addres(text))
+
+    def update_from_avito(self):
+        avito_html = str(self.my_html)
+        try:
+            kott = avito_html.split('class="title-info-title-text"')[1].split('>')[1].split('<')[0].replace('\n','')
+            price = avito_html.split('"js-item-price"')[1].split('content="')[1].split('"')[0].replace('\n','')
+            name_link = avito_html.split('"seller-info-name"')[1].split('href="')[1].split('"')[0].replace('\n','')
+            name = self.my_html.split('"seller-info-name"')[1].split('title="Нажмите, чтобы перейти в профиль">')[1]\
+                .split('<')[0].replace('\n','')
+            addres = avito_html.split('itemprop="streetAddress">')[1].split('<')[0].replace('\n','')
+        except IndexError:
+            return
+        q=0
+
+    def filter_addres(self,str_):
+        str_ = str_.strip()
         if str_.find('.') > -1:                             # Обработка точек
             count = str_.count('.')
             if str_.rfind('.') == len(str_) - 1:
@@ -1488,7 +1504,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             str_ = str_.replace(' квартира, ', '')
         if str_.find('Студия, ') > -1:
             str_ = str_.replace('Студия, ', 'студ')
-        self.leIOF.setText(str_)
 
     def click_clbAvito(self):                       # Переключение с календаря на карточку avito или instagram
         if self.show_site == 'instagram':
@@ -1535,6 +1550,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             return
         if self.group_cur not in AVITO_GROUPS.keys():
             return
+        if self.preview.page().url().toString().find('avito') > -1:
+            avito_x = self.preview.page().url().toString().strip()
+            avito_i = len(avito_x) - 1
+            for j in range(len(avito_x) - 1, 0, -1):
+                if avito_x[j] not in digits:
+                    avito_i = j + 1
+                    break
+        if len(avito_x[avito_i:]) > 3:          # Если цифр в конце url больше 3 - парсим данные в карточку
+            self.update_from_avito()
         if not self.chbSumm.isChecked():
             return
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
