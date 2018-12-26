@@ -757,7 +757,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="leTown"/>
+          <widget class="QLineEdit" name="leAddress"/>
          </item>
         </layout>
        </widget>

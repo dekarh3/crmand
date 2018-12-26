@@ -127,12 +127,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacty = {}
         self.contacts_filtered = {}
         self.contacts_filtered_reverced = []
+        self.contacts_id_avitos = {}
+        self.avitos_id_contacts = {}
+        self.new_contact = False
         self.groups = []
         self.groups_resourcenames = {}
         self.group_cur = ''
         self.group_cur_id = 0
         self.group_saved_id = None
-        self.FIO_cur = ''
         self.FIO_cur_id = ''
         self.FIO_saved_id = ''
         self.FIO_last_id = []
@@ -477,6 +479,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             print(datetime.now().strftime("%H:%M:%S") + ' синхронизация не удалась')
             return
         elif contacts_full == 'Full':
+            self.avitos_id_contacts = {}
+            self.contacts_id_avitos = {}
             self.contacty = {}
             events4delete = []
             number_of_new = 0
@@ -485,8 +489,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 contact['resourceName'] = connection['resourceName'].split('/')[1]
                 if not self.FIO_cur_id:
                     self.FIO_cur_id = connection['resourceName'].split('/')[1]
-                #            if not self.FIO_saved_id:
-                #                self.FIO_saved_id = connection['resourceName'].split('/')[1]
                 name = ''
                 iof = ''
                 onames = connection.get('names', [])
@@ -519,12 +521,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 phones.append(format_phone(ophone.get('value')))
                 contact['phones'] = phones
                 memberships = []
+                memberships_id = []
                 omemberships = connection.get('memberships', [])
                 if len(omemberships) > 0:
                     for omembership in omemberships:
                         memberships.append(
                             self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
+                        memberships_id.append(omembership['contactGroupMembership']['contactGroupId'])
                 contact['groups'] = memberships
+                contact['groups_ids'] = memberships_id
                 stage = '---'
                 calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
                 cost = 0
@@ -573,6 +578,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             avito_i = j + 1
                             break
                     contact['avito_id'] = avito_x[avito_i:]
+                    self.contacts_id_avitos[contact['resourceName']] = contact['avito_id']
+                    self.avitos_id_contacts[contact['avito_id']] = contact['resourceName']
                 self.contacty[contact['resourceName']] = contact
                 try:
                     contact_event = parse(self.all_events[contact['resourceName']]['start'])
@@ -679,6 +686,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 avito_i = j + 1
                                 break
                         contact['avito_id'] = avito_x[avito_i:]
+                        self.contacts_id_avitos[contact['resourceName']] = contact['avito_id']
+                        self.avitos_id_contacts[contact['avito_id']] = contact['resourceName']
                     self.contacty[contact['resourceName']] = contact
                 except Exception as ee:
                     q = 0
@@ -893,13 +902,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     continue
                 phones += ' ' + fine_phone(phone)
         self.lePhones.setText(phones)
-        self.FIO_cur = self.contacts_filtered[self.FIO_cur_id]['fio']
         self.calls_ids = []
         for i, call in enumerate(self.calls):
             for phone in self.contacts_filtered[self.FIO_cur_id]['phones']:
                 if format_phone(call.split(']_[')[1]) == format_phone(phone):
                     self.calls_ids.append(i)
-        self.leTown.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
+        self.leAddress.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
         email = ''
         oemailAddresses = self.contacts_filtered[self.FIO_cur_id]['email']
         if len(oemailAddresses) > 0:
@@ -921,6 +929,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.deCalendar.setDate(contact_event)
         self.cbTime.setTime(contact_event.time())
         self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
+        self.setup_twCalls()
+
+    def db2www4one(self):
         if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.show_site == 'avito':
             profile = QWebEngineProfile(self.preview)
             profile.setHttpUserAgent(USER_AGENT)
@@ -929,19 +940,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.preview.setPage(page)
             self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
             self.preview.show()
-#            avito_x = self.contacts_filtered[self.FIO_cur_id]['avito'].strip()
-#            for i in range(len(avito_x)-1,0,-1):
-#                if avito_x[i] not in digits:
-#                    break
-#            html_x = ''
-#            while not html_x:
-#                avito_data = {'page-url' : avito_x}
-#                adata = urllib.parse.urlencode(avito_data).encode("utf-8")
-#                req = urllib.request.Request('https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0', data=adata,
-#                                             headers={'User-Agent' : USER_AGENT})                #, 'Referer' : avito_x})
-#                response = urllib.request.urlopen(req)   #'https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0', data=req)
-#                html_x = response.read().decode('utf-8')
-#            self.leDateStart.setText(html_x.split('<strong>')[1].split('</strong>')[0])
+        #            avito_x = self.contacts_filtered[self.FIO_cur_id]['avito'].strip()
+        #            for i in range(len(avito_x)-1,0,-1):
+        #                if avito_x[i] not in digits:
+        #                    break
+        #            html_x = ''
+        #            while not html_x:
+        #                avito_data = {'page-url' : avito_x}
+        #                adata = urllib.parse.urlencode(avito_data).encode("utf-8")
+        #                req = urllib.request.Request('https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0', data=adata,
+        #                                             headers={'User-Agent' : USER_AGENT})                #, 'Referer' : avito_x})
+        #                response = urllib.request.urlopen(req)   #'https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0', data=req)
+        #                html_x = response.read().decode('utf-8')
+        #            self.leDateStart.setText(html_x.split('<strong>')[1].split('</strong>')[0])
         elif len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 10 and self.show_site == 'instagram':
             profile = QWebEngineProfile(self.preview)
             profile.setHttpUserAgent(USER_AGENT)
@@ -949,7 +960,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
             self.preview.setPage(page)
             self.preview.show()
-        self.setup_twCalls()
 
     def form2db4one(self):      #  Форма -> внутр. БД
         givenName = ''
@@ -982,7 +992,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.contacts_filtered[self.FIO_cur_id]['cost'] = float(self.leCost.text()) + random() * 1e-5
         except ValueError:
             self.contacts_filtered[self.FIO_cur_id]['cost'] = 0
-        self.contacts_filtered[self.FIO_cur_id]['town'] = self.leTown.text().strip()
+        self.contacts_filtered[self.FIO_cur_id]['town'] = self.leAddress.text().strip()
         emails = []
         if len(self.leEmail.text().strip().split(' ')) > 0:
             for i, email in enumerate(self.leEmail.text().strip().split(' ')):
@@ -1213,6 +1223,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.google2db4all()
 #        if self.FIO_cur_id in self.changed_ids:
         self.db2form4one()
+        self.db2www4one()
         self.FIO_saved_id = ''
         if index != None:
             try:
@@ -1327,8 +1338,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 for i, email in enumerate(self.leEmail.text().strip().split(' ')):
                     if email.strip() != '' and len(email.split('@')) > 0:
                         buf_contact['emailAddresses'].append({'value': email})
-        if self.leTown.text():
-            if len(self.leTown.text().strip()) > 0:
+        if self.leAddress.text():
+            if len(self.leAddress.text().strip()) > 0:
                 buf_contact['addresses'] = [{'streetAddress': self.contacts_filtered[self.FIO_cur_id]['town']}]
         buf_contact['etag'] = self.google2db4etag()
         # Обновление контакта
@@ -1472,8 +1483,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             addres = avito_html.split('itemprop="streetAddress">')[1].split('<')[0].replace('\n','')
         except IndexError:
             return
-        q=0
-
+        if not self.leAddress.text():
+            self.leAddress.setText(addres)
+        if not self.leIOF.text():
+            self.leIOF.setText(name + ' ' + self.filter_addres(kott))
+        if not self.leUrls.text():
+            self.leUrls.setText(self.preview.page().url().toString())
+        if not self.leCost.text():
+            self.leCost.setText('{0:0g}'.format(round((l(price) / 1000 + random() * 1e-5)  * 1000) / 1000))
+        if not self.teNote.toPlainText():
+            self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
+                          '|' + '{0:0g}'.format(round(self.contacts_filtered[self.FIO_cur_id]['cost'] * 1000) / 1000) +
+                          'м|' + '\n')
     def filter_addres(self,str_):
         str_ = str_.strip()
         if str_.find('.') > -1:                             # Обработка точек
@@ -1504,6 +1525,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             str_ = str_.replace(' квартира, ', '')
         if str_.find('Студия, ') > -1:
             str_ = str_.replace('Студия, ', 'студ')
+        return str_
 
     def click_clbAvito(self):                       # Переключение с календаря на карточку avito или instagram
         if self.show_site == 'instagram':
@@ -1542,6 +1564,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def preview_loaded(self):
         # ищем на странице отсутствующие в БД ссылки avito и создаем карточки
+        self.new_contact = False
         self.clbPreviewLoading.setIcon(QIcon('plus.png'))
         self.preview.page().toHtml(self.processHtml)
         if len(self.my_html) < 1000:
@@ -1558,6 +1581,22 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     avito_i = j + 1
                     break
         if len(avito_x[avito_i:]) > 3:          # Если цифр в конце url больше 3 - парсим данные в карточку
+            if avito_x[avito_i:] in self.contacts_id_avitos.values():
+                self.new_contact = False        # Есть такой контакт - показываем его и заполняем пустые поля карточки
+                self.FIO_cur_id = self.avitos_id_contacts[avito_x[avito_i:]]
+                self.db2form4one()
+            else:
+                self.new_contact = True         # Нет контакта - очищаем и заполняем поля карточки
+                self.teNote.setText('')
+                self.cbStage.setCurrentIndex(self.all_stages_reverce['пауза'])
+                self.lePhones.setText('')
+                self.leAddress.setText('')
+                self.leEmail.setText('')
+                self.leIOF.setText('')
+                self.leUrls.setText('')
+                self.deCalendar.setDate(utc.localize(datetime.now()))
+                self.cbTime.setTime(time(19,00))
+                self.leCost.setText('')
             self.update_from_avito()
         if not self.chbSumm.isChecked():
             return
@@ -1582,7 +1621,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 except KeyError:
                     self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
                     avitos_last[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
-        if self.chbNewAdd.isChecked():
+        if self.chbNewAdd.isChecked():                   # Добавляем новые контакты - выделить в отдельную функцию !!!!
             j = round(random()*1000000)
             for avito in avitos_last:
                 has_in_db = False
@@ -2129,9 +2168,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 for i, email in enumerate(self.leEmail.text().strip().split(' ')):
                     if email.strip() != '' and len(email.split('@')) > 0:
                         buf_contact['emailAddresses'].append({'value': email})
-        if self.leTown.text():
-            if len(self.leTown.text().strip()) > 0:
-                buf_contact['addresses'] = [{'streetAddress': self.leTown.text().strip()}]
+        if self.leAddress.text():
+            if len(self.leAddress.text().strip()) > 0:
+                buf_contact['addresses'] = [{'streetAddress': self.leAddress.text().strip()}]
 
         has_phone = False
         has_phone_names = []
