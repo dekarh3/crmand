@@ -1281,27 +1281,50 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_clbSave(self):
-        if self.new_contact:                            # Доделать обработку !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            return
-        self.google2db4all()
-        pred_stage = self.contacts_filtered[self.FIO_cur_id]['stage']
-        try:
-            contact_event = parse(self.all_events[self.FIO_cur_id]['start'])
-        except KeyError:
-            contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
-        pred_cal = contact_event
-        self.form2db4one()
-        buf_contact = {}
-        buf_contact['userDefined'] = [{},{},{}]
-        buf_contact['userDefined'][0]['value'] = self.contacts_filtered[self.FIO_cur_id]['stage']
-        buf_contact['userDefined'][0]['key'] = 'stage'
-        buf_contact['userDefined'][1]['value'] = self.contacts_filtered[self.FIO_cur_id]['calendar']
-        buf_contact['userDefined'][1]['key'] = 'calendar'
-        buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4))
-        buf_contact['userDefined'][2]['key'] = 'cost'
-        buf_contact['biographies'] = [{}]
-        buf_contact['biographies'][0]['value'] = self.contacts_filtered[self.FIO_cur_id]['note']
-        buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
+        if not self.new_contact:
+            self.google2db4all()
+            pred_stage = self.contacts_filtered[self.FIO_cur_id]['stage']
+            self.form2db4one()
+            buf_contact = {}
+            buf_contact['userDefined'] = [{},{},{}]
+            buf_contact['userDefined'][0]['value'] = self.contacts_filtered[self.FIO_cur_id]['stage']
+            buf_contact['userDefined'][0]['key'] = 'stage'
+            buf_contact['userDefined'][1]['value'] = self.contacts_filtered[self.FIO_cur_id]['calendar']
+            buf_contact['userDefined'][1]['key'] = 'calendar'
+            buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4))
+            buf_contact['userDefined'][2]['key'] = 'cost'
+            buf_contact['biographies'] = [{}]
+            buf_contact['biographies'][0]['value'] = self.contacts_filtered[self.FIO_cur_id]['note']
+            buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
+        else:
+            pred_stage = 'пауза'
+            buf_contact = {}
+            buf_contact['userDefined'] = [{},{},{}]
+            buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
+            buf_contact['userDefined'][0]['key'] = 'stage'
+            buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
+            buf_contact['userDefined'][1]['key'] = 'calendar'
+            try:
+                buf_contact['userDefined'][2]['value'] = str(round(float(self.leCost.text()) + random() * 1e-5, 4))
+            except ValueError:
+                buf_contact['userDefined'][2]['value'] = '0'
+            buf_contact['userDefined'][2]['key'] = 'cost'
+            buf_contact['biographies'] = [{}]
+            if len(self.teNote.toPlainText()) > 0:
+                if self.teNote.toPlainText()[0] != '|':
+                    self.teNote.setText(
+                        '|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
+                        '|' + buf_contact['userDefined'][2]['value'] + 'м|' + '\n' + self.teNote.toPlainText())
+                else:
+                    txt = self.teNote.toPlainText()
+                    self.teNote.setText(
+                        '|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
+                        '|' + buf_contact['userDefined'][2]['value'] + 'м|' + '\n' + txt[txt.find('\n') + 1:])
+            else:
+                self.teNote.setText(
+                    '|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
+                    '|' + buf_contact['userDefined'][2]['value'] + 'м|' + '\n' + self.teNote.toPlainText())
+                buf_contact['biographies'][0]['value'] = self.teNote.toPlainText()
         givenName = ''
         middleName = ''
         familyName = ''
@@ -1342,22 +1365,48 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         buf_contact['emailAddresses'].append({'value': email})
         if self.leAddress.text():
             if len(self.leAddress.text().strip()) > 0:
-                buf_contact['addresses'] = [{'streetAddress': self.contacts_filtered[self.FIO_cur_id]['town']}]
+                buf_contact['addresses'] = [{'streetAddress': self.leAddress.text().strip()}]
         buf_contact['etag'] = self.google2db4etag()
-        # Обновление контакта
+        # Обновление/создание контакта
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        ok_google = False
-        while not ok_google:
-            try:
-                resultsc = service.people().updateContact(
-                    resourceName='people/' + self.FIO_cur_id,
-                    updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
-                    body=buf_contact).execute()
-                ok_google = True
-            except errors.HttpError as ee:
-                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+        if self.new_contact:
+            # Создаем контакт
+            ok_google = False
+            while not ok_google:
+                try:
+                    resultsc = service.people().createContact(body=buf_contact).execute()
+                    ok_google = True
+                except errors.HttpError as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
+                          ee.resp['status'], str(ee.args[1].values))
+            self.FIO_cur_id = resultsc['resourceName'].split('/')[1]
+            # Добавляем в текущую группу
+            ok_google = False
+            while not ok_google:
+                try:
+                    group_body = {'resourceNamesToAdd': [self.FIO_cur_id], 'resourceNamesToRemove': []}
+                    resultsg = service.contactGroups().members().modify(
+                        resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                        body=group_body
+                    ).execute()
+                    ok_google = True
+                except errors.HttpError as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
+                          ee.resp['status'], str(ee.args[1].values))
+
+        else:
+            ok_google = False
+            while not ok_google:
+                try:
+                    resultsc = service.people().updateContact(
+                        resourceName='people/' + self.FIO_cur_id,
+                        updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
+                        body=buf_contact).execute()
+                    ok_google = True
+                except errors.HttpError as ee:
+                    print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
+                                      ee.resp['status'], str(ee.args[1].values))
 # Календарь
 
         has_event = False
@@ -1369,8 +1418,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         calendar = {}
         if not has_event:
             event = {}
-            event['id'] = self.contacts_filtered[self.FIO_cur_id]['resourceName']
-        calendar['id'] = self.contacts_filtered[self.FIO_cur_id]['resourceName']
+            event['id'] = self.FIO_cur_id
+        calendar['id'] = self.FIO_cur_id
         event['start'] = datetime.combine(self.deCalendar.date().toPyDate(), self.cbTime.time().toPyTime()).isoformat()\
                          + '+04:00'
         calendar['start'] = {'dateTime' : datetime.combine(self.deCalendar.date().toPyDate(),
@@ -1411,26 +1460,37 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             calendar['start'] = {'dateTime' : (lost_date + timedelta(hours=19)).isoformat()}
             event['end'] = (lost_date + timedelta(hours=19,minutes=15)).isoformat()
             calendar['end'] = {'dateTime' : (lost_date + timedelta(hours=19,minutes=15)).isoformat()}
+        if self.new_contact:
 
-        phones = ''
-        if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
-            phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
-            for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
-                if i == 0:
-                    continue
-                phones += ', ' + fine_phone(phone)
-        memos = ''
-        if len(self.contacts_filtered[self.FIO_cur_id]['urls']):
-            memos = self.contacts_filtered[self.FIO_cur_id]['urls'][0] + '\n'
-            for i, memo in enumerate(self.contacts_filtered[self.FIO_cur_id]['urls']):
-                if i == 0:
-                    continue
-                memos += memo + '\n'
-        calendar['description'] = phones + '\n' + memos + '\n' \
-                               + self.contacts_filtered[self.FIO_cur_id]['note']
-        calendar['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
-                           self.contacts_filtered[self.FIO_cur_id]['stage']
-        self.all_events[self.contacts_filtered[self.FIO_cur_id]['resourceName']] = event
+            if len(self.lePhones.text().strip().split(' ')) > 0:
+                phones_fine = ''
+                phones = self.lePhones.text().strip().split(' ')
+                for phone in phones:
+                    phones_fine += ' ' + fine_phone(phone)
+                phones_fine = phones_fine.strip()
+            memos = self.preview.page().url().toString()
+            calendar['description'] = phones_fine + '\n' + memos + '\n' + self.teNote.toPlainText()
+            calendar['summary'] = self.leIOF.text() + ' - ' +  self.cbStage.currentText()
+        else:
+            phones = ''
+            if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
+                phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
+                for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
+                    if i == 0:
+                        continue
+                    phones += ', ' + fine_phone(phone)
+            memos = ''
+            if len(self.contacts_filtered[self.FIO_cur_id]['urls']):
+                memos = self.contacts_filtered[self.FIO_cur_id]['urls'][0] + '\n'
+                for i, memo in enumerate(self.contacts_filtered[self.FIO_cur_id]['urls']):
+                    if i == 0:
+                        continue
+                    memos += memo + '\n'
+            calendar['description'] = phones + '\n' + memos + '\n' \
+                                   + self.contacts_filtered[self.FIO_cur_id]['note']
+            calendar['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
+                               self.contacts_filtered[self.FIO_cur_id]['stage']
+        self.all_events[self.FIO_cur_id] = event
 
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
         ok_google = False
@@ -1447,6 +1507,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить/обновить event еще раз - ошибка',
                               ee.resp['status'], str(ee.args[1].values))
+        if self.new_contact:
+            try:
+                self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+                self.FIO_saved_id = self.FIO_cur_id
+            except IndexError:
+                q = 0
+            self.events_syncToken = ''
+            self.contacty_syncToken = ''
+            self.google2db4all()
+            self.setup_twGroups()
         return
 
     def click_clbGoURL1(self):
@@ -1492,11 +1562,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if not self.leUrls.text():
             self.leUrls.setText(self.preview.page().url().toString())
         if not self.leCost.text():
-            self.leCost.setText('{0:0g}'.format(round((l(price) / 1000 + random() * 1e-5)  * 1000) / 1000))
+            self.leCost.setText('{0:0g}'.format(round((l(price) / 1000000 + random() * 1e-5)  * 1000) / 1000))
         if not self.teNote.toPlainText():
             self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
-                          '|' + '{0:0g}'.format(round(self.contacts_filtered[self.FIO_cur_id]['cost'] * 1000) / 1000) +
-                          'м|' + '\n')
+                          '|' + self.leCost.text() + 'м|' + '\n')
+        return
+
     def filter_addres(self,str_):
         str_ = str_.strip()
         if str_.find('.') > -1:                             # Обработка точек
