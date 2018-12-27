@@ -892,32 +892,32 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return result['etag']
 
     def db2form4one(self):              #  внутр. БД -> Форма
-        self.teNote.setText(self.contacts_filtered[self.FIO_cur_id]['note'])
-        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacts_filtered[self.FIO_cur_id]['stage']])
+        self.teNote.setText(self.contacty[self.FIO_cur_id]['note'])
+        self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacty[self.FIO_cur_id]['stage']])
         phones = ''
-        if len(self.contacts_filtered[self.FIO_cur_id]['phones']) > 0:
-            phones = fine_phone(self.contacts_filtered[self.FIO_cur_id]['phones'][0])
-            for i, phone in enumerate(self.contacts_filtered[self.FIO_cur_id]['phones']):
+        if len(self.contacty[self.FIO_cur_id]['phones']) > 0:
+            phones = fine_phone(self.contacty[self.FIO_cur_id]['phones'][0])
+            for i, phone in enumerate(self.contacty[self.FIO_cur_id]['phones']):
                 if i == 0:
                     continue
                 phones += ' ' + fine_phone(phone)
         self.lePhones.setText(phones)
         self.calls_ids = []
         for i, call in enumerate(self.calls):
-            for phone in self.contacts_filtered[self.FIO_cur_id]['phones']:
+            for phone in self.contacty[self.FIO_cur_id]['phones']:
                 if format_phone(call.split(']_[')[1]) == format_phone(phone):
                     self.calls_ids.append(i)
-        self.leAddress.setText(self.contacts_filtered[self.FIO_cur_id]['town'])
+        self.leAddress.setText(self.contacty[self.FIO_cur_id]['town'])
         email = ''
-        oemailAddresses = self.contacts_filtered[self.FIO_cur_id]['email']
+        oemailAddresses = self.contacty[self.FIO_cur_id]['email']
         if len(oemailAddresses) > 0:
             for oemailAddress in oemailAddresses:
                 if oemailAddress:
                     email += oemailAddresses[0].get('value') + ' '
         self.leEmail.setText(email.strip())
-        self.leIOF.setText(self.contacts_filtered[self.FIO_cur_id]['iof'])
+        self.leIOF.setText(self.contacty[self.FIO_cur_id]['iof'])
         urls = ''
-        for url in self.contacts_filtered[self.FIO_cur_id]['urls']:
+        for url in self.contacty[self.FIO_cur_id]['urls']:
             urls += url + ' '
         self.leUrls.setText(urls)
 #        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
@@ -928,7 +928,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
         self.deCalendar.setDate(contact_event)
         self.cbTime.setTime(contact_event.time())
-        self.leCost.setText(str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4)))
+        self.leCost.setText(str(round(self.contacty[self.FIO_cur_id]['cost'], 4)))
         self.setup_twCalls()
 
     def db2www4one(self):
@@ -1281,6 +1281,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_clbSave(self):
+        if self.new_contact:                            # Доделать обработку !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            return
         self.google2db4all()
         pred_stage = self.contacts_filtered[self.FIO_cur_id]['stage']
         try:
@@ -1595,7 +1597,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.leIOF.setText('')
                 self.leUrls.setText('')
                 self.deCalendar.setDate(utc.localize(datetime.now()))
-                self.cbTime.setTime(time(19,00))
+                self.cbTime.setTime(datetime(2018,12,1,19,00).time())
                 self.leCost.setText('')
             self.update_from_avito()
         if not self.chbSumm.isChecked():
