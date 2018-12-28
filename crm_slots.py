@@ -205,7 +205,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 groups_ok = True
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' вытаскиваем названия групп еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
         self.groups_resourcenames = {}
         self.groups_resourcenames_reversed = {}
         contactGroups = resultsg.get('contactGroups', [])
@@ -236,7 +236,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 .execute()
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
-                                                            ee.resp['status'], str(ee.args[1].values))
+                                                            ee.resp['status'], ee.args[1].decode("utf-8"))
                             continue
                     else:
                         try:
@@ -254,7 +254,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 .execute()
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
-                                                            ee.resp['status'], str(ee.args[1].values))
+                                                            ee.resp['status'], ee.args[1].decode("utf-8"))
                             continue
                     connections.extend(results.get('connections', []))
                 contacts_ok = True
@@ -286,7 +286,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 break
                             else:
                                 print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
-                                                                ee.resp['status'], str(ee.args[1].values))
+                                                                ee.resp['status'], ee.args[1].decode("utf-8"))
                                 continue
                     else:
                         try:
@@ -310,7 +310,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 break
                             else:
                                 print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
-                                                                ee.resp['status'], str(ee.args[1].values))
+                                                                ee.resp['status'], ee.args[1].decode("utf-8"))
                                 continue
                     connections.extend(results.get('connections', []))
                 if need_full_reload:
@@ -343,7 +343,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 print('==============',token)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
-                                                            ee.resp['status'], str(ee.args[1].values))
+                                                            ee.resp['status'], ee.args[1].decode("utf-8"))
                             continue
                     else:
                         try:
@@ -361,7 +361,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 #                                print('==============',token)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
-                                                             ee.resp['status'], str(ee.args[1].values))
+                                                             ee.resp['status'], ee.args[1].decode("utf-8"))
                             continue
                     calendars.extend(calendars_result.get('items', []))
                 events_ok = True
@@ -393,7 +393,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             else:
                                 print(datetime.now().strftime("%H:%M:%S") +
                                         ' попробуем считать изменения в календаре еще раз - ошибка',
-                                        ee.resp['status'], str(ee.args[1].values))
+                                        ee.resp['status'], ee.args[1].decode("utf-8"))
                                 continue
                     else:
                         try:
@@ -418,7 +418,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             else:
                                 print(datetime.now().strftime("%H:%M:%S") +
                                         ' попробуем считать изменения в календаре еще раз - ошибка',
-                                        ee.resp['status'], str(ee.args[1].values))
+                                        ee.resp['status'], ee.args[1].decode("utf-8"))
                                 continue
                     calendars.extend(calendars_result.get('items', []))
                 if need_full_reload:
@@ -710,7 +710,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 ok_google = True
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
-                                                ee.resp['status'], str(ee.args[1].values))
+                                                ee.resp['status'], ee.args[1].decode("utf-8"))
 # Календарь
 
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
@@ -731,7 +731,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     ).execute()
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
                         showDeleted=True,
@@ -755,7 +755,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     ).execute()
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
                     calendars_result = service_cal.events().list(
                         calendarId='primary',
                         showDeleted=True,
@@ -887,7 +887,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 ok_google = True
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
         self.contacts_filtered[cur_id]['etag'] = result['etag']
         return result['etag']
 
@@ -1366,7 +1366,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.leAddress.text():
             if len(self.leAddress.text().strip()) > 0:
                 buf_contact['addresses'] = [{'streetAddress': self.leAddress.text().strip()}]
-        buf_contact['etag'] = self.google2db4etag()
         # Обновление/создание контакта
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
@@ -1379,13 +1378,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     ok_google = True
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
-                          ee.resp['status'], str(ee.args[1].values))
+                          ee.resp['status'], ee.args[1].decode("utf-8"))
             self.FIO_cur_id = resultsc['resourceName'].split('/')[1]
             # Добавляем в текущую группу
             ok_google = False
             while not ok_google:
                 try:
-                    group_body = {'resourceNamesToAdd': [self.FIO_cur_id], 'resourceNamesToRemove': []}
+                    group_body = {'resourceNamesToAdd': ['people/' + self.FIO_cur_id], 'resourceNamesToRemove': []}
                     resultsg = service.contactGroups().members().modify(
                         resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
                         body=group_body
@@ -1393,9 +1392,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     ok_google = True
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
-                          ee.resp['status'], str(ee.args[1].values))
-
+                          ee.resp['status'], ee.args[1].decode("utf-8"))
         else:
+            buf_contact['etag'] = self.google2db4etag()
             ok_google = False
             while not ok_google:
                 try:
@@ -1406,7 +1405,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     ok_google = True
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
-                                      ee.resp['status'], str(ee.args[1].values))
+                                      ee.resp['status'], ee.args[1].decode("utf-8"))
 # Календарь
 
         has_event = False
@@ -1506,7 +1505,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 ok_google = True
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить/обновить event еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
         if self.new_contact:
             try:
                 self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
@@ -1726,7 +1725,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
 
                     # Добавляем в текущую группу
                     ok_google = False
@@ -1740,7 +1739,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                     # Добавляем событие через 30 дней
                     event = {}
                     event['id'] = resultsc['resourceName'].split('/')[1]
@@ -1759,7 +1758,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
         #self.contacty_syncToken = ''
         #self.events_syncToken = ''
         #self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
@@ -1822,7 +1821,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                 elif not len(self.contacts_filtered[contact]['phones']):        # Было CHANGE_STAGES_CONST стало
                     #print('пауза -> нет объявления и нет телефонов => Удаляем и контакт и событие',
                     #      self.contacts_filtered[contact]['iof'])               # 'нет объявления' и нет телефонов
@@ -1834,7 +1833,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                     event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
                     event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
                     ok_google = False
@@ -1846,7 +1845,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
 
                     ok_google = False
                     while not ok_google:
@@ -1856,7 +1855,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                 else:
                     #print(self.contacts_filtered[contact]['iof'], 'пауза -> нет объявления и есть телефон(ы) '
                     #                                              '=> Удаляем только событие')
@@ -1868,7 +1867,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                     event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
                     event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
                     ok_google = False
@@ -1880,7 +1879,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                     buf_contact = {}
                     buf_contact['userDefined'] = [{}, {}, {}]
                     buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
@@ -1900,7 +1899,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
 
     def click_clbTrash(self): # Удаляем все контакты (и их события) без телефона
         if self.group_cur not in AVITO_GROUPS.keys():
@@ -1930,7 +1929,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем запросить событие еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                 event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
                 event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
                 ok_google = False
@@ -1941,7 +1940,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить событие еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
 
                 ok_google = False
                 while not ok_google:
@@ -1950,7 +1949,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз - ошибка',
-                                  ee.resp['status'], str(ee.args[1].values))
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
         self.contacty_syncToken = ''
         self.events_syncToken = ''
         self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
@@ -1999,7 +1998,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                 eventId=contact['resourceName'], body=event4).execute()
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить событие еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
                     event4 = service_cal.events().get(calendarId='primary',
                                                              eventId=contact['resourceName']).execute()
                     event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
@@ -2010,7 +2009,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     resultsc = service.people().deleteContact(resourceName='people/' + contact['resourceName']).execute()
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
                     resultsc = service.people().deleteContact(resourceName='people/' + contact['resourceName']).execute()
         html_x = ''
         self.progressBar.setMaximum(MAX_PAGE)
@@ -2091,7 +2090,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 ok_google = True
                             except errors.HttpError as ee:
                                 print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
 
                         # Добавляем в текущую группу
                         ok_google = False
@@ -2105,7 +2104,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 ok_google = True
                             except errors.HttpError as ee:
                                 print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
 
                         # Добавляем событие через 31 день
                         if avito_date.weekday() == 5:
@@ -2127,7 +2126,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
-                              ee.resp['status'], str(ee.args[1].values))
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
                             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
                             calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
         self.contacty_syncToken = ''
