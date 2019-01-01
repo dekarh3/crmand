@@ -52,6 +52,7 @@ AVITO_GROUPS = {'_КоттеджиСочи': 'https://www.avito.ru/sochi/doma_da
                 '_КвартирыСочи': 'https://www.avito.ru/sochi/kvartiry/',
                 'КоттеджиАстр': 'https://www.avito.ru/astrahan/doma_dachi_kottedzhi/',
                 'КвартирыАстр': 'https://www.avito.ru/astrahan/kvartiry/'}
+METABOLISM_GROUPS = {'_Метаболизм': 'http://emdigital.ru/stars/?cat='}
 
 MAX_PAGE = 2
 
@@ -134,6 +135,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.groups_resourcenames = {}
         self.group_cur = ''
         self.group_cur_id = 0
+        self.group_last_id = 0
         self.group_saved_id = None
         self.FIO_cur_id = ''
         self.FIO_saved_id = ''
@@ -173,7 +175,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.clbExport.hide()
         self.progressBar.hide()
         self.avitos = {}
-        self.avitos_last = {}
+        self.metabolitos = {}
         return
 
     def errMessage(self, err_text): ## Method to open a message box
@@ -1633,69 +1635,78 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def preview_loaded(self):
         # ищем на странице отсутствующие в БД ссылки avito и помечаем их для создания карточек
         self.new_contact = False
-        self.clbPreviewLoading.setIcon(QIcon('loaded.png'))
+        self.clbPreviewLoading.setIcon(QIcon('wave.png'))
         self.preview.page().toHtml(self.processHtml)
         if len(self.my_html) < 1000:
             return
         if self.show_site != 'avito':
             return
-        if self.group_cur not in AVITO_GROUPS.keys():
-            return
-        if self.preview.page().url().toString().find('avito') > -1:
-            avito_x = self.preview.page().url().toString().strip()
-            avito_i = len(avito_x) - 1
-            for j in range(len(avito_x) - 1, 0, -1):
-                if avito_x[j] not in digits:
-                    avito_i = j + 1
-                    break
-        if len(avito_x[avito_i:]) > 3:          # Если цифр в конце url больше 3 - парсим данные в карточку
-            if avito_x[avito_i:] in self.contacts_id_avitos.values():
-                self.new_contact = False        # Есть такой контакт - показываем его и заполняем пустые поля карточки
-                self.FIO_cur_id = self.avitos_id_contacts[avito_x[avito_i:]]
-                self.db2form4one()
-            else:
-                self.new_contact = True         # Нет контакта - очищаем и заполняем поля карточки
-                self.teNote.setText('')
-                self.cbStage.setCurrentIndex(self.all_stages_reverce['пауза'])
-                self.lePhones.setText('')
-                self.leAddress.setText('')
-                self.leEmail.setText('')
-                self.leIOF.setText('')
-                self.leUrls.setText('')
-                self.deCalendar.setDate(utc.localize(datetime.now()))
-                self.cbTime.setTime(datetime(2018,12,1,19,00).time())
-                self.leCost.setText('')
-            self.update_from_avito()
-        if not self.chbSumm.isChecked():
-            return
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
-        service = discovery.build('people', 'v1', http=self.http_con,
-                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        #self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-        #self.FIO_saved_id = self.FIO_cur_id
-        #   Если переходим в другую группу делаем self.avitos = {} - пока не надо (одна группа)
-        self.avitos_last = {}
-        avitos_raw = self.my_html.split('href="' + AVITO_GROUPS[self.group_cur].split('https://www.avito.ru')[1])
-        for i, avito_raw in enumerate(avitos_raw):
-            if i == 0:
-                continue
-            if avito_raw[:6] != 'prodam':
-                avito_x = avito_raw.split('"')[0].strip()
+        # Если переходим в другую группу - сбрасываем накопленную информацию
+        if self.group_cur_id != self.group_last_id:
+            self.avitos = {}
+            self.metabolitos = {}
+            self.group_last_id = self.group_cur_id
+
+        if self.group_cur in AVITO_GROUPS.keys():
+            if self.preview.page().url().toString().find('avito') > -1:
+                avito_x = self.preview.page().url().toString().strip()
+                avito_i = len(avito_x) - 1
                 for j in range(len(avito_x) - 1, 0, -1):
                     if avito_x[j] not in digits:
+                        avito_i = j + 1
                         break
-                try:
-                    q = self.avitos[avito_x[j + 1:]]
-                except KeyError:
-                    self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
-                    self.avitos_last[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
+            if len(avito_x[avito_i:]) > 3:          # Если цифр в конце url больше 3 - парсим данные в карточку
+                if avito_x[avito_i:] in self.contacts_id_avitos.values():
+                    self.new_contact = False        # Есть такой контакт - показываем его и заполняем пустые поля карточки
+                    self.FIO_cur_id = self.avitos_id_contacts[avito_x[avito_i:]]
+                    self.db2form4one()
+                else:
+                    self.new_contact = True         # Нет контакта - очищаем и заполняем поля карточки
+                    self.teNote.setText('')
+                    self.cbStage.setCurrentIndex(self.all_stages_reverce['пауза'])
+                    self.lePhones.setText('')
+                    self.leAddress.setText('')
+                    self.leEmail.setText('')
+                    self.leIOF.setText('')
+                    self.leUrls.setText('')
+                    self.deCalendar.setDate(utc.localize(datetime.now()))
+                    self.cbTime.setTime(datetime(2018,12,1,19,00).time())
+                    self.leCost.setText('')
+                self.update_from_avito()
+            if not self.chbSumm.isChecked():
+                return
+            service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+            service = discovery.build('people', 'v1', http=self.http_con,
+                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+            #self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+            #self.FIO_saved_id = self.FIO_cur_id
+            avitos_raw = self.my_html.split('href="' + AVITO_GROUPS[self.group_cur].split('https://www.avito.ru')[1])
+            for i, avito_raw in enumerate(avitos_raw):
+                if i == 0:
+                    continue
+                if avito_raw[:6] != 'prodam':
+                    avito_x = avito_raw.split('"')[0].strip()
+                    for j in range(len(avito_x) - 1, 0, -1):
+                        if avito_x[j] not in digits:
+                            break
+                    try:
+                        q = self.avitos[avito_x[j + 1:]]
+                    except KeyError:
+                        self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
+            self.clbPreviewLoading.setIcon(QIcon('loaded.png'))
+            return
+        elif self.group_cur in METABOLISM_GROUPS.keys():
+            q=0
+        else:
+            return
+
 
     def click_clbNewAdd(self):                   # Добавляем новые контакты
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         j = round(random()*1000000)
-        for avito in self.avitos_last:
+        for avito in self.avitos:
             has_in_db = False
             for contact in self.contacty.values():
                 if str(contact.keys()).find('avito_id') > -1:
