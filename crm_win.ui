@@ -356,7 +356,7 @@
               </property>
               <property name="icon">
                <iconset>
-                <normaloff>plus.png</normaloff>plus.png</iconset>
+                <normaloff>loaded.png</normaloff>loaded.png</iconset>
               </property>
               <property name="description">
                <string/>
@@ -564,25 +564,6 @@
          <item>
           <widget class="QLineEdit" name="leEmail"/>
          </item>
-         <item>
-          <widget class="QLabel" name="label_5">
-           <property name="font">
-            <font>
-             <pointsize>16</pointsize>
-            </font>
-           </property>
-           <property name="text">
-            <string>N</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="chbNewAdd">
-           <property name="text">
-            <string/>
-           </property>
-          </widget>
-         </item>
         </layout>
        </widget>
       </item>
@@ -664,6 +645,26 @@
              <width>130</width>
              <height>16777215</height>
             </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCommandLinkButton" name="clbNewAdd">
+           <property name="maximumSize">
+            <size>
+             <width>33</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>plus.png</normaloff>plus.png</iconset>
+           </property>
+           <property name="description">
+            <string/>
            </property>
           </widget>
          </item>

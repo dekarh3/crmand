@@ -173,6 +173,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.clbExport.hide()
         self.progressBar.hide()
         self.avitos = {}
+        self.avitos_last = {}
         return
 
     def errMessage(self, err_text): ## Method to open a message box
@@ -555,8 +556,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if len(oemailAddresses) > 0:
                     for oemailAddress in oemailAddresses:
                         if oemailAddress:
-                            email += oemailAddresses[0].get('value') + ' '
-                contact['email'] = email
+                            email += oemailAddress.get('value') + ' '
+                contact['email'] = email.strip()
                 contact['etag'] = connection['etag']
                 contact['avito'] = ''  # Фильтруем все ссылки на avito в поле 'avito'
                 contact['instagram'] = ''  # а ссылки на instagram в поле 'instagram'
@@ -663,8 +664,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     if len(oemailAddresses) > 0:
                         for oemailAddress in oemailAddresses:
                             if oemailAddress:
-                                email += oemailAddresses[0].get('value') + ' '
-                    contact['email'] = email
+                                email += oemailAddress.get('value') + ' '
+                    contact['email'] = email.strip()
                     contact['etag'] = connection['etag']
                     contact['avito'] = ''  # Фильтруем все ссылки на avito в поле 'avito'
                     contact['instagram'] = ''  # а ссылки на instagram в поле 'instagram'
@@ -845,8 +846,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if len(oemailAddresses) > 0:
             for oemailAddress in oemailAddresses:
                 if oemailAddress:
-                    email += oemailAddresses[0].get('value') + ' '
-        contact['email'] = email
+                    email += oemailAddress.get('value') + ' '
+        contact['email'] = email.strip()
         contact['etag'] = connection['etag']
         contact['avito'] = ''
         contact['instagram'] = ''
@@ -908,13 +909,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if format_phone(call.split(']_[')[1]) == format_phone(phone):
                     self.calls_ids.append(i)
         self.leAddress.setText(self.contacty[self.FIO_cur_id]['town'])
-        email = ''
-        oemailAddresses = self.contacty[self.FIO_cur_id]['email']
-        if len(oemailAddresses) > 0:
-            for oemailAddress in oemailAddresses:
-                if oemailAddress:
-                    email += oemailAddresses[0].get('value') + ' '
-        self.leEmail.setText(email.strip())
+        self.leEmail.setText((self.contacty[self.FIO_cur_id]['email']).strip())
         self.leIOF.setText(self.contacty[self.FIO_cur_id]['iof'])
         urls = ''
         for url in self.contacty[self.FIO_cur_id]['urls']:
@@ -1512,6 +1507,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.FIO_saved_id = self.FIO_cur_id
             except IndexError:
                 q = 0
+            self.new_contact = False
             self.events_syncToken = ''
             self.contacty_syncToken = ''
             self.google2db4all()
@@ -1635,9 +1631,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.clbPreviewLoading.setIcon(QIcon('load.gif'))
 
     def preview_loaded(self):
-        # ищем на странице отсутствующие в БД ссылки avito и создаем карточки
+        # ищем на странице отсутствующие в БД ссылки avito и помечаем их для создания карточек
         self.new_contact = False
-        self.clbPreviewLoading.setIcon(QIcon('plus.png'))
+        self.clbPreviewLoading.setIcon(QIcon('loaded.png'))
         self.preview.page().toHtml(self.processHtml)
         if len(self.my_html) < 1000:
             return
@@ -1678,7 +1674,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         #self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         #self.FIO_saved_id = self.FIO_cur_id
         #   Если переходим в другую группу делаем self.avitos = {} - пока не надо (одна группа)
-        avitos_last = {}
+        self.avitos_last = {}
         avitos_raw = self.my_html.split('href="' + AVITO_GROUPS[self.group_cur].split('https://www.avito.ru')[1])
         for i, avito_raw in enumerate(avitos_raw):
             if i == 0:
@@ -1692,77 +1688,82 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     q = self.avitos[avito_x[j + 1:]]
                 except KeyError:
                     self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
-                    avitos_last[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
-        if self.chbNewAdd.isChecked():                   # Добавляем новые контакты - выделить в отдельную функцию !!!!
-            j = round(random()*1000000)
-            for avito in avitos_last:
-                has_in_db = False
-                for contact in self.contacty.values():
-                    if str(contact.keys()).find('avito_id') > -1:
-                        if contact['avito_id'] == avito:
-                            has_in_db = True
-                if not has_in_db:
-                    j += 1
-                    buf_contact = {}
-                    buf_contact['userDefined'] = [{}, {}, {}]
-                    buf_contact['userDefined'][0]['value'] = 'пауза'
-                    buf_contact['userDefined'][0]['key'] = 'stage'
-                    buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
-                    buf_contact['userDefined'][1]['key'] = 'calendar'
-                    buf_contact['userDefined'][2]['value'] = '0'
-                    buf_contact['userDefined'][2]['key'] = 'cost'
-                    buf_contact['names'] = [{'givenName': str(j)}]
-                    buf_contact['urls'] = {'value': self.avitos[avito]}
-                    buf_contact['biographies'] = [{}]
-                    buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
-                                                              + '|0м|\n'
-                    #buf_contact['phoneNumbers'] = ['0']
-                    # Создаем контакт
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            resultsc = service.people().createContact(body=buf_contact).execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                    self.avitos_last[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
 
-                    # Добавляем в текущую группу
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                            resultsg = service.contactGroups().members().modify(
-                                resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                                body=group_body
-                            ).execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                    # Добавляем событие через 30 дней
-                    event = {}
-                    event['id'] = resultsc['resourceName'].split('/')[1]
-                    event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
-                                              datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
-                    event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
-                                              datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
-                    event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-                    event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + \
-                                           self.avitos[avito]
-                    event['summary'] = '- пауза'
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-        #self.contacty_syncToken = ''
-        #self.events_syncToken = ''
-        #self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
-        #self.setup_twGroups()
+    def click_clbNewAdd(self):                   # Добавляем новые контакты
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        j = round(random()*1000000)
+        for avito in self.avitos_last:
+            has_in_db = False
+            for contact in self.contacty.values():
+                if str(contact.keys()).find('avito_id') > -1:
+                    if contact['avito_id'] == avito:
+                        has_in_db = True
+            if not has_in_db:
+                j += 1
+                buf_contact = {}
+                buf_contact['userDefined'] = [{}, {}, {}]
+                buf_contact['userDefined'][0]['value'] = 'пауза'
+                buf_contact['userDefined'][0]['key'] = 'stage'
+                buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
+                buf_contact['userDefined'][1]['key'] = 'calendar'
+                buf_contact['userDefined'][2]['value'] = '0'
+                buf_contact['userDefined'][2]['key'] = 'cost'
+                buf_contact['names'] = [{'givenName': str(j)}]
+                buf_contact['urls'] = {'value': self.avitos[avito]}
+                buf_contact['biographies'] = [{}]
+                buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
+                                                          + '|0м|\n'
+                #buf_contact['phoneNumbers'] = ['0']
+                # Создаем контакт
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = service.people().createContact(body=buf_contact).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+
+                # Добавляем в текущую группу
+                ok_google = False
+                while not ok_google:
+                    try:
+                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                        resultsg = service.contactGroups().members().modify(
+                            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                            body=group_body
+                        ).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Добавляем событие через 30 дней
+                event = {}
+                event['id'] = resultsc['resourceName'].split('/')[1]
+                event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
+                                          datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
+                event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
+                                          datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
+                event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + \
+                                       self.avitos[avito]
+                event['summary'] = '- пауза'
+                ok_google = False
+                while not ok_google:
+                    try:
+                        calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+        # Перезагружаем ВСЕ контакты из gmail
+        self.contacty_syncToken = ''
+        self.events_syncToken = ''
+        self.google2db4all()
+        self.setup_twGroups()
 
     def click_clbPreviewLoading(self):
         self.preview.page().toHtml(self.processHtml)

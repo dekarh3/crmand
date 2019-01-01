@@ -26,6 +26,7 @@ class MainWindow(MainWindowSlots):
         self.clbSave.clicked.connect(self.click_clbSave)
         self.clbAvito.clicked.connect(self.click_clbAvito)
         self.clbBack.clicked.connect(self.click_clbBack)
+        self.clbNewAdd.clicked.connect(self.click_clbNewAdd)
         self.clbTrash.clicked.connect(self.click_clbTrash)
         self.twGroups.clicked.connect(self.click_twGroups)
         self.twFIO.clicked.connect(self.click_twFIO)
