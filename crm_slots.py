@@ -130,6 +130,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts_filtered_reverced = []
         self.contacts_id_avitos = {}
         self.avitos_id_contacts = {}
+        self.contacts_id_instas = {}
+        self.instas_id_contacts = {}
         self.new_contact = False
         self.groups = []
         self.groups_resourcenames = {}
@@ -175,7 +177,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.clbExport.hide()
         self.progressBar.hide()
         self.avitos = {}
-        self.metabolitos = {}
+        self.metabolitos = []
         return
 
     def errMessage(self, err_text): ## Method to open a message box
@@ -484,6 +486,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         elif contacts_full == 'Full':
             self.avitos_id_contacts = {}
             self.contacts_id_avitos = {}
+            self.contacts_id_instas = {}
+            self.instas_id_contacts = {}
             self.contacty = {}
             events4delete = []
             number_of_new = 0
@@ -571,7 +575,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         if ourl['value'].find('www.avito.ru') > -1:
                             contact['avito'] = ourl['value']
                         if ourl['value'].find('instagram.com') > -1:
-                            contact['instagram'] = ourl['value']
+                            contact['instagram'] = ourl['value'].strip().split('https://www.instagram.com/')[1]\
+                                                                                                        .replace('/','')
+                            self.contacts_id_instas[contact['resourceName']] = contact['instagram']
+                            self.instas_id_contacts[contact['instagram']] = contact['resourceName']
                 contact['urls'] = urls
                 if str(contact.keys()).find('avito') > -1:
                     avito_x = contact['avito'].strip()
@@ -679,7 +686,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             if ourl['value'].find('www.avito.ru') > -1:
                                 contact['avito'] = ourl['value']
                             if ourl['value'].find('instagram.com') > -1:
-                                contact['instagram'] = ourl['value']
+                                contact['instagram'] = ourl['value'].strip().split('https://www.instagram.com/')[1]\
+                                                                                                        .replace('/','')
+                                self.contacts_id_instas[contact['resourceName']] = contact['instagram']
+                                self.instas_id_contacts[contact['instagram']] = contact['resourceName']
                     contact['urls'] = urls
                     if str(contact.keys()).find('avito') > -1:
                         avito_x = contact['avito'].strip()
@@ -861,7 +871,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if ourl['value'].find('www.avito.ru') > -1:
                     contact['avito'] = ourl['value']
                 if ourl['value'].find('instagram.com') > -1:
-                    contact['instagram'] = ourl['value']
+                    contact['instagram'] = ourl['value'].strip().split('https://www.instagram.com/')[1].replace('/','')
         contact['urls'] = urls
         if str(contact.keys()).find('avito') > -1:
             avito_x = contact['avito'].strip()
@@ -950,11 +960,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         #                response = urllib.request.urlopen(req)   #'https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0', data=req)
         #                html_x = response.read().decode('utf-8')
         #            self.leDateStart.setText(html_x.split('<strong>')[1].split('</strong>')[0])
-        elif len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 10 and self.show_site == 'instagram':
+        elif len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 1 and self.show_site == 'instagram':
             profile = QWebEngineProfile(self.preview)
             profile.setHttpUserAgent(USER_AGENT)
             page = QWebEnginePage(profile, self.preview)
-            page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
+            page.setUrl(QUrl('https://www.instagram.com/' + self.contacts_filtered[self.FIO_cur_id]['instagram']) + '/')
             self.preview.setPage(page)
             self.preview.show()
 
@@ -1519,13 +1529,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_clbGoURL1(self):
         if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 0:
             if len(self.contacts_filtered[self.FIO_cur_id]['urls'][0]) > 5:
-                proc = Popen('firefox --new-tab ' + self.contacts_filtered[self.FIO_cur_id]['urls'][0],
-                             shell=True, stdout=PIPE, stderr=PIPE)
-                proc.wait()  # дождаться выполнения
-                res = proc.communicate()  # получить tuple('stdout', 'stderr')
-                if proc.returncode:
-                    print(res[1])
-                    print('result:', res[0])
+                profile = QWebEngineProfile(self.preview)
+                profile.setHttpUserAgent(USER_AGENT)
+                page = QWebEnginePage(profile, self.preview)
+                page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['urls'][0]))
+                self.preview.setPage(page)
+                self.preview.show()
+        return
 
     def click_clbGoURL2(self):
         if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 1:
@@ -1612,11 +1622,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         elif self.show_site == 'calendar':
             self.clbAvito.setIcon(QIcon('instagram.png'))
             self.show_site = 'instagram'
-            if len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 10:
+            if len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 1:
                 profile = QWebEngineProfile(self.preview)
                 profile.setHttpUserAgent(USER_AGENT)
                 page = QWebEnginePage(profile, self.preview)
-                page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['instagram']))
+                page.setUrl(QUrl('https://www.instagram.com/' + self.contacts_filtered[self.FIO_cur_id]['instagram']
+                                 + '/'))
                 self.preview.setPage(page)
                 self.preview.show()
         else:
@@ -1633,7 +1644,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.clbPreviewLoading.setIcon(QIcon('load.gif'))
 
     def preview_loaded(self):
-        # ищем на странице отсутствующие в БД ссылки avito и помечаем их для создания карточек
+        # парсим данные в карточку, ищем на странице отсутствующие в БД ссылки avito и помечаем их для создания карточек
         self.new_contact = False
         self.clbPreviewLoading.setIcon(QIcon('wave.png'))
         self.preview.page().toHtml(self.processHtml)
@@ -1644,10 +1655,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         # Если переходим в другую группу - сбрасываем накопленную информацию
         if self.group_cur_id != self.group_last_id:
             self.avitos = {}
-            self.metabolitos = {}
+            self.metabolitos = []
             self.group_last_id = self.group_cur_id
 
-        if self.group_cur in AVITO_GROUPS.keys():
+        if self.group_cur in AVITO_GROUPS.keys():   # Если в одной из групп avito
             if self.preview.page().url().toString().find('avito') > -1:
                 avito_x = self.preview.page().url().toString().strip()
                 avito_i = len(avito_x) - 1
@@ -1695,11 +1706,23 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
             self.clbPreviewLoading.setIcon(QIcon('loaded.png'))
             return
-        elif self.group_cur in METABOLISM_GROUPS.keys():
-            q=0
+        elif self.group_cur in METABOLISM_GROUPS.keys():    # Если в одной из групп по Метаболизму
+            if self.preview.page().url().toString().find('emdigital.ru') > -1:
+                if not self.chbSumm.isChecked():
+                    return
+                service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
+                service = discovery.build('people', 'v1', http=self.http_con,
+                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                # self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+                # self.FIO_saved_id = self.FIO_cur_id
+                instas_raw = self.my_html.split('class="starInsta" href="/instagram?account="')
+                for i, insta_raw in enumerate(instas_raw):
+                    if i == 0:
+                        continue
+                    if not insta_raw.split('"')[0] in self.metabolitos:
+                        self.metabolitos.append(insta_raw.split('"')[0])
         else:
             return
-
 
     def click_clbNewAdd(self):                   # Добавляем новые контакты
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
@@ -1784,7 +1807,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.my_html = str(html_x)
         return
 
-    def click_clbStageRefresh(self):
+    def click_clbStageRefresh(self):                            # Обновляем стадию или удаляем контакт и его событие
         if self.group_cur not in AVITO_GROUPS.keys():
             return
         if self.leFIO.text() or self.leNote.text() or self.lePhone.text():
