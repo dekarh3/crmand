@@ -1551,29 +1551,32 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def leIOF_changed(self, text):
         self.leIOF.setText(self.filter_addres(text))
 
-    def update_from_avito(self):
-        avito_html = str(self.my_html)
-        try:
-            kott = avito_html.split('class="title-info-title-text"')[1].split('>')[1].split('<')[0].replace('\n','')
-            price = avito_html.split('"js-item-price"')[1].split('content="')[1].split('"')[0].replace('\n','')
-            name_link = avito_html.split('"seller-info-name"')[1].split('href="')[1].split('"')[0].replace('\n','')
-            name = self.my_html.split('"seller-info-name"')[1].split('title="Нажмите, чтобы перейти в профиль">')[1]\
-                .split('<')[0].replace('\n','')
-            addres = avito_html.split('itemprop="streetAddress">')[1].split('<')[0].replace('\n','')
-        except IndexError:
+    def update_from_site(self):
+        if self.group_cur in AVITO_GROUPS.keys():   # Если в одной из групп avito
+            avito_html = str(self.my_html)
+            try:
+                kott = avito_html.split('class="title-info-title-text"')[1].split('>')[1].split('<')[0].replace('\n','')
+                price = avito_html.split('"js-item-price"')[1].split('content="')[1].split('"')[0].replace('\n','')
+                name_link = avito_html.split('"seller-info-name"')[1].split('href="')[1].split('"')[0].replace('\n','')
+                name = self.my_html.split('"seller-info-name"')[1].split('title="Нажмите, чтобы перейти в профиль">')[1]\
+                    .split('<')[0].replace('\n','')
+                addres = avito_html.split('itemprop="streetAddress">')[1].split('<')[0].replace('\n','')
+            except IndexError:
+                return
+            if not self.leAddress.text():
+                self.leAddress.setText(addres)
+            if not self.leIOF.text():
+                self.leIOF.setText(name + ' ' + self.filter_addres(kott))
+            if not self.leUrls.text():
+                self.leUrls.setText(self.preview.page().url().toString())
+            if not self.leCost.text():
+                self.leCost.setText('{0:0g}'.format(round((l(price) / 1000000 + random() * 1e-5)  * 1000) / 1000))
+            if not self.teNote.toPlainText():
+                self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
+                              '|' + self.leCost.text() + 'м|' + '\n')
             return
-        if not self.leAddress.text():
-            self.leAddress.setText(addres)
-        if not self.leIOF.text():
-            self.leIOF.setText(name + ' ' + self.filter_addres(kott))
-        if not self.leUrls.text():
-            self.leUrls.setText(self.preview.page().url().toString())
-        if not self.leCost.text():
-            self.leCost.setText('{0:0g}'.format(round((l(price) / 1000000 + random() * 1e-5)  * 1000) / 1000))
-        if not self.teNote.toPlainText():
-            self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
-                          '|' + self.leCost.text() + 'м|' + '\n')
-        return
+        elif self.group_cur in METABOLISM_GROUPS.keys():    # Если в одной из групп по Метаболизму
+            q=0
 
     def filter_addres(self,str_):
         str_ = str_.strip()
@@ -1683,7 +1686,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     self.deCalendar.setDate(utc.localize(datetime.now()))
                     self.cbTime.setTime(datetime(2018,12,1,19,00).time())
                     self.leCost.setText('')
-                self.update_from_avito()
+                self.update_from_site()
             if not self.chbSumm.isChecked():
                 return
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
@@ -1715,7 +1718,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
                 # self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
                 # self.FIO_saved_id = self.FIO_cur_id
-                instas_raw = self.my_html.split('class="starInsta" href="/instagram?account="')
+                instas_raw = self.my_html.split('class="starInsta" href="/instagram?account=')
                 for i, insta_raw in enumerate(instas_raw):
                     if i == 0:
                         continue
@@ -1729,70 +1732,136 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         j = round(random()*1000000)
-        for avito in self.avitos:
-            has_in_db = False
-            for contact in self.contacty.values():
-                if str(contact.keys()).find('avito_id') > -1:
-                    if contact['avito_id'] == avito:
-                        has_in_db = True
-            if not has_in_db:
-                j += 1
-                buf_contact = {}
-                buf_contact['userDefined'] = [{}, {}, {}]
-                buf_contact['userDefined'][0]['value'] = 'пауза'
-                buf_contact['userDefined'][0]['key'] = 'stage'
-                buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
-                buf_contact['userDefined'][1]['key'] = 'calendar'
-                buf_contact['userDefined'][2]['value'] = '0'
-                buf_contact['userDefined'][2]['key'] = 'cost'
-                buf_contact['names'] = [{'givenName': str(j)}]
-                buf_contact['urls'] = {'value': self.avitos[avito]}
-                buf_contact['biographies'] = [{}]
-                buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
-                                                          + '|0м|\n'
-                #buf_contact['phoneNumbers'] = ['0']
-                # Создаем контакт
-                ok_google = False
-                while not ok_google:
-                    try:
-                        resultsc = service.people().createContact(body=buf_contact).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
+        if self.group_cur in AVITO_GROUPS.keys():   # Если в одной из групп avito
+            for avito in self.avitos:
+                try:
+                    q = self.avitos_id_contacts[avito]
+                    has_in_db = True
+                except IndexError:
+                    has_in_db = False
+                if not has_in_db:
+                    j += 1
+                    buf_contact = {}
+                    buf_contact['userDefined'] = [{}, {}, {}]
+                    buf_contact['userDefined'][0]['value'] = 'пауза'
+                    buf_contact['userDefined'][0]['key'] = 'stage'
+                    buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
+                    buf_contact['userDefined'][1]['key'] = 'calendar'
+                    buf_contact['userDefined'][2]['value'] = '0'
+                    buf_contact['userDefined'][2]['key'] = 'cost'
+                    buf_contact['names'] = [{'givenName': str(j)}]
+                    buf_contact['urls'] = {'value': self.avitos[avito]}
+                    buf_contact['biographies'] = [{}]
+                    buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
+                                                              + '|0м|\n'
+                    #buf_contact['phoneNumbers'] = ['0']
+                    # Создаем контакт
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            resultsc = service.people().createContact(body=buf_contact).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
 
-                # Добавляем в текущую группу
-                ok_google = False
-                while not ok_google:
-                    try:
-                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
-                        resultsg = service.contactGroups().members().modify(
-                            resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
-                            body=group_body
-                        ).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
-                # Добавляем событие через 30 дней
-                event = {}
-                event['id'] = resultsc['resourceName'].split('/')[1]
-                event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
-                                          datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
-                event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
-                                          datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
-                event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-                event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + \
-                                       self.avitos[avito]
-                event['summary'] = '- пауза'
-                ok_google = False
-                while not ok_google:
-                    try:
-                        calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                    # Добавляем в текущую группу
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                            resultsg = service.contactGroups().members().modify(
+                                resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                                body=group_body
+                            ).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                    # Добавляем событие через 30 дней
+                    event = {}
+                    event['id'] = resultsc['resourceName'].split('/')[1]
+                    event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
+                                              datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
+                    event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
+                                              datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
+                    event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                    event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + \
+                                           self.avitos[avito]
+                    event['summary'] = '- пауза'
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+        elif self.group_cur in METABOLISM_GROUPS.keys():    # Если в одной из групп по Метаболизму
+            for metabolito in self.metabolitos:
+                try:
+                    q = self.instas_id_contacts[metabolito]
+                    has_in_db = True
+                except IndexError:
+                    has_in_db = False
+                if not has_in_db:
+                    j += 1
+                    buf_contact = {}
+                    buf_contact['userDefined'] = [{}, {}, {}]
+                    buf_contact['userDefined'][0]['value'] = 'пауза'
+                    buf_contact['userDefined'][0]['key'] = 'stage'
+                    buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
+                    buf_contact['userDefined'][1]['key'] = 'calendar'
+                    buf_contact['userDefined'][2]['value'] = '0'
+                    buf_contact['userDefined'][2]['key'] = 'cost'
+                    buf_contact['names'] = [{'givenName': str(j)}]
+                    buf_contact['urls'] = {'value': 'https://www.instagram.com/' + metabolito + '/'}
+                    buf_contact['biographies'] = [{}]
+                    buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
+                                                             + '|0м|\n'
+                    # Создаем контакт
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            resultsc = service.people().createContact(body=buf_contact).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+
+                    # Добавляем в текущую группу
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                            resultsg = service.contactGroups().members().modify(
+                                resourceName='contactGroups/' + self.groups_resourcenames_reversed[self.group_cur],
+                                body=group_body
+                            ).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                    # Добавляем событие на сегодня
+                    event = {}
+                    event['id'] = resultsc['resourceName'].split('/')[1]
+                    event['start'] = {'dateTime': datetime.combine((datetime.now().date()), datetime.strptime('20:00',
+                                                                                '%H:%M').time()).isoformat() + '+04:00'}
+                    event['end'] = {'dateTime': datetime.combine((datetime.now().date()), datetime.strptime('20:15',
+                                                                                '%H:%M').time()).isoformat() + '+04:00'}
+                    event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                    event['description'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) + '|0м|\n' + \
+                                           'https://www.instagram.com/' + metabolito + '/'
+                    event['summary'] = '- пауза'
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+
         # Перезагружаем ВСЕ контакты из gmail
         self.contacty_syncToken = ''
         self.events_syncToken = ''
