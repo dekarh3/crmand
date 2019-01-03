@@ -17,6 +17,9 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 
+from instaparser.agents import Agent, exception_manager
+from instaparser.entities import Account, Media
+
 from datetime import datetime, timedelta, time
 import time
 import pytz
@@ -120,6 +123,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def setupUi(self, form):
         Ui_Form.setupUi(self,form)
+        self.agent = Agent()
         self.changed_ids = set()
         self.events_syncToken = ''
         self.contacty_syncToken = ''
@@ -905,7 +909,41 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return result['etag']
 
     def db2form4one(self):              #  внутр. БД -> Форма
-        self.teNote.setText(self.contacty[self.FIO_cur_id]['note'])
+        if self.group_cur in METABOLISM_GROUPS.keys():    # Если в одной из групп по Метаболизму
+            if self.contacty[self.FIO_cur_id]['instagram']:
+                account = Account(self.contacty[self.FIO_cur_id]['instagram'])
+                has_text = False
+                if self.contacty[self.FIO_cur_id]['note']:
+                    if self.contacty[self.FIO_cur_id]['note'][0] == '|' and \
+                                                            len(self.contacty[self.FIO_cur_id]['note'].strip('\n')) > 2:
+                        has_text = True
+                    elif self.contacty[self.FIO_cur_id]['note'][0] != '|' and \
+                                                                        len(self.contacty[self.FIO_cur_id]['note'] > 3):
+                        has_text = True
+                medias, pointer = self.agent.get_media(account)
+                if has_text:
+                    self.teNote.setText(self.contacty[self.FIO_cur_id]['note'])
+                else:
+                    text = ''
+                    if account.full_name:
+                        text += account.full_name + '\n'
+                    if account.biography:
+                        text += account.biography + '\n'
+                    if account.country_block:
+                        text += account.country_block + '\n'
+                    note = ''
+                    for ch in text:
+                        if ord(ch) < 65535:
+                            note += ch
+                    self.teNote.setPlainText(note)
+        else:
+            self.teNote.setText(self.contacty[self.FIO_cur_id]['note'])
+        try:
+            contact_event = parse(self.all_events[self.FIO_cur_id]['start'])
+        except KeyError:
+            contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
+        self.deCalendar.setDate(contact_event)
+        self.cbTime.setTime(contact_event.time())
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacty[self.FIO_cur_id]['stage']])
         phones = ''
         if len(self.contacty[self.FIO_cur_id]['phones']) > 0:
@@ -929,12 +967,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.leUrls.setText(urls)
 #        ca = self.contacts_filtered[self.FIO_cur_id]['calendar'].split('.')
 #        self.deCalendar.setDate(QDate(int(ca[2]),int(ca[1]),int(ca[0])))
-        try:
-            contact_event = parse(self.all_events[self.FIO_cur_id]['start'])
-        except KeyError:
-            contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
-        self.deCalendar.setDate(contact_event)
-        self.cbTime.setTime(contact_event.time())
         self.leCost.setText(str(round(self.contacty[self.FIO_cur_id]['cost'], 4)))
         self.setup_twCalls()
 
@@ -1575,8 +1607,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
                               '|' + self.leCost.text() + 'м|' + '\n')
             return
-        elif self.group_cur in METABOLISM_GROUPS.keys():    # Если в одной из групп по Метаболизму
-            q=0
 
     def filter_addres(self,str_):
         str_ = str_.strip()

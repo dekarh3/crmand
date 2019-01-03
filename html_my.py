@@ -1,3 +1,4 @@
+# Поиск подписчиков с наибольшей перепиской в instagram
 from instaparser.agents import Agent, exception_manager
 from instaparser.entities import Account, Media
 
