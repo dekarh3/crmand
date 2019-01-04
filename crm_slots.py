@@ -19,6 +19,8 @@ from oauth2client.file import Storage
 
 from instaparser.agents import Agent, exception_manager
 from instaparser.entities import Account, Media
+from instaparser.exceptions import InstagramException, InternetException
+from requests.exceptions import HTTPError
 
 from datetime import datetime, timedelta, time
 import time
@@ -920,7 +922,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     elif self.contacty[self.FIO_cur_id]['note'][0] != '|' and \
                                                                         len(self.contacty[self.FIO_cur_id]['note'] > 3):
                         has_text = True
-                medias, pointer = self.agent.get_media(account)
+                medias, pointer = self.agent.get_media(account,count=1,limit=1)
                 if has_text:
                     self.teNote.setText(self.contacty[self.FIO_cur_id]['note'])
                 else:
@@ -996,7 +998,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             profile = QWebEngineProfile(self.preview)
             profile.setHttpUserAgent(USER_AGENT)
             page = QWebEnginePage(profile, self.preview)
-            page.setUrl(QUrl('https://www.instagram.com/' + self.contacts_filtered[self.FIO_cur_id]['instagram']) + '/')
+            page.setUrl(QUrl('https://www.instagram.com/' + self.contacts_filtered[self.FIO_cur_id]['instagram'] + '/'))
             self.preview.setPage(page)
             self.preview.show()
 
@@ -1078,7 +1080,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         try:
             self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
             self.FIO_saved_id = self.FIO_cur_id
-        except IndexError:
+        except KeyError:
             q=0
 #        self.google2db4one()           # обновляем информацию о контакте
         self.setup_twGroups()
@@ -1683,8 +1685,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.preview.page().toHtml(self.processHtml)
         if len(self.my_html) < 1000:
             return
-        if self.show_site != 'avito':
-            return
+#        if self.show_site != 'avito':
+#            return
         # Если переходим в другую группу - сбрасываем накопленную информацию
         if self.group_cur_id != self.group_last_id:
             self.avitos = {}
@@ -1767,7 +1769,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:
                     q = self.avitos_id_contacts[avito]
                     has_in_db = True
-                except IndexError:
+                except KeyError:
                     has_in_db = False
                 if not has_in_db:
                     j += 1
@@ -1832,7 +1834,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:
                     q = self.instas_id_contacts[metabolito]
                     has_in_db = True
-                except IndexError:
+                except KeyError:
                     has_in_db = False
                 if not has_in_db:
                     j += 1
@@ -1844,11 +1846,31 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     buf_contact['userDefined'][1]['key'] = 'calendar'
                     buf_contact['userDefined'][2]['value'] = '0'
                     buf_contact['userDefined'][2]['key'] = 'cost'
-                    buf_contact['names'] = [{'givenName': str(j)}]
+                    buf_contact['names'] = [{'givenName': metabolito}]
                     buf_contact['urls'] = {'value': 'https://www.instagram.com/' + metabolito + '/'}
                     buf_contact['biographies'] = [{}]
-                    buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
-                                                             + '|0м|\n'
+                    try:
+                        account = Account(metabolito)
+                        medias, pointer = self.agent.get_media(account,count=1,limit=1)
+                    except InternetException:
+                        continue
+                    except InstagramException:
+                        continue
+                    except HTTPError:
+                        continue
+                    text = ''
+                    if account.full_name:
+                        text += account.full_name + '\n'
+                    if account.biography:
+                        text += account.biography + '\n'
+                    if account.country_block:
+                        text += account.country_block + '\n'
+                    note = ''
+                    for ch in text:
+                        if ord(ch) < 65535:
+                            note += ch
+                    buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date()) \
+                                                             + '|0м|\n' + note
                     # Создаем контакт
                     ok_google = False
                     while not ok_google:

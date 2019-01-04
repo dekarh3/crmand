@@ -381,9 +381,6 @@ class Ui_Form(object):
         self.teNote = QtWidgets.QTextEdit(self.frame_8)
         self.teNote.setObjectName("teNote")
         self.verticalLayout_2.addWidget(self.teNote)
-        self.plainTextEdit = QtWidgets.QPlainTextEdit(self.frame_8)
-        self.plainTextEdit.setObjectName("plainTextEdit")
-        self.verticalLayout_2.addWidget(self.plainTextEdit)
         self.horizontalLayout_9.addWidget(self.frame_8)
         self.frame_9 = QtWidgets.QFrame(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
@@ -419,9 +416,6 @@ class Ui_Form(object):
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'Ubuntu\'; font-size:11pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:18px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><a name=\"react-root\"></a><span style=\" font-size:xx-large; font-weight:600;\">❤</span><span style=\" font-size:xx-large; font-weight:600;\">️Moscow💙</span></p>\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br />marina1772211@gmail.com📥 PR, сотрудничество: +7(985)4455999 Дина📱</p></body></html>"))
-        self.plainTextEdit.setPlainText(_translate("Form", "❤️Moscow💙\n"
-"marina1772211@gmail.com📥 PR, сотрудничество: +7(985)4455999 Дина📱"))
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>"))
 
 from PyQt5 import QtWebEngineWidgets
