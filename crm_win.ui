@@ -706,13 +706,33 @@
          <item>
           <widget class="QCheckBox" name="chbHasPhone">
            <property name="text">
-            <string>Тел</string>
+            <string/>
            </property>
            <property name="checked">
             <bool>true</bool>
            </property>
            <property name="tristate">
             <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCommandLinkButton" name="clbCheckPhone">
+           <property name="maximumSize">
+            <size>
+             <width>33</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>phone.png</normaloff>phone.png</iconset>
+           </property>
+           <property name="description">
+            <string/>
            </property>
           </widget>
          </item>

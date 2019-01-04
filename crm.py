@@ -28,6 +28,7 @@ class MainWindow(MainWindowSlots):
         self.clbBack.clicked.connect(self.click_clbBack)
         self.clbNewAdd.clicked.connect(self.click_clbNewAdd)
         self.clbTrash.clicked.connect(self.click_clbTrash)
+        self.clbCheckPhone.clicked.connect(self.click_clbCheckPhone)
         self.twGroups.clicked.connect(self.click_twGroups)
         self.twFIO.clicked.connect(self.click_twFIO)
         self.twCalls.clicked.connect(self.click_twCalls)

@@ -2122,6 +2122,42 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         except ValueError:
             q=0
 
+    def click_clbCheckPhone(self):
+        phones = []
+        if len(self.lePhones.text().strip().split(' ')) > 0:
+            for i, phone in enumerate(self.lePhones.text().strip().split(' ')):
+                if phone.strip() != '':
+                    phones.append(fine_phone(phone))
+        phone_double_contacts = []
+        for contact in self.contacty:
+            has_phone = False
+            if len(self.contacty[contact]['phones']) > 0:
+                for phone in contact['phones']:
+                    if fine_phone(phone) in phones:
+                        has_phone = True
+                        break
+            if has_phone:
+                phone_double_contacts.append(self.contacty[contact])
+        if len(phone_double_contacts):
+            text = ''
+            for phone_double_contact in phone_double_contacts:
+                text += phone_double_contact['iof'] + '\n'
+            self.errMessage(text)
+
+
+    def errMessage(self, err_text):  ## Method to open a message box
+        infoBox = QMessageBox()  ##Message Box that doesn't run
+        infoBox.setIcon(QMessageBox.Information)
+        infoBox.setText(err_text)
+        #        infoBox.setInformativeText("Informative Text")
+        infoBox.setWindowTitle(datetime.strftime(datetime.now(), "%H:%M:%S") + ' Внимание: ')
+        #        infoBox.setDetailedText("Detailed Text")
+        #        infoBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        infoBox.setStandardButtons(QMessageBox.Ok)
+        #        infoBox.setEscapeButton(QMessageBox.Close)
+        infoBox.exec_()
+
+
 #    def click_clbExport(self):
 
     def qwe(self):
