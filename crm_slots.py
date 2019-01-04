@@ -1599,11 +1599,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 return
             if not self.leAddress.text():
                 self.leAddress.setText(addres)
-            if not self.leIOF.text():
+            only_digits = True
+            for char in self.leIOF.text():
+                if char not  in digits:
+                    only_digits = False
+            if not self.leIOF.text() or only_digits:
                 self.leIOF.setText(name + ' ' + self.filter_addres(kott))
             if not self.leUrls.text():
                 self.leUrls.setText(self.preview.page().url().toString())
-            if not self.leCost.text():
+            if not self.leCost.text() or self.leCost.text() == '0.0':
                 self.leCost.setText('{0:0g}'.format(round((l(price) / 1000000 + random() * 1e-5)  * 1000) / 1000))
             if not self.teNote.toPlainText():
                 self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
@@ -1622,6 +1626,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 str_ = str_.replace('.', '')
         if str_.find('-') > -1:
             str_ = str_.replace('-', '')
+        if str_.find('Коттедж') > -1:
+            str_ = str_.replace(' Коттедж ', '')
+        if str_.find('Дача') > -1:
+            str_ = str_.replace(' Дача ', '')
+        if str_.find('Дом') > -1:
+            str_ = str_.replace(' Дом ', '')
         if str_.find(' на участке ') > -1:                  # Обработка дом/коттедж/дача
             str_ = str_.replace(' на участке ', '+')
         if str_.find(' м²') > -1:
@@ -2132,17 +2142,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         for contact in self.contacty:
             has_phone = False
             if len(self.contacty[contact]['phones']) > 0:
-                for phone in contact['phones']:
-                    if fine_phone(phone) in phones:
-                        has_phone = True
-                        break
+                for phone in self.contacty[contact]['phones']:
+                    if contact != self.FIO_cur_id:
+                        if fine_phone(phone) in phones:
+                            has_phone = True
+                            break
             if has_phone:
                 phone_double_contacts.append(self.contacty[contact])
         if len(phone_double_contacts):
             text = ''
             for phone_double_contact in phone_double_contacts:
                 text += phone_double_contact['iof'] + '\n'
-            self.errMessage(text)
+            self.errMessage('Дублирующиеся контакты:\n' + text)
 
 
     def errMessage(self, err_text):  ## Method to open a message box
