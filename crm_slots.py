@@ -180,7 +180,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.calls = calls_amr + calls_mp3 +calls_wav
         self.calls_ids = []
         self.setup_twGroups()
-        self.clbExport.hide()
         self.progressBar.hide()
         self.avitos = {}
         self.metabolitos = []
@@ -1683,7 +1682,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def click_clbGCal(self):
         q=0
-        self.clbExport.show()
 
     def preview_loading(self):
         self.clbPreviewLoading.setIcon(QIcon('load.gif'))
@@ -1774,8 +1772,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         j = round(random()*1000000)
+        self.progressBar.show()
         if self.group_cur in AVITO_GROUPS.keys():   # Если в одной из групп avito
-            for avito in self.avitos:
+            self.progressBar.setMaximum(len(self.avitos) - 1)
+            for i, avito in enumerate(self.avitos):
+                self.progressBar.setValue(i)
                 try:
                     q = self.avitos_id_contacts[avito]
                     has_in_db = True
@@ -1840,7 +1841,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
         elif self.group_cur in METABOLISM_GROUPS.keys():    # Если в одной из групп по Метаболизму
-            for metabolito in self.metabolitos:
+            self.progressBar.setMaximum(len(self.metabolitos) - 1)
+            for i, metabolito in enumerate(self.metabolitos):
+                self.progressBar.setValue(i)
                 try:
                     q = self.instas_id_contacts[metabolito]
                     has_in_db = True
@@ -1923,7 +1926,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-
+        self.progressBar.hide()
         # Перезагружаем ВСЕ контакты из gmail
         self.contacty_syncToken = ''
         self.events_syncToken = ''
@@ -1947,7 +1950,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
-        for contact in self.contacts_filtered:
+        self.progressBar.setMaximum(len(self.contacts_filtered) - 1)
+        self.progressBar.show()
+        for i, contact in enumerate(self.contacts_filtered):
+            self.progressBar.setValue(i)
             has_in_db = False
             if str(self.contacts_filtered[contact].keys()).find('avito_id') > -1:
                 for avito in self.avitos:
@@ -2066,6 +2072,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
+        self.progressBar.hide()
+        return
 
     def click_clbTrash(self): # Удаляем все контакты (и их события) без телефона
         if self.group_cur not in AVITO_GROUPS.keys():
@@ -2168,8 +2176,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         #        infoBox.setEscapeButton(QMessageBox.Close)
         infoBox.exec_()
 
-
-#    def click_clbExport(self):
+    def click_clbAddDate(self):
+        if len(self.teNote.toPlainText()) > 0:
+            if self.teNote.toPlainText()[len(self.teNote.toPlainText()) - 1] == '\n':
+                self.teNote.setPlainText(self.teNote.toPlainText() + datetime.now().strftime("%d.%m.%Y"))
+            else:
+                self.teNote.setPlainText(self.teNote.toPlainText() + '\n' + datetime.now().strftime("%d.%m.%Y"))
+        else:
+            self.teNote.setPlainText(self.teNote.toPlainText() + datetime.now().strftime("%d.%m.%Y"))
 
     def qwe(self):
         q4 = """
