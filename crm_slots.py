@@ -2198,7 +2198,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if len(phone_double_contacts):
             text = ''
             for phone_double_contact in phone_double_contacts:
-                text += phone_double_contact['iof'] + '\n'
+                text += phone_double_contact['iof'] + ' ' + phone_double_contact['stage'] + '\n'
             self.errMessage('Дублирующиеся контакты:\n' + text)
 
 
