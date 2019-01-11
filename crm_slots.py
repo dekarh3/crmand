@@ -605,8 +605,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     q=0
             for event4delete in events4delete:
                 event4 = service_cal.events().get(calendarId='primary', eventId=event4delete).execute()
-                event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-                event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
                 updated_event = service_cal.events().update(calendarId='primary', eventId=event4delete,
                                                             body=event4).execute()
         elif contacts_full == 'Part':
@@ -942,7 +942,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         try:
             contact_event = parse(self.all_events[self.FIO_cur_id]['start'])
         except KeyError:
-            contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
+            contact_event = utc.localize(datetime(2012, 12, 31, 15, 0))
         self.deCalendar.setDate(contact_event)
         self.cbTime.setTime(contact_event.time())
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacty[self.FIO_cur_id]['stage']])
@@ -1109,7 +1109,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:
                     contact_event = parse(self.all_events[contact['resourceName']]['start'])
                 except KeyError:
-                    contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
+                    contact_event = utc.localize(datetime(2012, 12, 31, 15, 0))
                 except TypeError:
                     print('=========ОШИБКА!!!!!!!!!!!!',self.all_events[contact['resourceName']]['start'])
                 has_to_today = contact_event <= to_today
@@ -1181,7 +1181,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     try:
                         contacts_f_event[i] = parse(self.all_events[contacts_f[i]['resourceName']]['start'])
                     except KeyError:
-                        contacts_f_event[i] = utc.localize(datetime(2012, 12, 31, 0, 0))
+                        contacts_f_event[i] = utc.localize(datetime(2012, 12, 31, 15, 0))
                     contacts_f_fio[i] = contacts_f[i]['fio']
                     contacts_f_cost[i] = contacts_f[i]['cost']
                     i += 1
@@ -1194,7 +1194,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:
                     contact_event = parse(self.all_events[contact['resourceName']]['start'])
                 except KeyError:
-                    contact_event = utc.localize(datetime(2012, 12, 31, 0, 0))
+                    contact_event = utc.localize(datetime(2012, 12, 31, 15, 0))
                 has_to_today = contact_event <= to_today
                 has_FIO = contact['fio'].lower().find(self.leFIO.text().strip().lower()) > -1
                 has_note = s(contact['note']).lower().find(self.leNote.text().lower().strip()) > -1
@@ -1210,7 +1210,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     try:
                         contacts_f_event[i] = parse(self.all_events[contacts_f[i]['resourceName']]['start'])
                     except KeyError:
-                        contacts_f_event[i] = utc.localize(datetime(2012, 12, 31, 0, 0))
+                        contacts_f_event[i] = utc.localize(datetime(2012, 12, 31, 15, 0))
                     contacts_f_fio[i] = contacts_f[i]['fio']
                     contacts_f_cost[i] = contacts_f[i]['cost']
                     i += 1
@@ -1470,10 +1470,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         calendar['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
         # Если стадия не рабочая - ставим прошлую дату
         if self.cbStage.currentText() not in WORK_STAGES_CONST and self.cbStage.currentText() not in LOST_STAGES_CONST:
-            event['start'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-            calendar['start'] = {'dateTime' : datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'}
-            event['end'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
-            calendar['end'] = {'dateTime': datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'}
+            event['start'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+            calendar['start'] = {'dateTime' : datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'}
+            event['end'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
+            calendar['end'] = {'dateTime': datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'}
         # Если нет объявления, ставим ближайшую субботу
         elif self.cbStage.currentText() not in WORK_STAGES_CONST:
             event_date = parse(event['start'])
@@ -1625,13 +1625,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 str_ = str_.replace('.', '')
         if str_.find('-') > -1:
             str_ = str_.replace('-', '')
-        if str_.find('Коттедж') > -1:
+        if str_.find('Коттедж') > -1:                       # Обработка дом/коттедж/дача/таунхаус
             str_ = str_.replace(' Коттедж ', '')
         if str_.find('Дача') > -1:
             str_ = str_.replace(' Дача ', '')
         if str_.find('Дом') > -1:
             str_ = str_.replace(' Дом ', '')
-        if str_.find(' на участке ') > -1:                  # Обработка дом/коттедж/дача
+        if str_.find('Таунхаус') > -1:
+            str_ = str_.replace(' Таунхаус ', '')
+        if str_.find(' на участке ') > -1:
             str_ = str_.replace(' на участке ', '+')
         if str_.find(' м²') > -1:
             str_ = str_.replace(' м²', 'м²')
@@ -1928,6 +1930,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
         self.progressBar.hide()
         # Перезагружаем ВСЕ контакты из gmail
+        self.FIO_saved_id = self.FIO_cur_id
+        self.group_saved_id = self.group_cur_id
         self.contacty_syncToken = ''
         self.events_syncToken = ''
         self.google2db4all()
@@ -1947,6 +1951,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.leFIO.text() or self.leNote.text() or self.lePhone.text():
             print('!!!! С фильтрами - нельзя !!!')
             return
+        if len(self.avitos) < len(self.contacts_filtered) / 3:
+            print('Слишком мало контактов в списке авито, всего', len(self.avitos))
+            return
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
@@ -1954,16 +1961,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.progressBar.show()
         for i, contact in enumerate(self.contacts_filtered):
             self.progressBar.setValue(i)
-            has_in_db = False
+            has_in_avito = False
             if str(self.contacts_filtered[contact].keys()).find('avito_id') > -1:
                 for avito in self.avitos:
                     if self.contacts_filtered[contact]['avito_id'] == avito:
-                        has_in_db = True
+                        has_in_avito = True
                         break
             else:
                 continue
             changed = False
-            if has_in_db:
+            if has_in_avito:
                 if self.contacts_filtered[contact]['stage'] == 'нет объявления':
                     self.contacts_filtered[contact]['stage'] = 'пауза'
                     changed = True
@@ -1994,6 +2001,30 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
+                            buf_contact['etag'] = self.google2db4etag(cur_id=contact)
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            event4 = service_cal.events().get(calendarId='primary', eventId=contact) \
+                                .execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                    event4['start']['dateTime'] = datetime.combine(datetime.strptime(self.contacts_filtered[contact]['calendar'],
+                                '%d.%m.%Y').date(), datetime.strptime('19:00', '%H:%M').time()).isoformat() + '+04:00'
+                    event4['end']['dateTime'] = datetime.combine(datetime.strptime(self.contacts_filtered[contact]['calendar'],
+                                '%d.%m.%Y').date(), datetime.strptime('19:15', '%H:%M').time()).isoformat() + '+04:00'
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            updated_event = service_cal.events().update(calendarId='primary',
+                                                                        eventId=contact,
+                                                                        body=event4).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S"),'попробуем восстановить событие еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                 elif not len(self.contacts_filtered[contact]['phones']):        # Было CHANGE_STAGES_CONST стало
                     #print('пауза -> нет объявления и нет телефонов => Удаляем и контакт и событие',
                     #      self.contacts_filtered[contact]['iof'])               # 'нет объявления' и нет телефонов
@@ -2006,8 +2037,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-                    event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-                    event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                    event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                    event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
                     ok_google = False
                     while not ok_google:
                         try:
@@ -2040,8 +2071,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-                    event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-                    event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                    event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                    event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
                     ok_google = False
                     while not ok_google:
                         try:
@@ -2073,6 +2104,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
         self.progressBar.hide()
+        # Перезагружаем ВСЕ контакты из gmail
+        self.FIO_saved_id = self.FIO_cur_id
+        self.group_saved_id = self.group_cur_id
+        self.contacty_syncToken = ''
+        self.events_syncToken = ''
+        self.google2db4all()
+        self.setup_twGroups()
         return
 
     def click_clbTrash(self): # Удаляем все контакты (и их события) без телефона
@@ -2104,8 +2142,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем запросить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-                event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-                event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
                 ok_google = False
                 while not ok_google:
                     try:
@@ -2179,11 +2217,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def click_clbAddDate(self):
         if len(self.teNote.toPlainText()) > 0:
             if self.teNote.toPlainText()[len(self.teNote.toPlainText()) - 1] == '\n':
-                self.teNote.setPlainText(self.teNote.toPlainText() + datetime.now().strftime("%d.%m.%Y"))
+                self.teNote.setPlainText(self.teNote.toPlainText() + datetime.now().strftime("%d.%m.%Y") + ' ')
             else:
-                self.teNote.setPlainText(self.teNote.toPlainText() + '\n' + datetime.now().strftime("%d.%m.%Y"))
+                self.teNote.setPlainText(self.teNote.toPlainText() + '\n' + datetime.now().strftime("%d.%m.%Y") + ' ')
         else:
-            self.teNote.setPlainText(self.teNote.toPlainText() + datetime.now().strftime("%d.%m.%Y"))
+            self.teNote.setPlainText(self.teNote.toPlainText() + datetime.now().strftime("%d.%m.%Y") + ' ')
 
     def qwe(self):
         q4 = """
@@ -2209,8 +2247,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:
                     event4 = service_cal.events().get(calendarId='primary',
                                                              eventId=contact['resourceName']).execute()
-                    event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-                    event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                    event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                    event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
                     updated_event = service_cal.events().update(calendarId='primary',
                                                 eventId=contact['resourceName'], body=event4).execute()
                 except errors.HttpError as ee:
@@ -2218,8 +2256,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                               ee.resp['status'], ee.args[1].decode("utf-8"))
                     event4 = service_cal.events().get(calendarId='primary',
                                                              eventId=contact['resourceName']).execute()
-                    event4['start']['dateTime'] = datetime(2012, 12, 31, 0, 0).isoformat() + 'Z'
-                    event4['end']['dateTime'] = datetime(2012, 12, 31, 0, 15).isoformat() + 'Z'
+                    event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                    event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
                     updated_event = service_cal.events().update(calendarId='primary',
                                                 eventId=contact['resourceName'], body=event4).execute()
                 try:
