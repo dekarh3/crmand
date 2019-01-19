@@ -3,6 +3,7 @@ from __future__ import print_function
 from httplib2 import Http
 from subprocess import Popen, PIPE
 import os
+from sys import argv
 from string import digits
 from random import random
 from dateutil.parser import parse
@@ -125,6 +126,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def setupUi(self, form):
         Ui_Form.setupUi(self,form)
+        if len(argv):
+            print(argv)
         self.agent = Agent()
         self.changed_ids = set()
         self.events_syncToken = ''
@@ -1937,9 +1940,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.google2db4all()
         self.setup_twGroups()
 
-    def click_clbPreviewLoading(self):
-        self.preview.page().toHtml(self.processHtml)
-        self.teNote.setPlainText(self.my_html)
+#    def click_clbPreviewLoading(self):
+#        self.preview.page().toHtml(self.processHtml)
+#        self.teNote.setPlainText(self.my_html)
 
     def processHtml(self, html_x):
         self.my_html = str(html_x)

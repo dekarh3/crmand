@@ -40,7 +40,8 @@ class MainWindow(MainWindowSlots):
         self.leIOF.textChanged[str].connect(self.leIOF_changed)
         self.preview.loadFinished.connect(self.preview_loaded)
         self.preview.loadProgress.connect(self.preview_loading)
-        self.clbPreviewLoading.clicked.connect(self.click_clbPreviewLoading)
+        self.clbPreviewLoading.clicked.connect(self.preview_loaded)
+#        self.clbPreviewLoading.clicked.connect(self.click_clbPreviewLoading)
 #        self.deCalendar.dateChanged.connect(self.change_deCalendar)
 #        self.twCalls.customContextMenuRequested.connect(self.click_label_3)
 
