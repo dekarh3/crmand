@@ -1259,6 +1259,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         elif index == None:
             index = self.twFIO.model().index(0, 0)
             self.twFIO.setCurrentIndex(index)
+        self.clbCheckPhone.setIcon(QIcon('phone-yellow.png'))
         if index.row() < 0:
             return None
         self.twFIO.setCurrentIndex(index)
@@ -1273,6 +1274,23 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.FIO_last_id.append(self.contacts_filtered_reverced[index.row()])
             except IndexError:
                 q=0
+        has_phone = False
+        for contact in self.contacty:
+            if len(self.contacty[contact]['phones']):
+                for phone in self.contacty[contact]['phones']:
+                    if len(self.contacts_filtered[self.FIO_cur_id]['phones']) and self.FIO_cur_id != contact:
+                        for phone_tek in self.contacts_filtered[self.FIO_cur_id]['phones']:
+                            if fine_phone(phone) ==  fine_phone(phone_tek):
+                                has_phone = True
+                                break
+                    if has_phone:
+                        break
+                if has_phone:
+                    break
+        if has_phone:
+            self.clbCheckPhone.setIcon(QIcon('phone-red.png'))
+        else:
+            self.clbCheckPhone.setIcon(QIcon('phone-green.png'))
         return
 
     def setup_twCalls(self):
@@ -1981,6 +1999,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if self.contacts_filtered[contact]['stage'] in CHANGE_STAGES_CONST:
                     self.contacts_filtered[contact]['stage'] = 'нет объявления'
                     changed = True
+                elif self.contacts_filtered[contact]['stage'] == 'нет объявления':     # !!! ВСЕГДА ПРОВЕРЯЕМ !!!
+                    changed = True
+
             if changed:
                 if self.contacts_filtered[contact]['stage'] == 'пауза':   # Было 'нет объявления' стало 'пауза'
                     print(self.contacts_filtered[contact]['iof'], 'нет объявления -> пауза')
@@ -2029,8 +2050,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             print(datetime.now().strftime("%H:%M:%S"),'попробуем восстановить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
                 elif not len(self.contacts_filtered[contact]['phones']):        # Было CHANGE_STAGES_CONST стало
-                    #print('пауза -> нет объявления и нет телефонов => Удаляем и контакт и событие',
-                    #      self.contacts_filtered[contact]['iof'])               # 'нет объявления' и нет телефонов
+                    print('пауза -> нет объявления и нет телефонов => Удаляем и контакт и событие',
+                          self.contacts_filtered[contact]['iof'])               # 'нет объявления' и нет телефонов
                     ok_google = False
                     while not ok_google:
                         try:
@@ -2063,8 +2084,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
                 else:
-                    #print(self.contacts_filtered[contact]['iof'], 'пауза -> нет объявления и есть телефон(ы) '
-                    #                                              '=> Удаляем только событие')
+                    print(self.contacts_filtered[contact]['iof'], 'пауза -> нет объявления и есть телефон(ы) '
+                                                                  '=> Удаляем только событие')
                     ok_google = False
                     while not ok_google:
                         try:
