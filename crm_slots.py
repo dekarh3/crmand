@@ -1275,18 +1275,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             except IndexError:
                 q=0
         has_phone = False
-        for contact in self.contacty:
-            if len(self.contacty[contact]['phones']):
-                for phone in self.contacty[contact]['phones']:
-                    if len(self.contacts_filtered[self.FIO_cur_id]['phones']) and self.FIO_cur_id != contact:
-                        for phone_tek in self.contacts_filtered[self.FIO_cur_id]['phones']:
-                            if fine_phone(phone) ==  fine_phone(phone_tek):
-                                has_phone = True
+        if len(self.contacts_filtered[self.FIO_cur_id]['phones']):
+            if l(self.contacts_filtered[self.FIO_cur_id]['phones'][0]):
+                for contact in self.contacty:
+                    if len(self.contacty[contact]['phones']):
+                        for phone in self.contacty[contact]['phones']:
+                            if len(self.contacts_filtered[self.FIO_cur_id]['phones']) and self.FIO_cur_id != contact:
+                                for phone_tek in self.contacts_filtered[self.FIO_cur_id]['phones']:
+                                    if fine_phone(phone) ==  fine_phone(phone_tek):
+                                        has_phone = True
+                                        break
+                            if has_phone:
                                 break
-                    if has_phone:
-                        break
-                if has_phone:
-                    break
+                        if has_phone:
+                            break
         if has_phone:
             self.clbCheckPhone.setIcon(QIcon('phone-red.png'))
         else:
@@ -1613,7 +1615,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 price = avito_html.split('"js-item-price"')[1].split('content="')[1].split('"')[0].replace('\n','')
                 name_link = avito_html.split('"seller-info-name"')[1].split('href="')[1].split('"')[0].replace('\n','')
                 name = self.my_html.split('"seller-info-name"')[1].split('title="Нажмите, чтобы перейти в профиль">')[1]\
-                    .split('<')[0].replace('\n','')
+                    .split('<')[0].replace('\n','').strip().replace(' ','_') + ' '
                 addres = avito_html.split('itemprop="streetAddress">')[1].split('<')[0].replace('\n','')
             except IndexError:
                 return
