@@ -786,6 +786,13 @@
          <item>
           <widget class="QLineEdit" name="leAddress"/>
          </item>
+         <item>
+          <widget class="QLabel" name="labelAvitos">
+           <property name="text">
+            <string>0000</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>

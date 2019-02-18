@@ -146,7 +146,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.groups_resourcenames = {}
         self.group_cur = ''
         self.group_cur_id = 0
-        self.group_last_id = 0
+        self.group_last = '_Бигль'
         self.group_saved_id = None
         self.FIO_cur_id = ''
         self.FIO_saved_id = ''
@@ -186,19 +186,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.progressBar.hide()
         self.avitos = {}
         self.metabolitos = []
+        self.labelAvitos.hide()
         return
-
-    def errMessage(self, err_text): ## Method to open a message box
-        infoBox = QMessageBox() ##Message Box that doesn't run
-        infoBox.setIcon(QMessageBox.Warning)
-        infoBox.setText(err_text)
-#        infoBox.setInformativeText("Informative Text")
-        infoBox.setWindowTitle(datetime.strftime(datetime.now(), "%H:%M:%S") + ' Ошибка: ')
-#        infoBox.setDetailedText("Detailed Text")
-#        infoBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-        infoBox.setStandardButtons(QMessageBox.Ok)
-#        infoBox.setEscapeButton(QMessageBox.Close)
-        infoBox.exec_()
 
     def google2db4all(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
@@ -1710,21 +1699,24 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def preview_loading(self):
         self.clbPreviewLoading.setIcon(QIcon('load.gif'))
+        self.labelAvitos.hide()
+
 
     def preview_loaded(self):
         # парсим данные в карточку, ищем на странице отсутствующие в БД ссылки avito и помечаем их для создания карточек
         self.new_contact = False
         self.clbPreviewLoading.setIcon(QIcon('wave.png'))
+        self.labelAvitos.hide()
         self.preview.page().toHtml(self.processHtml)
         if len(self.my_html) < 1000:
             return
 #        if self.show_site != 'avito':
 #            return
         # Если переходим в другую группу - сбрасываем накопленную информацию
-        if self.group_cur_id != self.group_last_id:
+        if self.group_cur != self.group_last:
             self.avitos = {}
             self.metabolitos = []
-            self.group_last_id = self.group_cur_id
+            self.group_last = self.group_cur
 
         if self.group_cur in AVITO_GROUPS.keys():   # Если в одной из групп avito
             if self.preview.page().url().toString().find('avito') > -1:
@@ -1754,6 +1746,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.update_from_site()
             if not self.chbSumm.isChecked():
                 return
+            self.len_avitos = len(self.avitos)
             service_cal = discovery.build('calendar', 'v3', http=self.http_cal)
             service = discovery.build('people', 'v1', http=self.http_con,
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
@@ -1772,7 +1765,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         q = self.avitos[avito_x[j + 1:]]
                     except KeyError:
                         self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
-            self.clbPreviewLoading.setIcon(QIcon('loaded.png'))
+            if len(self.avitos) > self.len_avitos + 30:
+                self.len_avitos = len(self.avitos)
+                self.clbPreviewLoading.setIcon(QIcon('loaded.png'))
+                self.labelAvitos.setText(str(len(self.avitos)))
+                self.labelAvitos.show()
             return
         elif self.group_cur in METABOLISM_GROUPS.keys():    # Если в одной из групп по Метаболизму
             if self.preview.page().url().toString().find('emdigital.ru') > -1:
@@ -1954,15 +1951,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.progressBar.hide()
         # Перезагружаем ВСЕ контакты из gmail
         self.FIO_saved_id = self.FIO_cur_id
-        self.group_saved_id = self.group_cur_id
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         self.contacty_syncToken = ''
         self.events_syncToken = ''
         self.google2db4all()
         self.setup_twGroups()
-
-#    def click_clbPreviewLoading(self):
-#        self.preview.page().toHtml(self.processHtml)
-#        self.teNote.setPlainText(self.my_html)
 
     def processHtml(self, html_x):
         self.my_html = str(html_x)
@@ -2132,7 +2125,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.progressBar.hide()
         # Перезагружаем ВСЕ контакты из gmail
         self.FIO_saved_id = self.FIO_cur_id
-        self.group_saved_id = self.group_cur_id
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        #self.group_saved_id = self.group_cur_id
         self.contacty_syncToken = ''
         self.events_syncToken = ''
         self.google2db4all()
@@ -2188,9 +2182,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
+        # Перезагружаем ВСЕ контакты из gmail
+        self.FIO_saved_id = self.FIO_cur_id
+        self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
+        #self.group_saved_id = self.group_cur_id
         self.contacty_syncToken = ''
         self.events_syncToken = ''
-        self.google2db4all() # Перезагружаем ВСЕ контакты из gmail
+        self.google2db4all()
         self.setup_twGroups()
 
     def click_clbBack(self):

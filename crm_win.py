@@ -383,6 +383,9 @@ class Ui_Form(object):
         self.leAddress = QtWidgets.QLineEdit(self.frame_7)
         self.leAddress.setObjectName("leAddress")
         self.horizontalLayout_8.addWidget(self.leAddress)
+        self.labelAvitos = QtWidgets.QLabel(self.frame_7)
+        self.labelAvitos.setObjectName("labelAvitos")
+        self.horizontalLayout_8.addWidget(self.labelAvitos)
         self.verticalLayout_2.addWidget(self.frame_7)
         self.progressBar = QtWidgets.QProgressBar(self.frame_8)
         self.progressBar.setEnabled(True)
@@ -422,6 +425,7 @@ class Ui_Form(object):
         self.chbCostSort.setText(_translate("Form", "Цена"))
         self.label_4.setText(_translate("Form", "Σ"))
         self.label_3.setText(_translate("Form", "Адр."))
+        self.labelAvitos.setText(_translate("Form", "0000"))
         self.teNote.setHtml(_translate("Form", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
