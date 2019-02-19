@@ -1766,8 +1766,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except KeyError:
                         self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
             if len(self.avitos) > self.len_avitos + 30:
-                self.len_avitos = len(self.avitos)
                 self.clbPreviewLoading.setIcon(QIcon('loaded.png'))
+            if self.chbSumm.isChecked():
+                self.len_avitos = len(self.avitos)
                 self.labelAvitos.setText(str(len(self.avitos)))
                 self.labelAvitos.show()
             return
