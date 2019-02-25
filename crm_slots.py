@@ -1602,8 +1602,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             try:
                 kott = avito_html.split('class="title-info-title-text"')[1].split('>')[1].split('<')[0].replace('\n','')
                 price = avito_html.split('"js-item-price"')[1].split('content="')[1].split('"')[0].replace('\n','')
-                name_link = avito_html.split('"seller-info-name"')[1].split('href="')[1].split('"')[0].replace('\n','')
-                name = self.my_html.split('"seller-info-name"')[1].split('title="Нажмите, чтобы перейти в профиль">')[1]\
+                name_link = avito_html.split('"seller-info-name')[1].split('href="')[1].split('"')[0].replace('\n','')
+                name = self.my_html.split('"seller-info-name')[1].split('title="Нажмите, чтобы перейти в профиль">')[1]\
                     .split('<')[0].replace('\n','').strip().replace(' ','_') + ' '
                 addres = avito_html.split('itemprop="streetAddress">')[1].split('<')[0].replace('\n','')
             except IndexError:
