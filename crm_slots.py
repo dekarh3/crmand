@@ -61,11 +61,17 @@ AVITO_GROUPS = {
     'КвартирыАстр': 'https://www.avito.ru/astrahan/kvartiry/'
 }
 AVITO_GROUPS_SPLITS = {
-    '_КоттеджиСочи': 'https://www.avito.ru/sochi/',
-    '_КвартирыСочи': 'https://www.avito.ru/sochi/',
-    'КоттеджиАстр': 'https://www.avito.ru/astrahan/',
-    'КвартирыАстр': 'https://www.avito.ru/astrahan/'
+    '_КоттеджиСочи': 'https://www.avito.ru/',
+    '_КвартирыСочи': 'https://www.avito.ru/',
+    'КоттеджиАстр': 'https://www.avito.ru/',
+    'КвартирыАстр': 'https://www.avito.ru/'
 }
+#AVITO_GROUPS_SPLITS = {
+#    '_КоттеджиСочи': 'https://www.avito.ru/sochi/',
+#    '_КвартирыСочи': 'https://www.avito.ru/sochi/',
+#    'КоттеджиАстр': 'https://www.avito.ru/astrahan/',
+#    'КвартирыАстр': 'https://www.avito.ru/astrahan/'
+#}
 METABOLISM_GROUPS = {'_Метаболизм': 'http://emdigital.ru/stars/?cat='}
 
 MAX_PAGE = 2
@@ -1760,19 +1766,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                       discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             #self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
             #self.FIO_saved_id = self.FIO_cur_id
-            avitos_raw = self.my_html.split('href="/yaya/' + AVITO_GROUPS[self.group_cur].split(
+            avitos_raw = self.my_html.split('href="/' + AVITO_GROUPS[self.group_cur].split(
                 AVITO_GROUPS_SPLITS[self.group_cur])[1])
             for i, avito_raw in enumerate(avitos_raw):
                 if i == 0:
                     continue
-                avito_x = avito_raw.split('"')[0].strip()
-                for j in range(len(avito_x) - 1, 0, -1):
-                    if avito_x[j] not in digits:
-                        break
-                try:
-                    q = self.avitos[avito_x[j + 1:]]
-                except KeyError:
-                    self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
+                if avito_raw[:6] != 'prodam':
+                    avito_x = avito_raw.split('"')[0].strip()
+                    for j in range(len(avito_x) - 1, 0, -1):
+                        if avito_x[j] not in digits:
+                            break
+                    try:
+                        q = self.avitos[avito_x[j + 1:]]
+                    except KeyError:
+                        self.avitos[avito_x[j + 1:]] = AVITO_GROUPS[self.group_cur] + avito_raw.split('"')[0]
             if len(self.avitos) > self.len_avitos + 30:
                 self.clbPreviewLoading.setIcon(QIcon('loaded.png'))
             if self.chbSumm.isChecked():
