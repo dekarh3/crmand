@@ -52,6 +52,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     # Создаём базовое окно, в котором будет отображаться наш UI
     window = QWidget()
+    window.setWindowIcon(QIcon('avito1.png'))
     # Создаём экземпляр нашего UI
     ui = MainWindow(window)
     # Отображаем окно
