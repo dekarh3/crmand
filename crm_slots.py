@@ -466,7 +466,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if str(calendar['start'].keys()).find('dateTime') > -1:
                     event['start'] = calendar['start']['dateTime']
                 else:
-                    event['start'] = str(utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M:%S")))
+                    event['start'] = str(utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00',
+                                                                        "%Y-%m-%d %H:%M:%S")))
                 if str(calendar.keys()).find('htmlLink') > -1:
                     event['www'] =calendar['htmlLink']
                 else:
@@ -551,6 +552,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 stage = '---'
                 calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
                 cost = 0
+                changed = QDate().currentDate().toString("dd.MM.yyyy")
                 ostages = connection.get('userDefined', [])
                 if len(ostages) > 0:
                     for ostage in ostages:
@@ -560,9 +562,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             calendar = ostage['value']
                         if ostage['key'].lower() == 'cost':
                             cost = float(ostage['value'])
+                        if ostage['key'].lower() == 'changed':
+                            changed = ostage['value']
                 contact['stage'] = stage
                 contact['calendar'] = calendar
                 contact['cost'] = cost + random() * 1e-5
+                contact['changed'] = changed
                 town = ''
                 oaddresses = connection.get('addresses', [])
                 if len(oaddresses) > 0:
@@ -661,6 +666,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     contact['groups'] = memberships
                     stage = '---'
                     calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+                    changed = QDate().currentDate().toString("dd.MM.yyyy")
                     cost = 0
                     ostages = connection.get('userDefined', [])
                     if len(ostages) > 0:
@@ -671,9 +677,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 calendar = ostage['value']
                             if ostage['key'].lower() == 'cost':
                                 cost = float(ostage['value'])
+                            if ostage['key'].lower() == 'changed':
+                                changed = ostage['value']
                     contact['stage'] = stage
                     contact['calendar'] = calendar
                     contact['cost'] = cost + random() * 1e-5
+                    contact['changed'] = changed
                     town = ''
                     oaddresses = connection.get('addresses', [])
                     if len(oaddresses) > 0:
@@ -846,6 +855,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contact['groups'] = memberships
         stage = '---'
         calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+        changed = QDate().currentDate().toString("dd.MM.yyyy")
         cost = 0
         ostages = connection.get('userDefined', [])
         if len(ostages) > 0:
@@ -856,9 +866,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     calendar = ostage['value']
                 if ostage['key'].lower() == 'cost':
                     cost = float(ostage['value'])
+                if ostage['key'].lower() == 'changed':
+                    changed = ostage['value']
         contact['stage'] = stage
         contact['calendar'] = calendar
         contact['cost'] = cost + random() * 1e-5
+        contact['changed'] = changed
         town = ''
         oaddresses = connection.get('addresses', [])
         if len(oaddresses) > 0:
@@ -966,7 +979,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if format_phone(call.split(']_[')[1]) == format_phone(phone):
                     self.calls_ids.append(i)
         self.leAddress.setText(self.contacty[self.FIO_cur_id]['town'])
-        self.leEmail.setText((self.contacty[self.FIO_cur_id]['email']).strip())
+        self.leEmail.setText(' '.join(self.contacty[self.FIO_cur_id]['email']))
         self.leIOF.setText(self.contacty[self.FIO_cur_id]['iof'])
         urls = ''
         for url in self.contacty[self.FIO_cur_id]['urls']:
@@ -1352,20 +1365,22 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             pred_stage = self.contacts_filtered[self.FIO_cur_id]['stage']
             self.form2db4one()
             buf_contact = {}
-            buf_contact['userDefined'] = [{},{},{}]
+            buf_contact['userDefined'] = [{},{},{},{}]
             buf_contact['userDefined'][0]['value'] = self.contacts_filtered[self.FIO_cur_id]['stage']
             buf_contact['userDefined'][0]['key'] = 'stage'
             buf_contact['userDefined'][1]['value'] = self.contacts_filtered[self.FIO_cur_id]['calendar']
             buf_contact['userDefined'][1]['key'] = 'calendar'
             buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[self.FIO_cur_id]['cost'], 4))
             buf_contact['userDefined'][2]['key'] = 'cost'
+            buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
+            buf_contact['userDefined'][3]['key'] = 'changed'
             buf_contact['biographies'] = [{}]
             buf_contact['biographies'][0]['value'] = self.contacts_filtered[self.FIO_cur_id]['note']
             buf_contact['etag'] = self.contacts_filtered[self.FIO_cur_id]['etag']
         else:
             pred_stage = 'пауза'
             buf_contact = {}
-            buf_contact['userDefined'] = [{},{},{}]
+            buf_contact['userDefined'] = [{},{},{},{}]
             buf_contact['userDefined'][0]['value'] = self.cbStage.currentText()
             buf_contact['userDefined'][0]['key'] = 'stage'
             buf_contact['userDefined'][1]['value'] = self.deCalendar.date().toString("dd.MM.yyyy")
@@ -1375,6 +1390,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             except ValueError:
                 buf_contact['userDefined'][2]['value'] = '0'
             buf_contact['userDefined'][2]['key'] = 'cost'
+            buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
+            buf_contact['userDefined'][3]['key'] = 'changed'
             buf_contact['biographies'] = [{}]
             if len(self.teNote.toPlainText()) > 0:
                 if self.teNote.toPlainText()[0] != '|':
@@ -1823,7 +1840,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if not has_in_db:
                     j += 1
                     buf_contact = {}
-                    buf_contact['userDefined'] = [{}, {}, {}]
+                    buf_contact['userDefined'] = [{}, {}, {}, {}]
                     buf_contact['userDefined'][0]['value'] = 'пауза'
                     buf_contact['userDefined'][0]['key'] = 'stage'
                     buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
@@ -1890,7 +1907,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if not has_in_db:
                     j += 1
                     buf_contact = {}
-                    buf_contact['userDefined'] = [{}, {}, {}]
+                    buf_contact['userDefined'] = [{}, {}, {}, {}]
                     buf_contact['userDefined'][0]['value'] = 'пауза'
                     buf_contact['userDefined'][0]['key'] = 'stage'
                     buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
@@ -2010,20 +2027,22 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if self.contacts_filtered[contact]['stage'] in CHANGE_STAGES_CONST:
                     self.contacts_filtered[contact]['stage'] = 'нет объявления'
                     changed = True
-                elif self.contacts_filtered[contact]['stage'] == 'нет объявления':     # !!! ВСЕГДА ПРОВЕРЯЕМ !!!
-                    changed = True
+                #elif self.contacts_filtered[contact]['stage'] == 'нет объявления':     # !!! ВСЕГДА ПРОВЕРЯЕМ !!!
+                #    changed = True
 
             if changed:
                 if self.contacts_filtered[contact]['stage'] == 'пауза':   # Было 'нет объявления' стало 'пауза'
                     print(self.contacts_filtered[contact]['iof'], 'нет объявления -> пауза')
                     buf_contact = {}
-                    buf_contact['userDefined'] = [{}, {}, {}]
+                    buf_contact['userDefined'] = [{}, {}, {}, {}]
                     buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
                     buf_contact['userDefined'][0]['key'] = 'stage'
                     buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
                     buf_contact['userDefined'][1]['key'] = 'calendar'
                     buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
                     buf_contact['userDefined'][2]['key'] = 'cost'
+                    buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
+                    buf_contact['userDefined'][3]['key'] = 'changed'
                     buf_contact['etag'] = self.google2db4etag(cur_id=contact)
                     ok_google = False
                     while not ok_google:
@@ -2119,13 +2138,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
                     buf_contact = {}
-                    buf_contact['userDefined'] = [{}, {}, {}]
+                    buf_contact['userDefined'] = [{}, {}, {}, {}]
                     buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
                     buf_contact['userDefined'][0]['key'] = 'stage'
                     buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
                     buf_contact['userDefined'][1]['key'] = 'calendar'
                     buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
                     buf_contact['userDefined'][2]['key'] = 'cost'
+                    buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
+                    buf_contact['userDefined'][3]['key'] = 'changed'
                     buf_contact['etag'] = self.google2db4etag(cur_id=contact)
                     ok_google = False
                     while not ok_google:
@@ -2362,7 +2383,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     if avito_date < datetime.now() - timedelta(days=31):
                         j += 1
                         buf_contact = {}
-                        buf_contact['userDefined'] = [{}, {}, {}]
+                        buf_contact['userDefined'] = [{}, {}, {}, {}]
                         buf_contact['userDefined'][0]['value'] = 'пауза'
                         buf_contact['userDefined'][0]['key'] = 'stage'
                         buf_contact['userDefined'][1]['value'] = (datetime.now() - timedelta(1)).strftime("%d.%m.%Y")
