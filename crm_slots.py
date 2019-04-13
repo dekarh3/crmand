@@ -30,7 +30,8 @@ utc=pytz.UTC
 
 from PyQt5.QtCore import QDate, QDateTime, QSize, Qt, QByteArray, QTimer, QUrl, QEventLoop
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtWidgets import QTableWidgetItem, QMessageBox, QMainWindow, QWidget, QApplication
+from PyQt5.QtWidgets import QTableWidgetItem, QMessageBox, QMainWindow, QWidget, QApplication, QDialog, QLabel, \
+    QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QTableWidget
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineProfile
 
 
@@ -136,6 +137,7 @@ def get_credentials_cal():
         print('Storing credentials to ' + credential_path)
     return credentials
 
+
 class MainWindowSlots(Ui_Form):   # Определяем функции, которые будем вызывать в слотах
 
     def setupUi(self, form):
@@ -202,6 +204,112 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.metabolitos = []
         self.labelAvitos.hide()
         return
+
+    def clickBack(self):
+        pass
+        #self.makeDialog('Введите что нибудь')
+
+    def click_twDoubled(self, index=None):
+        if index == None:
+            self.Dialog.close()
+            return
+        if index.row() < 0:
+            self.Dialog.close()
+            return
+        else:
+            self.pbPeopleFilter.setText(self.doubled[index.row()][0])
+            self.Dialog.close()
+            return
+
+    def pushCloseDialog(self):
+        self.Dialog.close()
+
+    def makeDialog(self, doubled):  ## Method to open a message box
+        self.doubled = doubled
+        self.Dialog = QDialog()  ##Message Box that doesn't run
+        verticalLayout = QVBoxLayout(self.Dialog)
+        verticalLayout.setObjectName("verticalLayout")
+        self.Dialog.tableWidget = QTableWidget(self.Dialog)
+        self.Dialog.tableWidget.setObjectName("tableWidget")
+        self.Dialog.tableWidget.setColumnCount(0)
+        self.Dialog.tableWidget.setRowCount(0)
+
+        self.Dialog.tableWidget.setColumnCount(3)               # Устанавливаем кол-во колонок
+        self.Dialog.tableWidget.setRowCount(len(doubled))        # Кол-во строк из таблицы
+        for i, double in enumerate(doubled):
+            self.Dialog.tableWidget.setItem(i, 0, QTableWidgetItem(double[0]))
+            self.Dialog.tableWidget.setItem(i, 1, QTableWidgetItem(double[1]))
+            self.Dialog.tableWidget.setItem(i, 2, QTableWidgetItem(double[2]))
+
+        # Устанавливаем заголовки таблицы
+        self.Dialog.tableWidget.setHorizontalHeaderLabels(['id','Продавец','Стадия'])
+        # Устанавливаем выравнивание на заголовки
+        self.Dialog.tableWidget.horizontalHeaderItem(0).setTextAlignment(Qt.AlignCenter)
+        # делаем ресайз колонок по содержимому
+        self.Dialog.tableWidget.resizeColumnsToContents()
+        verticalLayout.addWidget(self.Dialog.tableWidget)
+        self.Dialog.pushButton = QPushButton(self.Dialog)
+        self.Dialog.pushButton.setText('Отмена')
+        self.Dialog.pushButton.setObjectName("pushButton")
+        self.Dialog.pushButton.clicked.connect(self.pushCloseDialog)
+        self.Dialog.tableWidget.clicked.connect(self.click_twDoubled)
+
+        verticalLayout.addWidget(self.Dialog.pushButton)
+        self.Dialog.setLayout(verticalLayout)
+        self.Dialog.exec_()
+
+        q13 = """
+        layout = QHBoxLayout()
+        self.Dialog.label = QLabel(self.Dialog)
+        self.Dialog.label.setText(err_text)
+        self.Dialog.edit = QLineEdit(self.Dialog)
+        self.Dialog.edit.setMaximumSize(QSize(130, 16777215))
+        self.Dialog.button = QPushButton(self.Dialog)
+        self.Dialog.button.setText('Нажми чтобы отобразить')
+        self.Dialog.button.clicked.connect(self.push)
+        layout.addWidget(self.Dialog.label)
+        layout.addWidget(self.Dialog.edit)
+        layout.addWidget(self.Dialog.button)
+        self.Dialog.setLayout(layout)
+        self.Dialog.exec_()
+
+        def __init__(self, root, **kwargs):
+            super().__init__(root, **kwargs)
+            self.main = root
+            label = QLabel('введите что нибудь')
+            self.edit = QLineEdit()
+            button = QPushButton('Нажми чтобы отобразить')
+            button.clicked.connect(self.push)
+            layout = QVBoxLayout()
+            layout.addWidget(label)
+            layout.addWidget(self.edit)
+            layout.addWidget(button)
+            self.setLayout(layout)
+
+            
+        
+        self.dialog = Dialog(self)
+        layout = QHBoxLayout()
+        self.label_main = QLabel()
+        button = QPushButton('Нажми')
+        button.clicked.connect(self.dialog.exec)
+        layout.addWidget(self.label_main)
+        layout.addWidget(button)
+        self.setLayout(layout)
+
+
+        infoBox = QMessageBox()  ##Message Box that doesn't run
+        infoBox.setIcon(QMessageBox.Information)
+        infoBox.setText(err_text)
+        #        infoBox.setInformativeText("Informative Text")
+        infoBox.setWindowTitle(datetime.strftime(datetime.now(), "%H:%M:%S") + ' Внимание: ')
+        #        infoBox.setDetailedText("Detailed Text")
+        #        infoBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        infoBox.setStandardButtons(QMessageBox.Ok)
+        #        infoBox.setEscapeButton(QMessageBox.Close)
+        infoBox.exec_()
+        """
+
 
     def google2db4all(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
@@ -443,7 +551,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     events_ok = True
                     events_full = 'Part'
 
-        self.changed_ids = set()                                    # Для частичного обновления
+        self.changed_ids = set()                                    # Для частичного обновления (не все
         calendars_d = {}
         connections_d = {}
         if events_full == 'Part':
@@ -2228,17 +2336,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.google2db4all()
         self.setup_twGroups()
 
-    def click_clbBack(self):
-        self.lePhone.setText('')
-        self.leFIO.setText('')
-        self.leNote.setText('')
-        self.setup_twFIO()
-        try:
-            self.click_twFIO(index=self.twFIO.model().index(self.contacts_filtered_reverced.index(
-                self.FIO_last_id[len(self.FIO_last_id) - 3]), 0))
-        except ValueError:
-            q=0
-
     def click_clbCheckPhone(self):
         phones = []
         if len(self.lePhones.text().strip().split(' ')) > 0:
@@ -2257,10 +2354,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             if has_phone:
                 phone_double_contacts.append(self.contacty[contact])
         if len(phone_double_contacts):
-            text = ''
+            doubled_contacts = []
             for phone_double_contact in phone_double_contacts:
-                text += phone_double_contact['iof'] + ' ' + phone_double_contact['stage'] + '\n'
-            self.errMessage('Дублирующиеся контакты:\n' + text)
+                doubled_contacts.append([phone_double_contact['avito_id'], phone_double_contact['iof'],
+                                         phone_double_contact['stage']])
+            self.makeDialog(doubled_contacts)
 
 
     def errMessage(self, err_text):  ## Method to open a message box
@@ -2287,6 +2385,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def qwe(self):
         q4 = """
 
+    def click_clbBack(self):
+        self.lePhone.setText('')
+        self.leFIO.setText('')
+        self.leNote.setText('')
+        self.setup_twFIO()
+        try:
+            self.click_twFIO(index=self.twFIO.model().index(self.contacts_filtered_reverced.index(
+                self.FIO_last_id[len(self.FIO_last_id) - 3]), 0))
+        except ValueError:
+            q=0
+
+    
     def click_clbTrashLoad(self):
         if self.group_cur != '_КоттеджиСочи':
             return
