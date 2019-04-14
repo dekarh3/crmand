@@ -49,7 +49,7 @@ ALL_STAGES_CONST = ['работаем', 'отработали', 'проводн�
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте', 'недозвон', 'пауза', 'нет объявления', 'недоступен', '---', 'подумаю',
                     'нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'мне не интересно', 'уже продали',
-                    'не верит', 'дубль', 'рыпу']
+                    'не верит', 'дубль', 'отработали-другой', 'рыпу']
 WORK_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте', 'недозвон', 'пауза']
@@ -217,7 +217,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.Dialog.close()
             return
         else:
-            self.pbPeopleFilter.setText(self.doubled[index.row()][0])
+            self.FIO_saved_id = self.avitos_id_contacts[self.doubled[index.row()][0]]
+            self.group_saved_id = self.contacty[self.avitos_id_contacts[self.doubled[index.row()][0]]]['groups_ids'][0]
+            self.click_twGroups()
+            self.FIO_saved_id = ''
+            self.group_saved_id = None
             self.Dialog.close()
             return
 
@@ -227,6 +231,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def makeDialog(self, doubled):  ## Method to open a message box
         self.doubled = doubled
         self.Dialog = QDialog()  ##Message Box that doesn't run
+        self.Dialog.resize(874, 0)
         verticalLayout = QVBoxLayout(self.Dialog)
         verticalLayout.setObjectName("verticalLayout")
         self.Dialog.tableWidget = QTableWidget(self.Dialog)
@@ -1099,13 +1104,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.setup_twCalls()
 
     def db2www4one(self):
-        if len(self.contacts_filtered[self.FIO_cur_id]['avito']) > 10 and self.show_site == 'avito':
+        if len(self.contacty[self.FIO_cur_id]['avito']) > 10 and self.show_site == 'avito':
             profile = QWebEngineProfile(self.preview)
             profile.setHttpUserAgent(USER_AGENT)
             page = QWebEnginePage(profile, self.preview)
-            page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+            page.setUrl(QUrl(self.contacty[self.FIO_cur_id]['avito']))
             self.preview.setPage(page)
-            self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+            self.preview.load(QUrl(self.contacty[self.FIO_cur_id]['avito']))
             self.preview.show()
         #            avito_x = self.contacts_filtered[self.FIO_cur_id]['avito'].strip()
         #            for i in range(len(avito_x)-1,0,-1):
@@ -1120,11 +1125,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         #                response = urllib.request.urlopen(req)   #'https://www.avito.ru/items/stat/' + avito_x[i+1:] + '?step=0', data=req)
         #                html_x = response.read().decode('utf-8')
         #            self.leDateStart.setText(html_x.split('<strong>')[1].split('</strong>')[0])
-        elif len(self.contacts_filtered[self.FIO_cur_id]['instagram']) > 1 and self.show_site == 'instagram':
+        elif len(self.contacty[self.FIO_cur_id]['instagram']) > 1 and self.show_site == 'instagram':
             profile = QWebEngineProfile(self.preview)
             profile.setHttpUserAgent(USER_AGENT)
             page = QWebEnginePage(profile, self.preview)
-            page.setUrl(QUrl('https://www.instagram.com/' + self.contacts_filtered[self.FIO_cur_id]['instagram'] + '/'))
+            page.setUrl(QUrl('https://www.instagram.com/' + self.contacty[self.FIO_cur_id]['instagram'] + '/'))
             self.preview.setPage(page)
             self.preview.show()
 
@@ -2423,7 +2428,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     updated_event = service_cal.events().update(calendarId='primary',
                                                 eventId=contact['resourceName'], body=event4).execute()
                 except errors.HttpError as ee:
-                    print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить событие еще раз - ошибка',
+                    print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить событие еще ра - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
                     event4 = service_cal.events().get(calendarId='primary',
                                                              eventId=contact['resourceName']).execute()
