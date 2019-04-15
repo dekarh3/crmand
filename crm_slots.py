@@ -49,7 +49,7 @@ ALL_STAGES_CONST = ['работаем', 'отработали', 'проводн�
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте', 'недозвон', 'пауза', 'нет объявления', 'недоступен', '---', 'подумаю',
                     'нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'мне не интересно', 'уже продали',
-                    'не верит', 'дубль', 'отработали-другой', 'рыпу']
+                    'не верит', 'дубль', 'по другому отработали', 'рыпу']
 WORK_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте', 'недозвон', 'пауза']
@@ -122,8 +122,7 @@ def get_credentials_cal():
     credential_dir = os.path.join(home_dir, '.credentials')
     if not os.path.exists(credential_dir):
         os.makedirs(credential_dir)
-    credential_path = os.path.join(credential_dir,
-                                   'calendar.googleapis.com-python-quickstart.json')
+    credential_path = os.path.join(credential_dir, 'calendar.googleapis.com-python-quickstart.json')
 
     store = Storage(credential_path)
     credentials = store.get()
@@ -205,11 +204,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.labelAvitos.hide()
         return
 
-    def clickBack(self):
+    def clickBack(self):  # Пока что свободная кнопка
         pass
-        #self.makeDialog('Введите что нибудь')
 
-    def click_twDoubled(self, index=None):
+    def click_twDoubled(self, index=None): # Нажатие на строчку таблицы в Dialog
         if index == None:
             self.Dialog.close()
             return
@@ -225,12 +223,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.Dialog.close()
             return
 
-    def pushCloseDialog(self):
+    def pushCloseDialog(self):  # Нажатие на кнопку Отмена в Dialog
         self.Dialog.close()
 
-    def makeDialog(self, doubled):  ## Method to open a message box
+    def makeDialog(self, doubled):  # Dialog - Дополнительное окно в произвольной форме (с таблицей и реакциями)
         self.doubled = doubled
-        self.Dialog = QDialog()  ##Message Box that doesn't run
+        self.Dialog = QDialog()  # Само окно
         self.Dialog.resize(874, 0)
         verticalLayout = QVBoxLayout(self.Dialog)
         verticalLayout.setObjectName("verticalLayout")
@@ -258,63 +256,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.Dialog.pushButton.setObjectName("pushButton")
         self.Dialog.pushButton.clicked.connect(self.pushCloseDialog)
         self.Dialog.tableWidget.clicked.connect(self.click_twDoubled)
-
         verticalLayout.addWidget(self.Dialog.pushButton)
         self.Dialog.setLayout(verticalLayout)
         self.Dialog.exec_()
-
-        q13 = """
-        layout = QHBoxLayout()
-        self.Dialog.label = QLabel(self.Dialog)
-        self.Dialog.label.setText(err_text)
-        self.Dialog.edit = QLineEdit(self.Dialog)
-        self.Dialog.edit.setMaximumSize(QSize(130, 16777215))
-        self.Dialog.button = QPushButton(self.Dialog)
-        self.Dialog.button.setText('Нажми чтобы отобразить')
-        self.Dialog.button.clicked.connect(self.push)
-        layout.addWidget(self.Dialog.label)
-        layout.addWidget(self.Dialog.edit)
-        layout.addWidget(self.Dialog.button)
-        self.Dialog.setLayout(layout)
-        self.Dialog.exec_()
-
-        def __init__(self, root, **kwargs):
-            super().__init__(root, **kwargs)
-            self.main = root
-            label = QLabel('введите что нибудь')
-            self.edit = QLineEdit()
-            button = QPushButton('Нажми чтобы отобразить')
-            button.clicked.connect(self.push)
-            layout = QVBoxLayout()
-            layout.addWidget(label)
-            layout.addWidget(self.edit)
-            layout.addWidget(button)
-            self.setLayout(layout)
-
-            
-        
-        self.dialog = Dialog(self)
-        layout = QHBoxLayout()
-        self.label_main = QLabel()
-        button = QPushButton('Нажми')
-        button.clicked.connect(self.dialog.exec)
-        layout.addWidget(self.label_main)
-        layout.addWidget(button)
-        self.setLayout(layout)
-
-
-        infoBox = QMessageBox()  ##Message Box that doesn't run
-        infoBox.setIcon(QMessageBox.Information)
-        infoBox.setText(err_text)
-        #        infoBox.setInformativeText("Informative Text")
-        infoBox.setWindowTitle(datetime.strftime(datetime.now(), "%H:%M:%S") + ' Внимание: ')
-        #        infoBox.setDetailedText("Detailed Text")
-        #        infoBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-        infoBox.setStandardButtons(QMessageBox.Ok)
-        #        infoBox.setEscapeButton(QMessageBox.Close)
-        infoBox.exec_()
-        """
-
 
     def google2db4all(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
@@ -2111,10 +2055,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.group_cur not in AVITO_GROUPS.keys():
             return
         if self.leFIO.text() or self.leNote.text() or self.lePhone.text():
-            print('!!!! С фильтрами - нельзя !!!')
+            self.errMessage('!!!! С фильтрами - нельзя !!!')
             return
         if len(self.avitos) < len(self.contacts_filtered) / 3:
-            print('Слишком мало контактов в списке авито, всего', len(self.avitos))
+            self.errMessage('Слишком мало контактов в списке авито, всего ' + str(len(self.avitos)))
             return
         service = discovery.build('people', 'v1', http=self.http_con,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
@@ -2389,6 +2333,46 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def qwe(self):
         q4 = """
+        
+    def FillChanged4All(self)   # Первичное заполнение ['changed'] в Google
+        if self.group_cur not in AVITO_GROUPS.keys():
+            return
+        if self.leFIO.text() or self.leNote.text() or self.lePhone.text():
+            self.errMessage('!!!! С фильтрами - нельзя !!!')
+            return
+        service = discovery.build('people', 'v1', http=self.http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        self.progressBar.setMaximum(len(self.contacts_filtered) - 1)
+        self.progressBar.show()
+        for i, contact in enumerate(self.contacts_filtered):
+            if i % 100 == 0:
+                self.progressBar.setValue(i)
+            if self.contacts_filtered[contact]['changed'] == QDate().currentDate().toString("dd.MM.yyyy"):
+                buf_contact = {}
+                buf_contact['userDefined'] = [{}, {}, {}, {}]
+                buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
+                buf_contact['userDefined'][0]['key'] = 'stage'
+                buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
+                buf_contact['userDefined'][1]['key'] = 'calendar'
+                buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
+                buf_contact['userDefined'][2]['key'] = 'cost'
+                buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
+                buf_contact['userDefined'][3]['key'] = 'changed'
+                buf_contact['etag'] = self.google2db4etag(cur_id=contact)
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = service.people().updateContact(
+                            resourceName='people/' + contact,
+                            updatePersonFields='userDefined',
+                            body=buf_contact).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                        buf_contact['etag'] = self.google2db4etag(cur_id=contact)
+        self.progressBar.hide()
+
 
     def click_clbBack(self):
         self.lePhone.setText('')
