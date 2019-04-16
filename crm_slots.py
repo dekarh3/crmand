@@ -210,14 +210,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def google2db4all(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
         credentials_con = get_credentials_con()
-        self.http_con = credentials_con.authorize(Http())
-        service = discovery.build('people', 'v1', http=self.http_con,
-                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
-                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+        credentials_cal = get_credentials_cal()
+        self.g2d4a('main', credentials_con, credentials_cal)
 
-    def g2d4a(self):
+    def g2d4a(self, source, c_con, c_cal):
+        http_con = c_con.authorize(Http())
+        http_cal = c_cal.authorize(Http())
+
+        service = discovery.build('people', 'v1', http=http_con,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        serviceg = discovery.build('contactGroups', 'v1', http=http_con,
+                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        service_cal = discovery.build('calendar', 'v3', http=http_cal)  # Считываем весь календарь
+
         # Вытаскиваем названия групп
         groups_ok= False
         while not groups_ok:
@@ -732,10 +737,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def google2db4one(self):               # Google -> Внутр БД (текущий контакт)
+        # Доступы
+        credentials_con = get_credentials_con()
+        credentials_cal = get_credentials_cal()
+        self.g2d41('main', credentials_con, credentials_cal)
+
+    def g2d41(self, source, c_con, c_cal):
+        http_con = c_con.authorize(Http())
+        http_cal = c_cal.authorize(Http())
+
         ok_google = False
         while not ok_google:
             try:
-                service = discovery.build('people', 'v1', http=self.http_con,
+                service = discovery.build('people', 'v1', http=http_con,
                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
                 result = service.people().get(
                     resourceName='people/' + self.FIO_cur_id,
@@ -751,7 +765,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                 ee.resp['status'], ee.args[1].decode("utf-8"))
 # Календарь
 
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+        service_cal = discovery.build('calendar', 'v3', http=http_cal)  # Считываем весь календарь
         calendars = []
         calendars_result = {'nextPageToken':''}
         start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
