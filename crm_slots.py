@@ -207,59 +207,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def clickBack(self):  # Пока что свободная кнопка
         pass
 
-    def click_twDoubled(self, index=None): # Нажатие на строчку таблицы в Dialog
-        if index == None:
-            self.Dialog.close()
-            return
-        if index.row() < 0:
-            self.Dialog.close()
-            return
-        else:
-            self.FIO_saved_id = self.avitos_id_contacts[self.doubled[index.row()][0]]
-            self.group_saved_id = self.contacty[self.avitos_id_contacts[self.doubled[index.row()][0]]]['groups_ids'][0]
-            self.click_twGroups()
-            self.FIO_saved_id = ''
-            self.group_saved_id = None
-            self.Dialog.close()
-            return
-
-    def pushCloseDialog(self):  # Нажатие на кнопку Отмена в Dialog
-        self.Dialog.close()
-
-    def makeDialog(self, doubled):  # Dialog - Дополнительное окно в произвольной форме (с таблицей и реакциями)
-        self.doubled = doubled
-        self.Dialog = QDialog()  # Само окно
-        self.Dialog.resize(874, 0)
-        verticalLayout = QVBoxLayout(self.Dialog)
-        verticalLayout.setObjectName("verticalLayout")
-        self.Dialog.tableWidget = QTableWidget(self.Dialog)
-        self.Dialog.tableWidget.setObjectName("tableWidget")
-        self.Dialog.tableWidget.setColumnCount(0)
-        self.Dialog.tableWidget.setRowCount(0)
-
-        self.Dialog.tableWidget.setColumnCount(3)               # Устанавливаем кол-во колонок
-        self.Dialog.tableWidget.setRowCount(len(doubled))        # Кол-во строк из таблицы
-        for i, double in enumerate(doubled):
-            self.Dialog.tableWidget.setItem(i, 0, QTableWidgetItem(double[0]))
-            self.Dialog.tableWidget.setItem(i, 1, QTableWidgetItem(double[1]))
-            self.Dialog.tableWidget.setItem(i, 2, QTableWidgetItem(double[2]))
-
-        # Устанавливаем заголовки таблицы
-        self.Dialog.tableWidget.setHorizontalHeaderLabels(['id','Продавец','Стадия'])
-        # Устанавливаем выравнивание на заголовки
-        self.Dialog.tableWidget.horizontalHeaderItem(0).setTextAlignment(Qt.AlignCenter)
-        # делаем ресайз колонок по содержимому
-        self.Dialog.tableWidget.resizeColumnsToContents()
-        verticalLayout.addWidget(self.Dialog.tableWidget)
-        self.Dialog.pushButton = QPushButton(self.Dialog)
-        self.Dialog.pushButton.setText('Отмена')
-        self.Dialog.pushButton.setObjectName("pushButton")
-        self.Dialog.pushButton.clicked.connect(self.pushCloseDialog)
-        self.Dialog.tableWidget.clicked.connect(self.click_twDoubled)
-        verticalLayout.addWidget(self.Dialog.pushButton)
-        self.Dialog.setLayout(verticalLayout)
-        self.Dialog.exec_()
-
     def google2db4all(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
         credentials_con = get_credentials_con()
@@ -500,7 +447,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     events_ok = True
                     events_full = 'Part'
 
-        self.changed_ids = set()                                    # Для частичного обновления (не все
+        self.changed_ids = set()                                    # Для частичного обновления (не все карточки)
         calendars_d = {}
         connections_d = {}
         if events_full == 'Part':
@@ -2330,6 +2277,60 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.teNote.setPlainText(self.teNote.toPlainText() + '\n' + datetime.now().strftime("%d.%m.%Y") + ' ')
         else:
             self.teNote.setPlainText(self.teNote.toPlainText() + datetime.now().strftime("%d.%m.%Y") + ' ')
+
+    # Dialog - Дополнительное окно в произвольной форме (с таблицей и реакциями)
+    def click_twDoubled(self, index=None): # Нажатие на строчку таблицы в Dialog
+        if index == None:
+            self.Dialog.close()
+            return
+        if index.row() < 0:
+            self.Dialog.close()
+            return
+        else:
+            self.FIO_saved_id = self.avitos_id_contacts[self.doubled[index.row()][0]]
+            self.group_saved_id = self.contacty[self.avitos_id_contacts[self.doubled[index.row()][0]]]['groups_ids'][0]
+            self.click_twGroups()
+            self.FIO_saved_id = ''
+            self.group_saved_id = None
+            self.Dialog.close()
+            return
+
+    def pushCloseDialog(self):  # Нажатие на кнопку Отмена в Dialog
+        self.Dialog.close()
+
+    def makeDialog(self, doubled):  # Dialog - Дополнительное окно в произвольной форме (с таблицей и реакциями)
+        self.doubled = doubled
+        self.Dialog = QDialog()  # Само окно
+        self.Dialog.resize(874, 0)
+        verticalLayout = QVBoxLayout(self.Dialog)
+        verticalLayout.setObjectName("verticalLayout")
+        self.Dialog.tableWidget = QTableWidget(self.Dialog)
+        self.Dialog.tableWidget.setObjectName("tableWidget")
+        self.Dialog.tableWidget.setColumnCount(0)
+        self.Dialog.tableWidget.setRowCount(0)
+
+        self.Dialog.tableWidget.setColumnCount(3)               # Устанавливаем кол-во колонок
+        self.Dialog.tableWidget.setRowCount(len(doubled))        # Кол-во строк из таблицы
+        for i, double in enumerate(doubled):
+            self.Dialog.tableWidget.setItem(i, 0, QTableWidgetItem(double[0]))
+            self.Dialog.tableWidget.setItem(i, 1, QTableWidgetItem(double[1]))
+            self.Dialog.tableWidget.setItem(i, 2, QTableWidgetItem(double[2]))
+
+        # Устанавливаем заголовки таблицы
+        self.Dialog.tableWidget.setHorizontalHeaderLabels(['id','Продавец','Стадия'])
+        # Устанавливаем выравнивание на заголовки
+        self.Dialog.tableWidget.horizontalHeaderItem(0).setTextAlignment(Qt.AlignCenter)
+        # делаем ресайз колонок по содержимому
+        self.Dialog.tableWidget.resizeColumnsToContents()
+        verticalLayout.addWidget(self.Dialog.tableWidget)
+        self.Dialog.pushButton = QPushButton(self.Dialog)
+        self.Dialog.pushButton.setText('Отмена')
+        self.Dialog.pushButton.setObjectName("pushButton")
+        self.Dialog.pushButton.clicked.connect(self.pushCloseDialog)
+        self.Dialog.tableWidget.clicked.connect(self.click_twDoubled)
+        verticalLayout.addWidget(self.Dialog.pushButton)
+        self.Dialog.setLayout(verticalLayout)
+        self.Dialog.exec_()
 
     def qwe(self):
         q4 = """
