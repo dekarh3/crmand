@@ -217,6 +217,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                    discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
         service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
 
+    def g2d4a(self):
         # Вытаскиваем названия групп
         groups_ok= False
         while not groups_ok:
