@@ -3,6 +3,7 @@ from __future__ import print_function
 from httplib2 import Http
 from subprocess import Popen, PIPE
 import os
+import openpyxl
 from sys import argv
 from string import digits
 from random import random
@@ -204,8 +205,39 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.labelAvitos.hide()
         return
 
-    def clickBack(self):  # Пока что свободная кнопка
-        pass
+    def clickBack(self):  # Отчет по звонкам с FROM_DATE по выбранной группе
+        FROM_DATE = datetime(2019, 3, 14)
+        calls_group_ids = []
+        for i, call in enumerate(self.calls):
+            for contact in self.contacts_filtered:
+                for phone in self.contacts_filtered[contact]['phones']:
+                    if format_phone(call.split(']_[')[1]) == format_phone(phone):
+                        calls_group_ids.append(i)
+        calls_sorted = {}
+        for call_id in calls_group_ids:
+            a = self.calls[call_id]
+            t = datetime(l(a.split(']_[')[2][6:]), l(a.split(']_[')[2][3:5]), l(a.split(']_[')[2][:2]),
+                         l(a.split(']_[')[3][:2]), l(a.split(']_[')[3][3:5]), l(a.split(']_[')[3][6:8]))
+            calls_sorted[t] = call_id
+        calls_sorted_filtered = {}
+        for call_sorted in calls_sorted:
+            if call_sorted > FROM_DATE:
+                calls_sorted_filtered[call_sorted] = calls_sorted[call_sorted]
+        calls_ids_buff = []
+        for kk, i in sorted(calls_sorted_filtered.items(), key=lambda item: item[0]):  # Хитровычурная сортировка с исп. sorted()
+            calls_ids_buff.append(i)
+        wb = openpyxl.Workbook(write_only=True)
+        ws = wb.create_sheet('Звонки')
+        for call_id_buff in calls_ids_buff:
+            a = self.calls[call_id_buff]
+            name = a.split(']')[0].split('[')[1]
+            tek_phone = a.split('[')[2].split(']')[0]
+            t = datetime(l(a.split(']_[')[2][6:]), l(a.split(']_[')[2][3:5]), l(a.split(']_[')[2][:2]),
+                         l(a.split(']_[')[3][:2]), l(a.split(']_[')[3][3:5]), l(a.split(']_[')[3][6:8]))
+            ws.append([t,tek_phone,name])
+        wb.save('звонки.xlsx')
+        return
+
 
     def google2db4all(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
@@ -1342,7 +1374,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                          l(a.split(']_[')[3][:2]), l(a.split(']_[')[3][3:5]), l(a.split(']_[')[3][6:8]))
             cs[t] = call_id
         calls_ids_buff = []
-        for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Хитровычурная сортирвка с исп. sorted()
+        for kk, i in sorted(cs.items(), key=lambda item: item[0]):  # Хитровычурная сортировка с исп. sorted()
             calls_ids_buff.append(i)
         self.calls_ids = calls_ids_buff
         for i, call_id in enumerate(self.calls_ids):
