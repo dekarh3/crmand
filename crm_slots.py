@@ -82,7 +82,6 @@ MAX_PAGE = 2
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
 SCOPES_CON = 'https://www.googleapis.com/auth/contacts' #.readonly'       #!!!!!!!!!!!!!!!!!!!!!!!!! read-only !!!!!!!!!!!
 SCOPES_CAL = 'https://www.googleapis.com/auth/calendar'
-CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'People API Python Quickstart'
 
 #USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) QtWebEngine/5.11.1 ' \
@@ -90,7 +89,7 @@ APPLICATION_NAME = 'People API Python Quickstart'
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) snap ' \
              'Chromium/70.0.3538.110 Chrome/70.0.3538.110 Safari/537.36'
 
-def get_credentials_con():
+def get_credentials(cr_file, sec_file, scopes):
     """Gets valid user credentials from storage.
 
     If nothing has been stored, or if the stored credentials are invalid,
@@ -99,43 +98,37 @@ def get_credentials_con():
     Returns:
         Credentials, the obtained credential.
     """
-    home_dir = os.path.expanduser('~')
-    credential_dir = os.path.join(home_dir, '.credentials')
+    credential_dir = os.path.join(os.path.expanduser('~'), '.credentials')
     if not os.path.exists(credential_dir):
         os.makedirs(credential_dir)
-    credential_path = os.path.join(credential_dir,
-                                   'people.googleapis.com-python-quickstart.json')
-
+    credential_path = os.path.join(credential_dir, cr_file)
     store = Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
-        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES_CON)
+        flow = client.flow_from_clientsecrets(sec_file, scopes)
         flow.user_agent = APPLICATION_NAME
-        if flags:
-            credentials = tools.run_flow(flow, store, flags)
-        else: # Needed only for compatibility with Python 2.6
-            credentials = tools.run(flow, store)
+        credentials = tools.run_flow(flow, store, flags)
         print('Storing credentials to ' + credential_path)
     return credentials
 
-def get_credentials_cal():
-    home_dir = os.path.expanduser('~')
-    credential_dir = os.path.join(home_dir, '.credentials')
-    if not os.path.exists(credential_dir):
-        os.makedirs(credential_dir)
-    credential_path = os.path.join(credential_dir, 'calendar.googleapis.com-python-quickstart.json')
-
-    store = Storage(credential_path)
-    credentials = store.get()
-    if not credentials or credentials.invalid:
-        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES_CAL)
-        flow.user_agent = APPLICATION_NAME + 'and test'
-        if flags:
-            credentials = tools.run_flow(flow, store, flags)
-        else: # Needed only for compatibility with Python 2.6
-            credentials = tools.run(flow, store)
-        print('Storing credentials to ' + credential_path)
-    return credentials
+#def get_credentials_cal():
+#    home_dir = os.path.expanduser('~')
+#    credential_dir = os.path.join(home_dir, '.credentials')
+#    if not os.path.exists(credential_dir):
+#        os.makedirs(credential_dir)
+#    credential_path = os.path.join(credential_dir, 'calendar.googleapis.com-python-quickstart.json')#
+#
+#    store = Storage(credential_path)
+#    credentials = store.get()
+#    if not credentials or credentials.invalid:
+#        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES_CAL)
+#        flow.user_agent = APPLICATION_NAME + 'and test'
+#        if flags:
+#            credentials = tools.run_flow(flow, store, flags)
+#        else: # Needed only for compatibility with Python 2.6
+#            credentials = tools.run(flow, store)
+#        print('Storing credentials to ' + credential_path)
+#    return credentials
 
 
 class MainWindowSlots(Ui_Form):   # Определяем функции, которые будем вызывать в слотах
@@ -147,7 +140,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.agent = Agent()
         self.changed_ids = set()
         self.events_syncToken = ''
-        self.contacty_syncToken = ''
+        self.contacty_syncTokenM = ''
+        self.contacty_syncTokenS = ''
         self.show_site = 'avito'
         self.my_html = ''
         self.contacty = {}
@@ -166,13 +160,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.group_saved_id = None
         self.FIO_cur_id = ''
         self.FIO_saved_id = ''
-        self.FIO_last_id = []
-        credentials_con = get_credentials_con()
-        self.http_con = credentials_con.authorize(Http())
-        credentials_cal = get_credentials_cal()
-        self.http_cal = credentials_cal.authorize(Http())
+        credentials = get_credentials('people.googleapis.com-python-quickstart.json','client_secret.json', SCOPES_CON)
+        self.http_conM = credentials.authorize(Http())
+        credentials = get_credentials('people.googleapis.com-python-quickstart-s.json','client_secret_9d.json',SCOPES_CON)
+        self.http_conS = credentials.authorize(Http())
+        credentials = get_credentials('calendar.googleapis.com-python-quickstart.json','client_secret.json',
+                                      SCOPES_CAL)
+        self.http_calM = credentials.authorize(Http())
+        credentials = get_credentials('calendar.googleapis.com-python-quickstart-s.json','client_secret_9d.json',
+                                      SCOPES_CAL)
+        self.http_calS = credentials.authorize(Http())
         self.all_events = {}
-        self.google2db4all()
+        self.google2db4allM()
+        self.google2db4allS()
         self.all_stages = []
         self.all_stages_reverce = {}
         self.refresh_stages()
@@ -238,15 +238,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         wb.save('звонки.xlsx')
         return
 
-    def google2db4all(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
+    def google2db4allM(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
-        credentials_con = get_credentials_con()
-        self.http_con = credentials_con.authorize(Http())
-        service = discovery.build('people', 'v1', http=self.http_con,
+        service = discovery.build('people', 'v1', http=self.http_conM,
                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        serviceg = discovery.build('contactGroups', 'v1', http=self.http_con,
+        serviceg = discovery.build('contactGroups', 'v1', http=self.http_conM,
                                    discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+        service_cal = discovery.build('calendar', 'v3', http=self.http_calM)  # Считываем весь календарь
 
         # Вытаскиваем названия групп
         groups_ok= False
@@ -268,7 +266,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         contacts_ok = False
         contacts_full = 'None'
         while not contacts_ok:
-            if not self.contacty_syncToken:                             # Пустой syncToken - полное обновление
+            if not self.contacty_syncTokenM:                             # Пустой syncToken - полное обновление
                 connections = []
                 results = {'nextPageToken':''}
                 while str(results.keys()).find('nextPageToken') > -1:
@@ -310,7 +308,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     connections.extend(results.get('connections', []))
                 contacts_ok = True
                 contacts_full = 'Full'
-                self.contacty_syncToken = results['nextSyncToken']
+                self.contacty_syncTokenM = results['nextSyncToken']
             else:                                                       # Частичное обновление
                 need_full_reload = False
                 connections = []
@@ -323,7 +321,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 resourceName='people/me',
                                 pageSize=2000,
                                 requestSyncToken=True,
-                                syncToken=self.contacty_syncToken,
+                                syncToken=self.contacty_syncTokenM,
                                 personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
                                              'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
                                              'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
@@ -347,7 +345,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 pageToken=results['nextPageToken'],
                                 pageSize=2000,
                                 requestSyncToken=True,
-                                syncToken=self.contacty_syncToken,
+                                syncToken=self.contacty_syncTokenM,
                                 personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
                                              'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
                                              'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
@@ -365,9 +363,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 continue
                     connections.extend(results.get('connections', []))
                 if need_full_reload:
-                    self.contacty_syncToken = ''
+                    self.contacty_syncTokenM = ''
                 else:
-                    self.contacty_syncToken = results['nextSyncToken']
+                    self.contacty_syncTokenM = results['nextSyncToken']
                     contacts_ok = True
                     contacts_full = 'Part'
 
@@ -660,6 +658,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:                                            # Если обновилось - обновляем в БД
                     connection = connections_d[changed_id]
                     contact = {}
+                    contact['main'] = True
                     contact['resourceName'] = connection['resourceName'].split('/')[1]
                     name = ''
                     iof = ''
@@ -761,198 +760,545 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     q = 0
         return
 
-    def google2db4one(self):               # Google -> Внутр БД (текущий контакт)
-        ok_google = False
-        while not ok_google:
+    def google2db4allS(self):  # Google -> Внутр БД (все контакты) с полным обновлением
+        q14 = """
+        # Доступы
+        service = discovery.build('people', 'v1', http=self.http_conS,
+                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        serviceg = discovery.build('contactGroups', 'v1', http=self.http_conS,
+                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        service_cal = discovery.build('calendar', 'v3', http=self.http_calS)  # Считываем весь календарь
+
+        # Вытаскиваем названия групп
+        groups_ok = False
+        while not groups_ok:
             try:
-                service = discovery.build('people', 'v1', http=self.http_con,
-                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                result = service.people().get(
-                    resourceName='people/' + self.FIO_cur_id,
-                    personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,'
-                                 'events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,'
-                                 'occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,'
-                                 'relationshipStatuses,residences,skills,taglines,urls,userDefined') \
-                .execute()
-                connection = result
-                ok_google = True
+                resultsg = serviceg.contactGroups().list(pageSize=200).execute()
+                groups_ok = True
             except errors.HttpError as ee:
-                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
-                                                ee.resp['status'], ee.args[1].decode("utf-8"))
-# Календарь
+                print(datetime.now().strftime("%H:%M:%S") + ' вытаскиваем названия групп еще раз - ошибка',
+                      ee.resp['status'], ee.args[1].decode("utf-8"))
+        self.groups_resourcenames = {}
+        self.groups_resourcenames_reversed = {}
+        contactGroups = resultsg.get('contactGroups', [])
+        for i, contactGroup in enumerate(contactGroups):
+            self.groups_resourcenames[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
+            self.groups_resourcenames_reversed[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
 
-        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
-        calendars = []
-        calendars_result = {'nextPageToken':''}
-        start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
-        while str(calendars_result.keys()).find('nextPageToken') > -1:
-            if calendars_result['nextPageToken'] == '':
-                try:
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-                except errors.HttpError as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-            else:
-                try:
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        pageToken=calendars_result['nextPageToken'],
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-                except errors.HttpError as ee:
-                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
-                    calendars_result = service_cal.events().list(
-                        calendarId='primary',
-                        showDeleted=True,
-                        showHiddenInvitations=True,
-                        timeMin=start,
-                        maxResults=2000,
-                        pageToken=calendars_result['nextPageToken'],
-                        singleEvents=True,
-                        orderBy='startTime'
-                    ).execute()
-            calendars.extend(calendars_result.get('items', []))
-        eventds = {}
-        for calendar in calendars:
-            eventd = {}
-            eventd['id'] = calendar['id']
-            if str(calendar['start'].keys()).find('dateTime') > -1:
-                eventd['start'] = calendar['start']['dateTime']
-            else:
-                eventd['start'] = str(utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M:%S")))
-            if str(calendar.keys()).find('htmlLink') > -1:
-                eventd['www'] =calendar['htmlLink']
-            else:
-                eventd['www'] = ''
-            eventds[calendar['id']] = eventd
-
-        contact = {}
-        contact['resourceName'] = connection['resourceName'].split('/')[1]
-        name = ''
-        iof = ''
-        onames = connection.get('names', [])
-        if len(onames) > 0:
-            if onames[0].get('familyName'):
-                name += onames[0].get('familyName').title() + ' '
-            if onames[0].get('givenName'):
-                name += onames[0].get('givenName').title() + ' '
-                iof +=  onames[0].get('givenName').title() + ' '
-            if onames[0].get('middleName'):
-                name += onames[0].get('middleName').title()
-                iof += onames[0].get('middleName').title() + ' '
-            if onames[0].get('familyName'):
-                iof += onames[0].get('familyName').title() + ' '
-        contact['fio'] = name
-        contact['iof'] = iof
-        biographie = ''
-        obiographies = connection.get('biographies', [])
-        if len(obiographies) > 0:
-            biographie = obiographies[0].get('value')
-        contact['note'] = biographie
-        phones = []
-        ophones = connection.get('phoneNumbers', [])
-        if len(ophones) > 0:
-            for ophone in ophones:
-                if ophone:
-                    if ophone.get('canonicalForm'):
-                        phones.append(format_phone(ophone.get('canonicalForm')))
+        # Контакты
+        contacts_ok = False
+        contacts_full = 'None'
+        while not contacts_ok:
+            if not self.contacty_syncTokenS:  # Пустой syncToken - полное обновление
+                connections = []
+                results = {'nextPageToken': ''}
+                while str(results.keys()).find('nextPageToken') > -1:
+                    if results['nextPageToken'] == '':
+                        try:
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                            continue
                     else:
-                        phones.append(format_phone(ophone.get('value')))
-        contact['phones'] = phones
-        memberships = []
-        omemberships = connection.get('memberships', [])
-        if len(omemberships) > 0:
-            for omembership in omemberships:
-                memberships.append(self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
-        contact['groups'] = memberships
-        stage = '---'
-        calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
-        changed = QDate().currentDate().toString("dd.MM.yyyy")
-        cost = 0
-        ostages = connection.get('userDefined', [])
-        if len(ostages) > 0:
-            for ostage in ostages:
-                if ostage['key'].lower() == 'stage':
-                    stage = ostage['value'].lower()
-                if ostage['key'].lower() == 'calendar':
-                    calendar = ostage['value']
-                if ostage['key'].lower() == 'cost':
-                    cost = float(ostage['value'])
-                if ostage['key'].lower() == 'changed':
-                    changed = ostage['value']
-        contact['stage'] = stage
-        contact['calendar'] = calendar
-        contact['cost'] = cost + random() * 1e-5
-        contact['changed'] = changed
-        town = ''
-        oaddresses = connection.get('addresses', [])
-        if len(oaddresses) > 0:
-            town = oaddresses[0].get('formattedValue')
-        contact['town'] = town
-        email = ''
-        oemailAddresses = connection.get('emailAddresses', [])
-        if len(oemailAddresses) > 0:
-            for oemailAddress in oemailAddresses:
-                if oemailAddress:
-                    email += oemailAddress.get('value') + ' '
-        contact['email'] = email.strip()
-        contact['etag'] = connection['etag']
-        contact['avito'] = ''
-        contact['instagram'] = ''
-        urls = []
-        ourls = connection.get('urls', [])
-        if len(ourls) > 0:
-            for ourl in ourls:
-                urls.append(ourl['value'])
-                if ourl['value'].find('www.avito.ru') > -1:
-                    contact['avito'] = ourl['value']
-                if ourl['value'].find('instagram.com') > -1:
-                    contact['instagram'] = ourl['value'].strip().split('https://www.instagram.com/')[1].replace('/','')
-        contact['urls'] = urls
-        if str(contact.keys()).find('avito') > -1:
-            avito_x = contact['avito'].strip()
-            avito_i = len(avito_x) - 1
-            for j in range(len(avito_x) - 1, 0, -1):
-                if avito_x[j] not in digits:
-                    avito_i = j + 1
-                    break
-            contact['avito_id'] = avito_x[avito_i:]
-        ind = self.contacts_filtered[self.FIO_cur_id]['contact_ind']
-        self.contacts_filtered[self.FIO_cur_id] = contact
-        self.contacts_filtered[self.FIO_cur_id]['contact_ind'] = ind
-        self.contacty[self.contacts_filtered[self.FIO_cur_id]['contact_ind']] = contact
-        return
+                        try:
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageToken=results['nextPageToken'],
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                            continue
+                    connections.extend(results.get('connections', []))
+                contacts_ok = True
+                contacts_full = 'Full'
+                self.contacty_syncTokenS = results['nextSyncToken']
+            else:  # Частичное обновление
+                need_full_reload = False
+                connections = []
+                results = {'nextPageToken': ''}
+                while str(results.keys()).find('nextPageToken') > -1:
+                    if results['nextPageToken'] == '':
+                        try:
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                syncToken=self.contacty_syncTokenS,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                        except errors.HttpError as ee:
+                            if ee.resp['status'] == '410':
+                                print(
+                                    datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
+                                need_full_reload = True
+                                break
+                            else:
+                                print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
+                                      ee.resp['status'], ee.args[1].decode("utf-8"))
+                                continue
+                    else:
+                        try:
+                            results = service.people().connections() \
+                                .list(
+                                resourceName='people/me',
+                                pageToken=results['nextPageToken'],
+                                pageSize=2000,
+                                requestSyncToken=True,
+                                syncToken=self.contacty_syncTokenS,
+                                personFields=',addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,'
+                                             'emailAddresses,events,genders,imClients,interests,locales,memberships,metadata,'
+                                             'names,nicknames,occupations,organizations,phoneNumbers,photos,relations,'
+                                             'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
+                                             'userDefined') \
+                                .execute()
+                        except errors.HttpError as ee:
+                            if ee.resp['status'] == '410':
+                                print(
+                                    datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
+                                need_full_reload = True
+                                break
+                            else:
+                                print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
+                                      ee.resp['status'], ee.args[1].decode("utf-8"))
+                                continue
+                    connections.extend(results.get('connections', []))
+                if need_full_reload:
+                    self.contacty_syncTokenS = ''
+                else:
+                    self.contacty_syncTokenS = results['nextSyncToken']
+                    contacts_ok = True
+                    contacts_full = 'Part'
 
-    def google2db4etag(self, cur_id=None):  # Google -> etag внутр БД (текущий контакт)
+        # Календарь
+        events_ok = False
+        events_full = 'None'
+        while not events_ok:
+            if not self.events_syncToken:  # Пустой syncToken - полное обновление
+                calendars = []
+                calendars_result = {'nextPageToken': ''}
+                while str(calendars_result.keys()).find('nextPageToken') > -1:
+                    if calendars_result['nextPageToken'] == '':
+                        try:
+                            calendars_result = service_cal.events().list(
+                                calendarId='primary',
+                                showDeleted=True,
+                                showHiddenInvitations=True,
+                                singleEvents=True,
+                                maxResults=2000
+                            ).execute()
+                            token = calendars_result.get('nextSyncToken')
+                            if token:
+                                self.events_syncToken = token
+                                print('==============', token)
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime(
+                                "%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                            continue
+                    else:
+                        try:
+                            calendars_result = service_cal.events().list(
+                                calendarId='primary',
+                                showDeleted=True,
+                                showHiddenInvitations=True,
+                                pageToken=calendars_result['nextPageToken'],
+                                singleEvents=True,
+                                maxResults=2000
+                            ).execute()
+                            token = calendars_result.get('nextSyncToken')
+                            if token:
+                                self.events_syncToken = token
+                        #                                print('==============',token)
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime(
+                                "%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                            continue
+                    calendars.extend(calendars_result.get('items', []))
+                events_ok = True
+                events_full = 'Full'
+            else:  # Частичное обновление
+                need_full_reload = False
+                calendars = []
+                calendars_result = {'nextPageToken': ''}
+                while str(calendars_result.keys()).find('nextPageToken') > -1:
+                    if calendars_result['nextPageToken'] == '':
+                        try:
+                            calendars_result = service_cal.events().list(
+                                calendarId='primary',
+                                maxResults=2000,
+                                showDeleted=True,
+                                showHiddenInvitations=True,
+                                syncToken=self.events_syncToken,
+                                singleEvents=True
+                            ).execute()
+                            token = calendars_result.get('nextSyncToken')
+                            if token:
+                                self.events_syncToken = token
+                        #                                print('==============',token)
+                        except errors.HttpError as ee:
+                            if ee.resp['status'] == '410':
+                                print(
+                                    datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
+                                need_full_reload = True
+                                break
+                            else:
+                                print(datetime.now().strftime("%H:%M:%S") +
+                                      ' попробуем считать изменения в календаре еще раз - ошибка',
+                                      ee.resp['status'], ee.args[1].decode("utf-8"))
+                                continue
+                    else:
+                        try:
+                            calendars_result = service_cal.events().list(
+                                calendarId='primary',
+                                maxResults=2000,
+                                showDeleted=True,
+                                showHiddenInvitations=True,
+                                syncToken=self.events_syncToken,
+                                pageToken=calendars_result['nextPageToken'],
+                                singleEvents=True
+                            ).execute()
+                            token = calendars_result.get('nextSyncToken')
+                            if token:
+                                self.events_syncToken = token
+                        #                                print('==============',token)
+                        except errors.HttpError as ee:
+                            if ee.resp['status'] == '410':
+                                print(
+                                    datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
+                                need_full_reload = True
+                                break
+                            else:
+                                print(datetime.now().strftime("%H:%M:%S") +
+                                      ' попробуем считать изменения в календаре еще раз - ошибка',
+                                      ee.resp['status'], ee.args[1].decode("utf-8"))
+                                continue
+                    calendars.extend(calendars_result.get('items', []))
+                if need_full_reload:
+                    self.events_syncToken = ''
+                else:
+                    events_ok = True
+                    events_full = 'Part'
+
+        self.changed_ids = set()  # Для частичного обновления (не все карточки)
+        calendars_d = {}
+        connections_d = {}
+        if events_full == 'Part':
+            for calendar in calendars:
+                self.changed_ids.add(calendar['id'])
+                calendars_d[calendar['id']] = calendar
+        if contacts_full == 'Part':
+            for connection in connections:
+                self.changed_ids.add(connection['resourceName'].split('/')[1])
+                connections_d[connection['resourceName'].split('/')[1]] = connection
+
+        if events_full == 'None':
+            print(datetime.now().strftime("%H:%M:%S") + ' синхронизация не удалась')
+            return
+        elif events_full == 'Full':
+            self.all_events = {}
+            for calendar in calendars:
+                event = {}
+                event['id'] = calendar['id']
+                if str(calendar['start'].keys()).find('dateTime') > -1:
+                    event['start'] = calendar['start']['dateTime']
+                else:
+                    event['start'] = str(utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00',
+                                                                        "%Y-%m-%d %H:%M:%S")))
+                if str(calendar.keys()).find('htmlLink') > -1:
+                    event['www'] = calendar['htmlLink']
+                else:
+                    event['www'] = ''
+                self.all_events[calendar['id']] = event
+        elif events_full == 'Part':
+            for changed_id in self.changed_ids:
+                try:  # Если обновилось - обновляем в БД
+                    calendar = calendars_d[changed_id]
+                    event = {}
+                    event['id'] = calendar['id']
+                    if str(calendar['start'].keys()).find('dateTime') > -1:
+                        event['start'] = calendar['start']['dateTime']
+                    else:
+                        event['start'] = str(
+                            utc.localize(
+                                datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M:%S")))
+                    if str(calendar.keys()).find('htmlLink') > -1:
+                        event['www'] = calendar['htmlLink']
+                    else:
+                        event['www'] = ''
+                    self.all_events[calendar['id']] = event
+                except Exception as ee:
+                    q = 0
+
+        if contacts_full == 'None':
+            print(datetime.now().strftime("%H:%M:%S") + ' синхронизация не удалась')
+            return
+        elif contacts_full == 'Full':
+            self.avitos_id_contacts = {}
+            self.contacts_id_avitos = {}
+            self.contacts_id_instas = {}
+            self.instas_id_contacts = {}
+            self.contacty = {}
+            events4delete = []
+            number_of_new = 0
+            for i, connection in enumerate(connections):
+                contact = {}
+                contact['resourceName'] = connection['resourceName'].split('/')[1]
+                if not self.FIO_cur_id:
+                    self.FIO_cur_id = connection['resourceName'].split('/')[1]
+                name = ''
+                iof = ''
+                onames = connection.get('names', [])
+                if len(onames) > 0:
+                    if onames[0].get('familyName'):
+                        name += onames[0].get('familyName').title() + ' '
+                    if onames[0].get('givenName'):
+                        name += onames[0].get('givenName').title() + ' '
+                        iof += onames[0].get('givenName').title() + ' '
+                    if onames[0].get('middleName'):
+                        name += onames[0].get('middleName').title()
+                        iof += onames[0].get('middleName').title() + ' '
+                    if onames[0].get('familyName'):
+                        iof += onames[0].get('familyName').title() + ' '
+                contact['fio'] = name
+                contact['iof'] = iof
+                biographie = ''
+                obiographies = connection.get('biographies', [])
+                if len(obiographies) > 0:
+                    biographie = obiographies[0].get('value')
+                contact['note'] = biographie
+                phones = []
+                ophones = connection.get('phoneNumbers', [])
+                if len(ophones) > 0:
+                    for ophone in ophones:
+                        if ophone:
+                            if ophone.get('canonicalForm'):
+                                phones.append(format_phone(ophone.get('canonicalForm')))
+                            else:
+                                phones.append(format_phone(ophone.get('value')))
+                contact['phones'] = phones
+                memberships = []
+                memberships_id = []
+                omemberships = connection.get('memberships', [])
+                if len(omemberships) > 0:
+                    for omembership in omemberships:
+                        memberships.append(
+                            self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
+                        memberships_id.append(omembership['contactGroupMembership']['contactGroupId'])
+                contact['groups'] = memberships
+                contact['groups_ids'] = memberships_id
+                stage = '---'
+                calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+                cost = 0
+                changed = QDate().currentDate().toString("dd.MM.yyyy")
+                ostages = connection.get('userDefined', [])
+                if len(ostages) > 0:
+                    for ostage in ostages:
+                        if ostage['key'].lower() == 'stage':
+                            stage = ostage['value'].lower()
+                        if ostage['key'].lower() == 'calendar':
+                            calendar = ostage['value']
+                        if ostage['key'].lower() == 'cost':
+                            cost = float(ostage['value'])
+                        if ostage['key'].lower() == 'changed':
+                            changed = ostage['value']
+                contact['stage'] = stage
+                contact['calendar'] = calendar
+                contact['cost'] = cost + random() * 1e-5
+                contact['changed'] = changed
+                town = ''
+                oaddresses = connection.get('addresses', [])
+                if len(oaddresses) > 0:
+                    town = oaddresses[0].get('formattedValue')
+                contact['town'] = town
+                email = ''
+                oemailAddresses = connection.get('emailAddresses', [])
+                if len(oemailAddresses) > 0:
+                    for oemailAddress in oemailAddresses:
+                        if oemailAddress:
+                            email += oemailAddress.get('value') + ' '
+                contact['email'] = email.strip()
+                contact['etag'] = connection['etag']
+                contact['avito'] = ''  # Фильтруем все ссылки на avito в поле 'avito'
+                contact['instagram'] = ''  # а ссылки на instagram в поле 'instagram'
+                urls = []
+                ourls = connection.get('urls', [])
+                if len(ourls) > 0:
+                    for ourl in ourls:
+                        urls.append(ourl['value'])
+                        if ourl['value'].find('www.avito.ru') > -1:
+                            contact['avito'] = ourl['value']
+                        if ourl['value'].find('instagram.com') > -1:
+                            contact['instagram'] = ourl['value'].strip().split('https://www.instagram.com/')[1] \
+                                .replace('/', '')
+                            self.contacts_id_instas[contact['resourceName']] = contact['instagram']
+                            self.instas_id_contacts[contact['instagram']] = contact['resourceName']
+                contact['urls'] = urls
+                if str(contact.keys()).find('avito') > -1:
+                    avito_x = contact['avito'].strip()
+                    avito_i = len(avito_x) - 1
+                    for j in range(len(avito_x) - 1, 0, -1):
+                        if avito_x[j] not in digits:
+                            avito_i = j + 1
+                            break
+                    contact['avito_id'] = avito_x[avito_i:]
+                    self.contacts_id_avitos[contact['resourceName']] = contact['avito_id']
+                    self.avitos_id_contacts[contact['avito_id']] = contact['resourceName']
+                self.contacty[contact['resourceName']] = contact
+                try:
+                    contact_event = parse(self.all_events[contact['resourceName']]['start'])
+                    if contact_event > utc.localize(datetime(2013, 1, 1, 0, 0)) \
+                            and contact['stage'] not in WORK_STAGES_CONST and contact[
+                        'stage'] not in LOST_STAGES_CONST:
+                        events4delete.append(contact['resourceName'])
+                except KeyError:
+                    q = 0
+            for event4delete in events4delete:
+                event4 = service_cal.events().get(calendarId='primary', eventId=event4delete).execute()
+                event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
+                updated_event = service_cal.events().update(calendarId='primary', eventId=event4delete,
+                                                            body=event4).execute()
+        elif contacts_full == 'Part':
+            for changed_id in self.changed_ids:
+                try:  # Если обновилось - обновляем в БД
+                    connection = connections_d[changed_id]
+                    contact = {}
+                    contact['main'] = True
+                    contact['resourceName'] = connection['resourceName'].split('/')[1]
+                    name = ''
+                    iof = ''
+                    onames = connection.get('names', [])
+                    if len(onames) > 0:
+                        if onames[0].get('familyName'):
+                            name += onames[0].get('familyName').title() + ' '
+                        if onames[0].get('givenName'):
+                            name += onames[0].get('givenName').title() + ' '
+                            iof += onames[0].get('givenName').title() + ' '
+                        if onames[0].get('middleName'):
+                            name += onames[0].get('middleName').title()
+                            iof += onames[0].get('middleName').title() + ' '
+                        if onames[0].get('familyName'):
+                            iof += onames[0].get('familyName').title() + ' '
+                    contact['fio'] = name
+                    contact['iof'] = iof
+                    biographie = ''
+                    obiographies = connection.get('biographies', [])
+                    if len(obiographies) > 0:
+                        biographie = obiographies[0].get('value')
+                    contact['note'] = biographie
+                    phones = []
+                    ophones = connection.get('phoneNumbers', [])
+                    if len(ophones) > 0:
+                        for ophone in ophones:
+                            if ophone:
+                                if ophone.get('canonicalForm'):
+                                    phones.append(format_phone(ophone.get('canonicalForm')))
+                                else:
+                                    phones.append(format_phone(ophone.get('value')))
+                    contact['phones'] = phones
+                    memberships = []
+                    omemberships = connection.get('memberships', [])
+                    if len(omemberships) > 0:
+                        for omembership in omemberships:
+                            memberships.append(
+                                self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
+                    contact['groups'] = memberships
+                    stage = '---'
+                    calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+                    changed = QDate().currentDate().toString("dd.MM.yyyy")
+                    cost = 0
+                    ostages = connection.get('userDefined', [])
+                    if len(ostages) > 0:
+                        for ostage in ostages:
+                            if ostage['key'].lower() == 'stage':
+                                stage = ostage['value'].lower()
+                            if ostage['key'].lower() == 'calendar':
+                                calendar = ostage['value']
+                            if ostage['key'].lower() == 'cost':
+                                cost = float(ostage['value'])
+                            if ostage['key'].lower() == 'changed':
+                                changed = ostage['value']
+                    contact['stage'] = stage
+                    contact['calendar'] = calendar
+                    contact['cost'] = cost + random() * 1e-5
+                    contact['changed'] = changed
+                    town = ''
+                    oaddresses = connection.get('addresses', [])
+                    if len(oaddresses) > 0:
+                        town = oaddresses[0].get('formattedValue')
+                    contact['town'] = town
+                    email = ''
+                    oemailAddresses = connection.get('emailAddresses', [])
+                    if len(oemailAddresses) > 0:
+                        for oemailAddress in oemailAddresses:
+                            if oemailAddress:
+                                email += oemailAddress.get('value') + ' '
+                    contact['email'] = email.strip()
+                    contact['etag'] = connection['etag']
+                    contact['avito'] = ''  # Фильтруем все ссылки на avito в поле 'avito'
+                    contact['instagram'] = ''  # а ссылки на instagram в поле 'instagram'
+                    urls = []
+                    ourls = connection.get('urls', [])
+                    if len(ourls) > 0:
+                        for ourl in ourls:
+                            urls.append(ourl['value'])
+                            if ourl['value'].find('www.avito.ru') > -1:
+                                contact['avito'] = ourl['value']
+                            if ourl['value'].find('instagram.com') > -1:
+                                contact['instagram'] = ourl['value'].strip().split('https://www.instagram.com/')[1] \
+                                    .replace('/', '')
+                                self.contacts_id_instas[contact['resourceName']] = contact['instagram']
+                                self.instas_id_contacts[contact['instagram']] = contact['resourceName']
+                    contact['urls'] = urls
+                    if str(contact.keys()).find('avito') > -1:
+                        avito_x = contact['avito'].strip()
+                        avito_i = len(avito_x) - 1
+                        for j in range(len(avito_x) - 1, 0, -1):
+                            if avito_x[j] not in digits:
+                                avito_i = j + 1
+                                break
+                        contact['avito_id'] = avito_x[avito_i:]
+                        self.contacts_id_avitos[contact['resourceName']] = contact['avito_id']
+                        self.avitos_id_contacts[contact['avito_id']] = contact['resourceName']
+                    self.contacty[contact['resourceName']] = contact
+                except Exception as ee:
+                    q = 0
+        return
+        """
+
+    def google2db4etagM(self, cur_id=None):  # Google -> etag внутр БД (текущий контакт)
         if not cur_id:
             cur_id = self.FIO_cur_id
         ok_google = False
         while not ok_google:
             try:
-                service = discovery.build('people', 'v1', http=self.http_con,
+                service = discovery.build('people', 'v1', http=self.http_conM,
                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
                 result = service.people().get(
                     resourceName='people/' + cur_id, personFields='metadata').execute()
@@ -962,6 +1308,24 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                               ee.resp['status'], ee.args[1].decode("utf-8"))
         self.contacts_filtered[cur_id]['etag'] = result['etag']
         return result['etag']
+
+    def google2db4etagS(self, cur_id=None):  # Google -> etag внутр БД (текущий контакт)
+        if not cur_id:
+            cur_id = self.FIO_cur_id
+        ok_google = False
+        while not ok_google:
+            try:
+                service = discovery.build('people', 'v1', http=self.http_conS,
+                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                result = service.people().get(
+                    resourceName='people/' + cur_id, personFields='metadata').execute()
+                ok_google = True
+            except errors.HttpError as ee:
+                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+        self.contacts_filtered[cur_id]['etag'] = result['etag']
+        return result['etag']
+
 
     def db2form4one(self):              #  внутр. БД -> Форма
         if self.group_cur in METABOLISM_GROUPS.keys():    # Если в одной из групп по Метаболизму
@@ -1315,16 +1679,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             return None
         self.twFIO.setCurrentIndex(index)
         self.FIO_cur_id = self.contacts_filtered_reverced[index.row()] # обновляем информацию о контакте и карточку
-        self.google2db4all()
-#        if self.FIO_cur_id in self.changed_ids:
+        self.google2db4allM()
+        self.google2db4allS()
+        #        if self.FIO_cur_id in self.changed_ids:
         self.db2form4one()
         self.db2www4one()
         self.FIO_saved_id = ''
-        if index != None:
-            try:
-                self.FIO_last_id.append(self.contacts_filtered_reverced[index.row()])
-            except IndexError:
-                q=0
         has_phone = False
         if len(self.contacts_filtered[self.FIO_cur_id]['phones']):
             if l(self.contacts_filtered[self.FIO_cur_id]['phones'][0]):
@@ -1389,14 +1749,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             q=0
         # Перезагружаем ВСЕ контакты из gmail
         self.events_syncToken = ''
-        self.contacty_syncToken = ''
-        self.google2db4all()
+        self.contacty_syncTokenM = ''
+        self.contacty_syncTokenS = ''
+        self.google2db4allM()
+        self.google2db4allS()
         self.setup_twGroups()
         return
 
     def click_clbSave(self):
         if not self.new_contact:
-            self.google2db4all()
+            self.google2db4allM()
+            self.google2db4allS()
             pred_stage = self.contacts_filtered[self.FIO_cur_id]['stage']
             self.form2db4one()
             buf_contact = {}
@@ -1632,8 +1995,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 q = 0
             self.new_contact = False
             self.events_syncToken = ''
-            self.contacty_syncToken = ''
-            self.google2db4all()
+            self.contacty_syncTokenM = ''
+            self.contacty_syncTokenS = ''
+            self.google2db4allM()
+            self.google2db4allS()
             self.setup_twGroups()
         return
 
@@ -2020,9 +2385,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         # Перезагружаем ВСЕ контакты из gmail
         self.FIO_saved_id = self.FIO_cur_id
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
-        self.contacty_syncToken = ''
+        self.contacty_syncTokenM = ''
+        self.contacty_syncTokenS = ''
         self.events_syncToken = ''
-        self.google2db4all()
+        self.google2db4allM()
+        self.google2db4allS()
         self.setup_twGroups()
 
     def processHtml(self, html_x):
@@ -2199,9 +2566,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.FIO_saved_id = self.FIO_cur_id
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         #self.group_saved_id = self.group_cur_id
-        self.contacty_syncToken = ''
+        self.contacty_syncTokenM = ''
+        self.contacty_syncTokenS = ''
         self.events_syncToken = ''
-        self.google2db4all()
+        self.google2db4allM()
+        self.google2db4allS()
         self.setup_twGroups()
         return
 
@@ -2258,9 +2627,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.FIO_saved_id = self.FIO_cur_id
         self.group_saved_id = self.groups_resourcenames_reversed[self.group_cur]
         #self.group_saved_id = self.group_cur_id
-        self.contacty_syncToken = ''
+        self.contacty_syncTokenM = ''
+        self.contacty_syncTokenS = ''
         self.events_syncToken = ''
-        self.google2db4all()
+        self.google2db4allM()
+        self.google2db4allS()
         self.setup_twGroups()
 
     def click_clbCheckPhone(self):
@@ -2366,6 +2737,191 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def qwe(self):
         q4 = """
         
+    def google2db4one(self):               # Google -> Внутр БД (текущий контакт)
+        ok_google = False
+        while not ok_google:
+            try:
+                service = discovery.build('people', 'v1', http=self.http_con,
+                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                result = service.people().get(
+                    resourceName='people/' + self.FIO_cur_id,
+                    personFields='addresses,ageRanges,biographies,birthdays,braggingRights,coverPhotos,emailAddresses,'
+                                 'events,genders,imClients,interests,locales,memberships,metadata,names,nicknames,'
+                                 'occupations,organizations,phoneNumbers,photos,relations,relationshipInterests,'
+                                 'relationshipStatuses,residences,skills,taglines,urls,userDefined') \
+                .execute()
+                connection = result
+                ok_google = True
+            except errors.HttpError as ee:
+                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
+                                                ee.resp['status'], ee.args[1].decode("utf-8"))
+# Календарь
+
+        service_cal = discovery.build('calendar', 'v3', http=self.http_cal)  # Считываем весь календарь
+        calendars = []
+        calendars_result = {'nextPageToken':''}
+        start = datetime(2011, 1, 1, 0, 0).isoformat() + 'Z'  # ('Z' indicates UTC time) с начала работы
+        while str(calendars_result.keys()).find('nextPageToken') > -1:
+            if calendars_result['nextPageToken'] == '':
+                try:
+                    calendars_result = service_cal.events().list(
+                        calendarId='primary',
+                        showDeleted=True,
+                        showHiddenInvitations=True,
+                        timeMin=start,
+                        maxResults=2000,
+                        singleEvents=True,
+                        orderBy='startTime'
+                    ).execute()
+                except errors.HttpError as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                    calendars_result = service_cal.events().list(
+                        calendarId='primary',
+                        showDeleted=True,
+                        showHiddenInvitations=True,
+                        timeMin=start,
+                        maxResults=2000,
+                        singleEvents=True,
+                        orderBy='startTime'
+                    ).execute()
+            else:
+                try:
+                    calendars_result = service_cal.events().list(
+                        calendarId='primary',
+                        showDeleted=True,
+                        showHiddenInvitations=True,
+                        timeMin=start,
+                        maxResults=2000,
+                        pageToken=calendars_result['nextPageToken'],
+                        singleEvents=True,
+                        orderBy='startTime'
+                    ).execute()
+                except errors.HttpError as ee:
+                    print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                    calendars_result = service_cal.events().list(
+                        calendarId='primary',
+                        showDeleted=True,
+                        showHiddenInvitations=True,
+                        timeMin=start,
+                        maxResults=2000,
+                        pageToken=calendars_result['nextPageToken'],
+                        singleEvents=True,
+                        orderBy='startTime'
+                    ).execute()
+            calendars.extend(calendars_result.get('items', []))
+        eventds = {}
+        for calendar in calendars:
+            eventd = {}
+            eventd['id'] = calendar['id']
+            if str(calendar['start'].keys()).find('dateTime') > -1:
+                eventd['start'] = calendar['start']['dateTime']
+            else:
+                eventd['start'] = str(utc.localize(datetime.strptime(calendar['start']['date'] + ' 12:00', "%Y-%m-%d %H:%M:%S")))
+            if str(calendar.keys()).find('htmlLink') > -1:
+                eventd['www'] =calendar['htmlLink']
+            else:
+                eventd['www'] = ''
+            eventds[calendar['id']] = eventd
+
+        contact = {}
+        contact['resourceName'] = connection['resourceName'].split('/')[1]
+        name = ''
+        iof = ''
+        onames = connection.get('names', [])
+        if len(onames) > 0:
+            if onames[0].get('familyName'):
+                name += onames[0].get('familyName').title() + ' '
+            if onames[0].get('givenName'):
+                name += onames[0].get('givenName').title() + ' '
+                iof +=  onames[0].get('givenName').title() + ' '
+            if onames[0].get('middleName'):
+                name += onames[0].get('middleName').title()
+                iof += onames[0].get('middleName').title() + ' '
+            if onames[0].get('familyName'):
+                iof += onames[0].get('familyName').title() + ' '
+        contact['fio'] = name
+        contact['iof'] = iof
+        biographie = ''
+        obiographies = connection.get('biographies', [])
+        if len(obiographies) > 0:
+            biographie = obiographies[0].get('value')
+        contact['note'] = biographie
+        phones = []
+        ophones = connection.get('phoneNumbers', [])
+        if len(ophones) > 0:
+            for ophone in ophones:
+                if ophone:
+                    if ophone.get('canonicalForm'):
+                        phones.append(format_phone(ophone.get('canonicalForm')))
+                    else:
+                        phones.append(format_phone(ophone.get('value')))
+        contact['phones'] = phones
+        memberships = []
+        omemberships = connection.get('memberships', [])
+        if len(omemberships) > 0:
+            for omembership in omemberships:
+                memberships.append(self.groups_resourcenames[omembership['contactGroupMembership']['contactGroupId']])
+        contact['groups'] = memberships
+        stage = '---'
+        calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
+        changed = QDate().currentDate().toString("dd.MM.yyyy")
+        cost = 0
+        ostages = connection.get('userDefined', [])
+        if len(ostages) > 0:
+            for ostage in ostages:
+                if ostage['key'].lower() == 'stage':
+                    stage = ostage['value'].lower()
+                if ostage['key'].lower() == 'calendar':
+                    calendar = ostage['value']
+                if ostage['key'].lower() == 'cost':
+                    cost = float(ostage['value'])
+                if ostage['key'].lower() == 'changed':
+                    changed = ostage['value']
+        contact['stage'] = stage
+        contact['calendar'] = calendar
+        contact['cost'] = cost + random() * 1e-5
+        contact['changed'] = changed
+        town = ''
+        oaddresses = connection.get('addresses', [])
+        if len(oaddresses) > 0:
+            town = oaddresses[0].get('formattedValue')
+        contact['town'] = town
+        email = ''
+        oemailAddresses = connection.get('emailAddresses', [])
+        if len(oemailAddresses) > 0:
+            for oemailAddress in oemailAddresses:
+                if oemailAddress:
+                    email += oemailAddress.get('value') + ' '
+        contact['email'] = email.strip()
+        contact['etag'] = connection['etag']
+        contact['avito'] = ''
+        contact['instagram'] = ''
+        urls = []
+        ourls = connection.get('urls', [])
+        if len(ourls) > 0:
+            for ourl in ourls:
+                urls.append(ourl['value'])
+                if ourl['value'].find('www.avito.ru') > -1:
+                    contact['avito'] = ourl['value']
+                if ourl['value'].find('instagram.com') > -1:
+                    contact['instagram'] = ourl['value'].strip().split('https://www.instagram.com/')[1].replace('/','')
+        contact['urls'] = urls
+        if str(contact.keys()).find('avito') > -1:
+            avito_x = contact['avito'].strip()
+            avito_i = len(avito_x) - 1
+            for j in range(len(avito_x) - 1, 0, -1):
+                if avito_x[j] not in digits:
+                    avito_i = j + 1
+                    break
+            contact['avito_id'] = avito_x[avito_i:]
+        ind = self.contacts_filtered[self.FIO_cur_id]['contact_ind']
+        self.contacts_filtered[self.FIO_cur_id] = contact
+        self.contacts_filtered[self.FIO_cur_id]['contact_ind'] = ind
+        self.contacty[self.contacts_filtered[self.FIO_cur_id]['contact_ind']] = contact
+        return
+    
     def FillChanged4All(self)   # Первичное заполнение ['changed'] в Google
         if self.group_cur not in AVITO_GROUPS.keys():
             return
@@ -2406,7 +2962,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.progressBar.hide()
 
 
-    def click_clbBack(self):
+    def click_clbBack(self): # удалил из осню текста наколпление истории в self.FIO_last_id
         self.lePhone.setText('')
         self.leFIO.setText('')
         self.leNote.setText('')
