@@ -1366,14 +1366,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.deCalendar.setDate(contact_event)
         self.cbTime.setTime(contact_event.time())
         self.cbStage.setCurrentIndex(self.all_stages_reverce[self.contacty[self.FIO_cur_id]['stage']])
-        phones = ''
         if len(self.contacty[self.FIO_cur_id]['phones']) > 0:
             phones = fine_phone(self.contacty[self.FIO_cur_id]['phones'][0])
             for i, phone in enumerate(self.contacty[self.FIO_cur_id]['phones']):
                 if i == 0:
                     continue
                 phones += ' ' + fine_phone(phone)
-        self.lePhones.setText(phones)
+            self.lePhones.setText(phones)
+        elif not self.lePhones.text():
+            phones = ''
+            self.lePhones.setText(phones)
         self.calls_ids = []
         for i, call in enumerate(self.calls):
             for phone in self.contacty[self.FIO_cur_id]['phones']:
@@ -1684,6 +1686,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.google2db4allM()
         self.google2db4allS()
         #        if self.FIO_cur_id in self.changed_ids:
+        self.lePhones.setText('')
         self.db2form4one()
         self.db2www4one()
         self.FIO_saved_id = ''
