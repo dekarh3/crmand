@@ -538,6 +538,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             number_of_new = 0
             for i, connection in enumerate(connections):
                 contact = {}
+                contact['main'] = True
                 contact['resourceName'] = connection['resourceName'].split('/')[1]
                 if not self.FIO_cur_id:
                     self.FIO_cur_id = connection['resourceName'].split('/')[1]
@@ -1068,6 +1069,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             number_of_new = 0
             for i, connection in enumerate(connections):
                 contact = {}
+                contact['main'] = False
                 contact['resourceName'] = connection['resourceName'].split('/')[1]
                 if not self.FIO_cur_id:
                     self.FIO_cur_id = connection['resourceName'].split('/')[1]
@@ -1189,7 +1191,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:  # Если обновилось - обновляем в БД
                     connection = connections_d[changed_id]
                     contact = {}
-                    contact['main'] = True
+                    contact['main'] = False
                     contact['resourceName'] = connection['resourceName'].split('/')[1]
                     name = ''
                     iof = ''
