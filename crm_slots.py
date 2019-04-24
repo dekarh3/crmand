@@ -1732,6 +1732,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         group_id = self.groups_resourcenames_reversedS[self.group_cur]
 
                     group_body = {'resourceNamesToAdd': ['people/' + self.FIO_cur_id], 'resourceNamesToRemove': []}
+                    # почему-то работает, хотя должен быть как в serviceg
                     resultsg = service.contactGroups().members().modify(
                         resourceName='contactGroups/' + group_id,
                         body=group_body
@@ -2146,6 +2147,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     while not ok_google:
                         try:
                             group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                            # почему-то работает, хотя должен быть как в serviceg
                             resultsg = service.contactGroups().members().modify(
                                 resourceName='contactGroups/' + self.groups_resourcenames_reversedM[self.group_cur],
                                 body=group_body
