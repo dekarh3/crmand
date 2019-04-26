@@ -2289,18 +2289,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def click_clbStageRefresh(self):                            # Обновляем стадию или удаляем контакт и его событие
         ax = """
-        ав+ / ав-
-        PLUS_STAGES/PAUSE_NED_STAGES/LOST_STAGES/MINUS_STAGES
-        дат+/дат-
-        тел+/тел-
-        бдМ/бдS
-        (ав-;тел-;PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES;бдM) => (удаляем;бдM)
-        (ав-;тел-;PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES;бдS) => (удаляем;бдS)
-        (PAUSE_NED_STAGES; ав-; тел+;бдМ) => (дат.now; LOST_STAGES; бдМ)
-        (PAUSE_NED_STAGES; ав-; тел+;бдS) => (дат.now; LOST_STAGES; бдМ)
-        (LOST_STAGES; ав+; тел+; бдМ) => (PAUSE_STAGES; дат.now; бдМ)
-        (LOST_STAGES; ав+; тел+; бдS) => (PAUSE_STAGES; дат.now; бдМ)
-        (LOST_STAGES+MINUS_STAGES; тел+; дат-; бдМ) => бдS
+        has_in_avito = True / has_in_avito = False
+        PLUS_STAGES / PAUSE_NED_STAGES / LOST_STAGES / MINUS_STAGES
+        contact_old = False / contact_old = True
+        has_phone = True / has_phone = False
+        бдM = serviceM + service_calM / бдS = serviceS
+        1. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдM) => (удаляем; бдM)
+        2. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдS) => (удаляем; бдS)
+        3. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдМ) => (дат.now; LOST_STAGES; +event2012; бдМ)
+        4. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдS) => (дат.now; LOST_STAGES; +event2012; бдS->бдМ)
+        5. (LOST_STAGES; has_in_avito = True; has_phone = True; бдМ) => (PAUSE_STAGES; дат.now; +event=calendar; бдМ)
+        6. (LOST_STAGES; has_in_avito = True; has_phone = True; бдS) => (PAUSE_STAGES; дат.now; +event=calendar; бдS->бдМ)
+        7. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
+        8. (LOST_STAGES+MINUS_STAGES; has_phone = True; contact_old = True; бдМ) => (бдМ->бдS; -event)
         """
 
         if self.group_cur not in AVITO_GROUPS.keys():
@@ -2314,14 +2315,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.progressBar.setMaximum(len(self.contacts_filtered) - 1)
         self.progressBar.show()
         for i, contact in enumerate(self.contacts_filtered):
-            if self.contacts_filtered[contact]['main']:
-                service = discovery.build('people', 'v1', http=self.http_conM,
+            serviceM = discovery.build('people', 'v1', http=self.http_conM,
                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                service_cal = discovery.build('calendar', 'v3', http=self.http_calM)
-            else:
-                service = discovery.build('people', 'v1', http=self.http_conS,
+            service_calM = discovery.build('calendar', 'v3', http=self.http_calM)
+            serviceS = discovery.build('people', 'v1', http=self.http_conS,
                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-                service_cal = discovery.build('calendar', 'v3', http=self.http_calS)
+            service_calS = discovery.build('calendar', 'v3', http=self.http_calS)
             self.progressBar.setValue(i)
             has_in_avito = False
             if str(self.contacts_filtered[contact].keys()).find('avito_id') > -1:
@@ -2331,116 +2330,25 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         break
             else:
                 continue
-            changed = False
-            if has_in_avito:
-                if self.contacts_filtered[contact]['stage'] == 'нет объявления':
-                    self.contacts_filtered[contact]['stage'] = 'пауза'
-                    changed = True
-            else:
-                if self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES:
-                    self.contacts_filtered[contact]['stage'] = 'нет объявления'
-                    changed = True
-                #elif self.contacts_filtered[contact]['stage'] == 'нет объявления':     # !!! ВСЕГДА ПРОВЕРЯЕМ !!!
-                #    changed = True
+            has_phone = len(self.contacts_filtered[contact]['phones']) > 0
+            contact_old = datetime.strptime(self.contacts_filtered[contact]['changed'],'%d.%m.%Y') \
+                          < (datetime.now() - timedelta(days=31))
 
-            if changed:
-                if self.contacts_filtered[contact]['stage'] == 'пауза':   # Было 'нет объявления' стало 'пауза'
-                    print(self.contacts_filtered[contact]['iof'], 'нет объявления -> пауза')
-                    buf_contact = {}
-                    buf_contact['userDefined'] = [{},{},{},{},{}]
-                    buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
-                    buf_contact['userDefined'][0]['key'] = 'stage'
-                    buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
-                    buf_contact['userDefined'][1]['key'] = 'calendar'
-                    buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
-                    buf_contact['userDefined'][2]['key'] = 'cost'
-                    buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
-                    buf_contact['userDefined'][3]['key'] = 'changed'
-                    buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
-                    buf_contact['userDefined'][4]['key'] = 'nameLink'
-                    if self.contacts_filtered[contact]['main']:
-                        buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
-                    else:
-                        buf_contact['etag'] = self.google2db4etagS(cur_id=contact)
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            resultsc = service.people().updateContact(
-                                resourceName='people/' + contact,
-                                updatePersonFields='userDefined',
-                                body=buf_contact).execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                            if self.contacts_filtered[contact]['main']:
-                                buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
-                            else:
-                                buf_contact['etag'] = self.google2db4etagS(cur_id=contact)
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            event4 = service_cal.events().get(calendarId='primary', eventId=contact) \
-                                .execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                    event4['start']['dateTime'] = datetime.combine(datetime.strptime(self.contacts_filtered[contact]['calendar'],
-                                '%d.%m.%Y').date(), datetime.strptime('19:00', '%H:%M').time()).isoformat() + '+04:00'
-                    event4['end']['dateTime'] = datetime.combine(datetime.strptime(self.contacts_filtered[contact]['calendar'],
-                                '%d.%m.%Y').date(), datetime.strptime('19:15', '%H:%M').time()).isoformat() + '+04:00'
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            updated_event = service_cal.events().update(calendarId='primary',
-                                                                        eventId=contact,
-                                                                        body=event4).execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S"),'попробуем восстановить событие еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                elif not len(self.contacts_filtered[contact]['phones']):        # Было PAUSE_NED_STAGES стало
-                    print('пауза -> нет объявления и нет телефонов => Удаляем и контакт и событие',
-                          self.contacts_filtered[contact]['iof'])               # 'нет объявления' и нет телефонов
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            event4 = service_cal.events().get(calendarId='primary', eventId=contact) \
-                                .execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                    event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
-                    event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            updated_event = service_cal.events().update(calendarId='primary',
-                                                                        eventId=contact,
-                                                                        body=event4).execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            resultsc = service.people().deleteContact(
-                                resourceName='people/' + contact).execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+            # (1,2)
+            if not has_in_avito and not has_phone and self.contacts_filtered[contact]['stage'] in \
+                    (PAUSE_NED_STAGES + LOST_STAGES + MINUS_STAGES):
+                print('(1,2) Удаляем и контакт и событие: ', self.contacts_filtered[contact]['iof'])
+                if self.contacty[self.FIO_cur_id]['main']:
+                    serv_c = service_calM
+                    serv = serviceM
                 else:
-                    print(self.contacts_filtered[contact]['iof'], 'пауза -> нет объявления и есть телефон(ы) '
-                                                                  '=> Удаляем только событие')
-                    ok_google = False
+                    serv_c = None
+                    serv = serviceS
+                ok_google = False
+                if serv_c:
                     while not ok_google:
                         try:
-                            event4 = service_cal.events().get(calendarId='primary', eventId=contact) \
+                            event4 = serv_c.events().get(calendarId='primary', eventId=contact) \
                                 .execute()
                             ok_google = True
                         except errors.HttpError as ee:
@@ -2451,40 +2359,133 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     ok_google = False
                     while not ok_google:
                         try:
-                            updated_event = service_cal.events().update(calendarId='primary',
+                            updated_event = serv_c.events().update(calendarId='primary',
                                                                         eventId=contact,
                                                                         body=event4).execute()
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-                    buf_contact = {}
-                    buf_contact['userDefined'] = [{},{},{},{},{}]
-                    buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
-                    buf_contact['userDefined'][0]['key'] = 'stage'
-                    buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
-                    buf_contact['userDefined'][1]['key'] = 'calendar'
-                    buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
-                    buf_contact['userDefined'][2]['key'] = 'cost'
-                    buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
-                    buf_contact['userDefined'][3]['key'] = 'changed'
-                    buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
-                    buf_contact['userDefined'][4]['key'] = 'nameLink'
-                    if self.contacts_filtered[contact]['main']:
-                        buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
-                    else:
-                        buf_contact['etag'] = self.google2db4etagS(cur_id=contact)
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            resultsc = service.people().updateContact(
-                                resourceName='people/' + contact,
-                                updatePersonFields='userDefined',
-                                body=buf_contact).execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = serv.people().deleteContact(
+                            resourceName='people/' + contact).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+            if self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone:                                                                               # (3,4)
+                print(self.contacts_filtered[contact]['iof'], 'пауза -> нет объявления и есть телефон(ы) '
+                                                              '=> Удаляем только событие')
+                ok_google = False
+                while not ok_google:
+                    try:
+                        event4 = service_cal.events().get(calendarId='primary', eventId=contact) \
+                            .execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
+                ok_google = False
+                while not ok_google:
+                    try:
+                        updated_event = service_cal.events().update(calendarId='primary',
+                                                                    eventId=contact,
+                                                                    body=event4).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                buf_contact = {}
+                buf_contact['userDefined'] = [{},{},{},{},{}]
+                buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
+                buf_contact['userDefined'][0]['key'] = 'stage'
+                buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
+                buf_contact['userDefined'][1]['key'] = 'calendar'
+                buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
+                buf_contact['userDefined'][2]['key'] = 'cost'
+                buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
+                buf_contact['userDefined'][3]['key'] = 'changed'
+                buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
+                buf_contact['userDefined'][4]['key'] = 'nameLink'
+                if self.contacts_filtered[contact]['main']:
+                    buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
+                else:
+                    buf_contact['etag'] = self.google2db4etagS(cur_id=contact)
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = service.people().updateContact(
+                            resourceName='people/' + contact,
+                            updatePersonFields='userDefined',
+                            body=buf_contact).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+
+            if (5,6) self.contacts_filtered[contact]['stage'] == 'пауза':   # Было 'нет объявления' стало 'пауза' (5,6)
+                print(self.contacts_filtered[contact]['iof'], 'нет объявления -> пауза')
+                buf_contact = {}
+                buf_contact['userDefined'] = [{},{},{},{},{}]
+                buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
+                buf_contact['userDefined'][0]['key'] = 'stage'
+                buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
+                buf_contact['userDefined'][1]['key'] = 'calendar'
+                buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
+                buf_contact['userDefined'][2]['key'] = 'cost'
+                buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
+                buf_contact['userDefined'][3]['key'] = 'changed'
+                buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
+                buf_contact['userDefined'][4]['key'] = 'nameLink'
+                if self.contacts_filtered[contact]['main']:
+                    buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
+                else:
+                    buf_contact['etag'] = self.google2db4etagS(cur_id=contact)
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = service.people().updateContact(
+                            resourceName='people/' + contact,
+                            updatePersonFields='userDefined',
+                            body=buf_contact).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                        if self.contacts_filtered[contact]['main']:
+                            buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
+                        else:
+                            buf_contact['etag'] = self.google2db4etagS(cur_id=contact)
+                ok_google = False
+                while not ok_google:
+                    try:
+                        event4 = service_cal.events().get(calendarId='primary', eventId=contact) \
+                            .execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                event4['start']['dateTime'] = datetime.combine(datetime.strptime(self.contacts_filtered[contact]['calendar'],
+                            '%d.%m.%Y').date(), datetime.strptime('19:00', '%H:%M').time()).isoformat() + '+04:00'
+                event4['end']['dateTime'] = datetime.combine(datetime.strptime(self.contacts_filtered[contact]['calendar'],
+                            '%d.%m.%Y').date(), datetime.strptime('19:15', '%H:%M').time()).isoformat() + '+04:00'
+                ok_google = False
+                while not ok_google:
+                    try:
+                        updated_event = service_cal.events().update(calendarId='primary',
+                                                                    eventId=contact,
+                                                                    body=event4).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S"),'попробуем восстановить событие еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+
+
         self.progressBar.hide()
         # Перезагружаем ВСЕ контакты из gmail
         self.FIO_saved_id = self.FIO_cur_id
