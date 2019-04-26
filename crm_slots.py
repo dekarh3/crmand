@@ -45,17 +45,24 @@ except ImportError:
     flags = None
 
 from lib import unique, l, s, fine_phone, format_phone
-
-ALL_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
+#---------------------------------------------------------------------------------------------------------------------
+ALL_STAGES = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте', 'недозвон', 'пауза', 'нет объявления', 'недоступен', '---', 'подумаю',
                     'нет контактов', 'не занимаюсь', 'не понимает', 'не интересно', 'мне не интересно', 'уже продали',
                     'не верит', 'дубль', 'по другому отработали', 'рыпу']
-WORK_STAGES_CONST = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
+WORK_STAGES = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте', 'недозвон', 'пауза']
-LOST_STAGES_CONST = ['нет объявления']
-CHANGE_STAGES_CONST = ['недозвон', 'пауза'] # Откуда можно изменить на 'нет объявления'
+LOST_STAGES = ['нет объявления']
+PAUSE_STAGES = ['пауза']
+PAUSE_NED_STAGES = ['недозвон', 'пауза'] # Откуда можно изменить на 'нет объявления'
+PLUS_STAGES = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
+                    'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
+                     'нет на месте']
+MINUS_STAGES = ['недоступен', '---', 'подумаю', 'нет контактов', 'не занимаюсь', 'не понимает', 'не интересно',
+                'мне не интересно', 'уже продали', 'не верит', 'дубль', 'по другому отработали', 'рыпу']
+#---------------------------------------------------------------------------------------------------------------------
 AVITO_GROUPS = {
     '_КоттеджиСочи': 'https://www.avito.ru/sochi/doma_dachi_kottedzhi/',
     '_КвартирыСочи': 'https://www.avito.ru/sochi/kvartiry/',
@@ -76,7 +83,7 @@ AVITO_GROUPS_SPLITS = {
 #}
 METABOLISM_GROUPS = {'_Метаболизм': 'http://emdigital.ru/stars/?cat='}
 
-MAX_PAGE = 2
+#MAX_PAGE = 2
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/people.googleapis.com-python-quickstart.json
@@ -651,7 +658,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:
                     contact_event = parse(self.all_events[contact['resourceName']]['start'])
                     if contact_event > utc.localize(datetime(2013, 1, 1, 0, 0)) \
-                            and contact['stage'] not in WORK_STAGES_CONST and contact['stage'] not in LOST_STAGES_CONST:
+                            and contact['stage'] not in WORK_STAGES and contact['stage'] not in LOST_STAGES:
                         events4delete.append(contact['resourceName'])
                 except KeyError:
                     q=0
@@ -1327,7 +1334,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts_filtered[self.FIO_cur_id]['note'] = self.teNote.toPlainText()
 
     def refresh_stages(self):          # Добавляем в стандартные стадии стадии из контактов
-        self.all_stages = ALL_STAGES_CONST
+        self.all_stages = ALL_STAGES
         for i, all_stage in enumerate(self.all_stages):
             self.all_stages_reverce[all_stage] = i
         for i, contact in enumerate(self.contacty.values()):
@@ -1784,13 +1791,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                             self.cbTime.time().toPyTime()) + timedelta(minutes=15)).isoformat() + '+04:00'}
             calendar['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
             # Если стадия не рабочая - ставим прошлую дату
-            if self.cbStage.currentText() not in WORK_STAGES_CONST and self.cbStage.currentText() not in LOST_STAGES_CONST:
+            if self.cbStage.currentText() not in WORK_STAGES and self.cbStage.currentText() not in LOST_STAGES:
                 event['start'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
                 calendar['start'] = {'dateTime' : datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'}
                 event['end'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
                 calendar['end'] = {'dateTime': datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'}
             # Если нет объявления, ставим ближайшую субботу
-            elif self.cbStage.currentText() not in WORK_STAGES_CONST:
+            elif self.cbStage.currentText() not in WORK_STAGES:
                 event_date = parse(event['start'])
                 if event_date < utc.localize(datetime(2012, 1, 7)):
                     lost_date = utc.localize(datetime(2012, 1, 7))
@@ -1803,7 +1810,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 event['end'] = (lost_date + timedelta(hours=19,minutes=15)).isoformat()
                 calendar['end'] = {'dateTime': (lost_date + timedelta(hours=19, minutes=15)).isoformat()}
             # Если не было объявления, а сейчас есть - ОТЛАДИТЬ !!!!!
-            elif self.cbStage.currentText() in WORK_STAGES_CONST and pred_stage in LOST_STAGES_CONST:
+            elif self.cbStage.currentText() in WORK_STAGES and pred_stage in LOST_STAGES:
                 event_date = parse(event['start'])
                 if event_date < utc.localize(datetime(2012, 1, 7)):
                     lost_date = utc.localize(datetime(2012, 1, 7))
@@ -2281,6 +2288,21 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         return
 
     def click_clbStageRefresh(self):                            # Обновляем стадию или удаляем контакт и его событие
+        ax = """
+        ав+ / ав-
+        PLUS_STAGES/PAUSE_NED_STAGES/LOST_STAGES/MINUS_STAGES
+        дат+/дат-
+        тел+/тел-
+        бдМ/бдS
+        (ав-;тел-;PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES;бдM) => (удаляем;бдM)
+        (ав-;тел-;PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES;бдS) => (удаляем;бдS)
+        (PAUSE_NED_STAGES; ав-; тел+;бдМ) => (дат.now; LOST_STAGES; бдМ)
+        (PAUSE_NED_STAGES; ав-; тел+;бдS) => (дат.now; LOST_STAGES; бдМ)
+        (LOST_STAGES; ав+; тел+; бдМ) => (PAUSE_STAGES; дат.now; бдМ)
+        (LOST_STAGES; ав+; тел+; бдS) => (PAUSE_STAGES; дат.now; бдМ)
+        (LOST_STAGES+MINUS_STAGES; тел+; дат-; бдМ) => бдS
+        """
+
         if self.group_cur not in AVITO_GROUPS.keys():
             return
         if self.leFIO.text() or self.leNote.text() or self.lePhone.text():
@@ -2315,7 +2337,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     self.contacts_filtered[contact]['stage'] = 'пауза'
                     changed = True
             else:
-                if self.contacts_filtered[contact]['stage'] in CHANGE_STAGES_CONST:
+                if self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES:
                     self.contacts_filtered[contact]['stage'] = 'нет объявления'
                     changed = True
                 #elif self.contacts_filtered[contact]['stage'] == 'нет объявления':     # !!! ВСЕГДА ПРОВЕРЯЕМ !!!
@@ -2378,7 +2400,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S"),'попробуем восстановить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-                elif not len(self.contacts_filtered[contact]['phones']):        # Было CHANGE_STAGES_CONST стало
+                elif not len(self.contacts_filtered[contact]['phones']):        # Было PAUSE_NED_STAGES стало
                     print('пауза -> нет объявления и нет телефонов => Удаляем и контакт и событие',
                           self.contacts_filtered[contact]['iof'])               # 'нет объявления' и нет телефонов
                     ok_google = False
