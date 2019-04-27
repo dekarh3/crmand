@@ -2289,13 +2289,26 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def click_clbStageRefresh(self):                            # Обновляем стадию или удаляем контакт и его событие
         ax = """
+        ав+ / ав-
+        ст+/стПаузаНед/стНетОб/ст-
+        дат+/дат-
+        тел+/тел-
+        бдМ/бдS
+        1. (ав-;тел-;ст<+;бдM) => (-contact; -event; бдM)
+        2. (ав-;тел-;ст<+;бдS) => (-contact; бдS)
+        3. (стПаузаНед; ав-; тел+;бдМ) => (дат.now; стНетОб; +event2012; бдМ)
+        4. (стПаузаНед; ав-; тел+;бдS) => (дат.now; стНетОб; +event2012; бдS->бдМ)
+        5. (стНетОб; ав+; тел+; бдМ) => (стПауза; дат.now; +event=calendar; бдМ)
+        6. (стНетОб; ав+; тел+; бдS) => (стПауза; дат.now; +event=calendar; бдМ)
+        7. (ст>НетОб; тел+; бдS) => ( дат.now; +event=calendar; бдS->бдМ)
+        8. (ст<=НетОб; тел+; дат-; бдМ) => (бдМ->бдS; -event)
         has_in_avito = True / has_in_avito = False
         PLUS_STAGES / PAUSE_NED_STAGES / LOST_STAGES / MINUS_STAGES
         contact_old = False / contact_old = True
         has_phone = True / has_phone = False
         бдM = serviceM + service_calM / бдS = serviceS
-        1. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдM) => (удаляем; бдM)
-        2. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдS) => (удаляем; бдS)
+        1. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдM) => (-contact; -event; бдM)
+        2. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдS) => (-contact; бдS)
         3. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдМ) => (дат.now; LOST_STAGES; +event2012; бдМ)
         4. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдS) => (дат.now; LOST_STAGES; +event2012; бдS->бдМ)
         5. (LOST_STAGES; has_in_avito = True; has_phone = True; бдМ) => (PAUSE_STAGES; дат.now; +event=calendar; бдМ)
@@ -2334,18 +2347,22 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             contact_old = datetime.strptime(self.contacts_filtered[contact]['changed'],'%d.%m.%Y') \
                           < (datetime.now() - timedelta(days=31))
 
-            # (1,2)
+# 1. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдM) => (-contact; -event; бдM)
+# 2. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдS) => (-contact; бдS)
             if not has_in_avito and not has_phone and self.contacts_filtered[contact]['stage'] in \
                     (PAUSE_NED_STAGES + LOST_STAGES + MINUS_STAGES):
-                print('(1,2) Удаляем и контакт и событие: ', self.contacts_filtered[contact]['iof'])
                 if self.contacty[self.FIO_cur_id]['main']:
                     serv_c = service_calM
                     serv = serviceM
+                    print('(ав-;тел-;ст<+;бдM) => (-contact; -event; бдM) -- Удаляем и контакт и событие: ',
+                          self.contacts_filtered[contact]['iof'])
                 else:
                     serv_c = None
                     serv = serviceS
+                    print('(ав-;тел-;ст<+;бдS) => (-contact; бдS) -- Удаляем контакт (события нет): ',
+                          self.contacts_filtered[contact]['iof'])
                 ok_google = False
-                if serv_c:
+                if serv_c != None:
                     while not ok_google:
                         try:
                             event4 = serv_c.events().get(calendarId='primary', eventId=contact) \
@@ -2376,7 +2393,63 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
-            if self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone:                                                                               # (3,4)
+# 3. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдМ) => (дат.now; LOST_STAGES; +event2012; бдМ)
+            if self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
+                    self.contacty[self.FIO_cur_id]['main']:
+                print(self.contacts_filtered[contact]['iof'], '(стПаузаНед; ав-; тел+; бдМ) => (дат.now; стНетОб; '
+                                                              '+event2012; бдМ) -- Удаляем только событие')
+                # "Удаление события" = перемещение на дату 31.12.2012. Сначала запрашиваем имеющееся событие
+                ok_google = False
+                while not ok_google:
+                    try:
+                        event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
+                            .execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Ставим дату
+                event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
+                ok_google = False
+                # Обновляем
+                while not ok_google:
+                    try:
+                        updated_event = service_calM.events().update(calendarId='primary',
+                                                                    eventId=contact,
+                                                                    body=event4).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+
+                buf_contact = {}
+                buf_contact['userDefined'] = [{},{},{},{},{}]
+                buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
+                buf_contact['userDefined'][0]['key'] = 'stage'
+                buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
+                buf_contact['userDefined'][1]['key'] = 'calendar'
+                buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
+                buf_contact['userDefined'][2]['key'] = 'cost'
+                buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
+                buf_contact['userDefined'][3]['key'] = 'changed'
+                buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
+                buf_contact['userDefined'][4]['key'] = 'nameLink'
+                buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = serviceM.people().updateContact(
+                            resourceName='people/' + contact,
+                            updatePersonFields='userDefined',
+                            body=buf_contact).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+# 4. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдS) => (дат.now; LOST_STAGES; +event2012; бдS->бдМ)
+            if self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
+                    not self.contacty[self.FIO_cur_id]['main']:
                 print(self.contacts_filtered[contact]['iof'], 'пауза -> нет объявления и есть телефон(ы) '
                                                               '=> Удаляем только событие')
                 ok_google = False
