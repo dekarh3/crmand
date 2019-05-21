@@ -18,9 +18,9 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 
-from instaparser.agents import Agent, exception_manager
-from instaparser.entities import Account, Media
-from instaparser.exceptions import InstagramException, InternetException
+#from instaparser.agents import Agent, exception_manager
+#from instaparser.entities import Account, Media
+#from instaparser.exceptions import InstagramException, InternetException
 from requests.exceptions import HTTPError
 
 from datetime import datetime, timedelta, time
@@ -143,7 +143,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         Ui_Form.setupUi(self,form)
         if len(argv):
             print(argv)
-        self.agent = Agent()
+        #self.agent = Agent()
         self.changed_ids = set()
         self.events_syncToken = ''
         self.contacty_syncToken = ''
