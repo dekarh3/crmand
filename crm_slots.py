@@ -144,7 +144,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         Ui_Form.setupUi(self,form)
         if len(argv):
             print(argv)
-        self.agent = Agent()
+        #self.agent = Agent()
         self.events_syncToken = ''
         self.contacty_syncTokenM = ''
         self.contacty_syncTokenS = ''
@@ -2297,11 +2297,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         1. (ав-;тел-;ст<+;бдM) => (-contact; -event; бдM)
         2. (ав-;тел-;ст<+;бдS) => (-contact; бдS)
         3. (стПаузаНед; ав-; тел+ ;бдМ) => (дат.now; стНетОб; -event; бдМ)
-        4. (стПаузаНед; ав-; тел+ ;бдS) => (дат.now; стНетОб; -event; бдS->бдМ)
-        5. (стНетОб; ав+; тел+; бдМ) => (стПауза; дат.now; +event=calendar; бдМ)
-        6. (стНетОб; ав+; тел+; бдS) => (стПауза; дат.now; +event=calendar; бдМ)
-        7. (ст>НетОб; тел+; бдS) => ( дат.now; +event=calendar; бдS->бдМ)
-        8. (ст<=НетОб; тел+; дат-; бдМ) => (бдМ->бдS; -event)
+        4. (стНетОб; ав+; тел+; бдМ) => (стПауза; дат.now; +event=calendar; бдМ)
+        5. (стНетОб; ав+; тел+; бдS) => (стПауза; дат.now; +event=calendar; бдМ)
+        6. (ст>НетОб; тел+; бдS) => ( дат.now; +event=calendar; бдS->бдМ) # Если вручную поставил стадию > НетОб -- вытаскиваем в бдМ
+        7. (ст<=НетОб; тел+; дат-; бдМ) => (бдМ->бдS; -event)
         has_in_avito = True / has_in_avito = False
         PLUS_STAGES / PAUSE_NED_STAGES / LOST_STAGES / MINUS_STAGES
         contact_old = False / contact_old = True
@@ -2310,17 +2309,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         1. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдM) => (-contact; -event; бдM)
         2. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдS) => (-contact; бдS)
         3. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдМ) => (дат.now; LOST_STAGES; -event; бдМ)
-        4. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдS) => (дат.now; LOST_STAGES; -event; бдS->бдМ)
-        5. (LOST_STAGES; has_in_avito = True; has_phone = True; бдМ) => (PAUSE_STAGES; дат.now; +event=calendar; бдМ)
-        6. (LOST_STAGES; has_in_avito = True; has_phone = True; бдS) => (PAUSE_STAGES; дат.now; +event=calendar; бдS->бдМ)
-        7. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
-        8. (LOST_STAGES+MINUS_STAGES; has_phone = True; contact_old = True; бдМ) => (бдМ->бдS; -event)
+        4. (LOST_STAGES; has_in_avito = True; has_phone = True; бдМ) => (PAUSE_STAGES; дат.now; +event=calendar; бдМ)
+        5. (LOST_STAGES; has_in_avito = True; has_phone = True; бдS) => (PAUSE_STAGES; дат.now; +event=calendar; бдS->бдМ)
+        6. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
+        7. (LOST_STAGES+MINUS_STAGES; has_phone = True; contact_old = True; бдМ) => (бдМ->бдS; -event)
         бдМ->бдS (бдS->бдМ):
         а. Проверить наличие бдS (бдМ) 
         б. Создать бдS (бдМ)
         в. Удалить бдМ (бдS)
         +event:
-        а. Прверяем наличие event'а
+        а. Проверяем наличие event'а
         б. Если нет - создаем, если есть - используем
         """
 
@@ -2458,32 +2456,73 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
-# 4. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдS) => (дат.now; LOST_STAGES; -event; бдS->бдМ)
+# 6. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
             if self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
                     not self.contacty[self.FIO_cur_id]['main']:
-                print(self.contacts_filtered[contact]['iof'], 'пауза -> нет объявления и есть телефон(ы) '
-                                                              '=> Удаляем только событие')
+                print(self.contacts_filtered[contact]['iof'], 'Если в бдS поставить стадию > НетОб -- '
+                                                              'вытаскиваем в бдМ, создаём event')
+                # Ищем event
                 ok_google = False
                 while not ok_google:
                     try:
-                        event4 = service_cal.events().get(calendarId='primary', eventId=contact) \
-                            .execute()
+                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact).execute()
                         ok_google = True
                     except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
-                event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
-                event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
-                ok_google = False
-                while not ok_google:
-                    try:
-                        updated_event = service_cal.events().update(calendarId='primary',
-                                                                    eventId=contact,
-                                                                    body=event4).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Если есть event с таким id - запрашиваем и редактируем
+                if len(my_events['items']):
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
+                                .execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                    event4['start']['dateTime'] = datetime.combine(datetime.strptime(
+                                                     self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(),
+                                                     datetime.strptime('19:00', '%H:%M').time()).isoformat() + '+04:00'
+                    event4['end']['dateTime'] = datetime.combine(datetime.strptime(
+                                                     self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(),
+                                                     datetime.strptime('19:15', '%H:%M').time()).isoformat() + '+04:00'
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            updated_event = service_calM.events().update(calendarId='primary',
+                                                                        eventId=contact,
+                                                                        body=event4).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Если нет - создаём
+                else:
+                    event = {}
+                    event['id'] = contact
+                    event['start'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
+                                              datetime.strptime('19:00','%H:%M').time()).isoformat() + '+04:00'}
+                    event['end'] = {'dateTime' : datetime.combine((datetime.now().date() + timedelta(days=30)),
+                                              datetime.strptime('19:15','%H:%M').time()).isoformat() + '+04:00'}
+                    event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                    event['description'] = '|' + self.contacts_filtered[contact]['stage'] + '|' + \
+                                           self.contacts_filtered[contact]['calendar'] + '|' + \
+                                           str(round(self.contacts_filtered[contact]['cost'], 4)) + '|\n' + \
+                                           self.contacts_filtered[contact]['avito']
+                    event['summary'] = self.contacts_filtered[contact]['fio'] + ' - ' +\
+                                   self.contacts_filtered[contact]['stage']
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            calendar_result = service_calM.events().insert(calendarId='primary', body=event).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                # а. Проверить наличие бдМ
+                # б. Если нет - создать, если есть - отредактировать бдМ
+                # в. Удалить бдS
                 buf_contact = {}
                 buf_contact['userDefined'] = [{},{},{},{},{}]
                 buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
@@ -2496,6 +2535,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 buf_contact['userDefined'][3]['key'] = 'changed'
                 buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
                 buf_contact['userDefined'][4]['key'] = 'nameLink'
+
+
+
+
                 if self.contacts_filtered[contact]['main']:
                     buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
                 else:
@@ -2511,6 +2554,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
+
+
+
+
+
+
+
+
+
 
             if (5,6) self.contacts_filtered[contact]['stage'] == 'пауза':   # Было 'нет объявления' стало 'пауза' (5,6)
                 print(self.contacts_filtered[contact]['iof'], 'нет объявления -> пауза')
