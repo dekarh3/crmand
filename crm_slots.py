@@ -153,7 +153,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacty = {}
         self.contacts_filtered = {}
         self.contacts_filtered_reverced = []
-        self.contacts_filtered_reverced_main = []
+        self.contacts_filtered_reverced_main = [] # !!!!!!!!!!! Не работает !!!!!!!!!!!!!!!!
         self.contacts_id_avitos = {}
         self.avitos_id_contacts = {}
         self.contacts_id_instas = {}
@@ -924,6 +924,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         elif contacts_full == 'Full':
             number_of_new = 0
             for i, connection in enumerate(connections):
+                # Если уже есть в БдМ - удаляем в БдS и пропускаем цикл
+                if connection['resourceName'].split('/')[1] in self.contacty.keys():
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            resultsc = service.people().deleteContact(resourceName=connection['resourceName']).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                    continue
+                # Добавляем контакт в self.contacty
                 contact = {}
                 contact['main'] = False
                 contact['resourceName'] = connection['resourceName'].split('/')[1]
@@ -2239,7 +2251,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-
                     # Добавляем в текущую группу
                     ok_google = False
                     while not ok_google:
@@ -2314,8 +2325,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         6. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
         7. (LOST_STAGES+MINUS_STAGES; has_phone = True; contact_old = True; бдМ) => (бдМ->бдS; -event)
         бдМ->бдS (бдS->бдМ):
-        а. Проверить наличие бдS (бдМ) 
-        б. Создать бдS (бдМ)
+        а. Создать бдS (бдМ)
         в. Удалить бдМ (бдS)
         +event:
         а. Проверяем наличие event'а
@@ -2520,9 +2530,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-                # а. Проверить наличие бдМ
-                # б. Если нет - создать, если есть - отредактировать бдМ
-                # в. Удалить бдS
                 buf_contact = {}
                 buf_contact['userDefined'] = [{},{},{},{},{}]
                 buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
@@ -2535,6 +2542,39 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 buf_contact['userDefined'][3]['key'] = 'changed'
                 buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
                 buf_contact['userDefined'][4]['key'] = 'nameLink'
+                buf_contact['biographies'] = [{}]
+                buf_contact['biographies'][0]['value'] =
+                buf_contact['names'] = [{'familyName': familyName,
+                                         'givenName': givenName,
+                                         'middleName': middleName}]
+                buf_contact['urls'] = []
+                buf_contact['urls'].append({'value': url})
+                buf_contact['phoneNumbers'] = []
+                buf_contact['phoneNumbers'].append({'value': fine_phone(phone)})
+                buf_contact['emailAddresses'] = []
+                buf_contact['emailAddresses'].append({'value': email})
+                buf_contact['addresses'] = [{'streetAddress': self.leAddress.text().strip()}]
+                # Можно проще: запросить этот контакт в БдS
+
+
+                # Создаем контакт
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = serviceM.people().createContact(body=buf_contact).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Удаляем контакт
+                ok_google = False
+                while not ok_google:
+                    try:
+                        resultsc = serviceS.people().deleteContact(resourceName='people/' + contact['resourceName']).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
 
 
 
