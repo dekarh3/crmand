@@ -1185,7 +1185,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     resourceName='people/' + cur_id, personFields='metadata').execute()
                 ok_google = True
             except errors.HttpError as ee:
-                print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
+                print(datetime.now().strftime("%H:%M:%S") +' попробуем загрузить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
         self.contacts_filtered[cur_id]['etag'] = result['etag']
         return result['etag']
@@ -2530,33 +2530,28 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
+
+                ok_google = False
+                while not ok_google:
+                    try:
+                        result = serviceS.people().get(
+                            resourceName='people/' + contact, personFields='addresses,biographie,'
+                                             'emailAddresses,events,genders,names,nicknames,phoneNumbers,relations,'
+                                             'urls,userDefined').execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем загрузить контакт еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+
                 buf_contact = {}
-                buf_contact['userDefined'] = [{},{},{},{},{}]
-                buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
-                buf_contact['userDefined'][0]['key'] = 'stage'
-                buf_contact['userDefined'][1]['value'] = self.contacts_filtered[contact]['calendar']
-                buf_contact['userDefined'][1]['key'] = 'calendar'
-                buf_contact['userDefined'][2]['value'] = str(round(self.contacts_filtered[contact]['cost'], 4))
-                buf_contact['userDefined'][2]['key'] = 'cost'
-                buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
-                buf_contact['userDefined'][3]['key'] = 'changed'
-                buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
-                buf_contact['userDefined'][4]['key'] = 'nameLink'
-                buf_contact['biographies'] = [{}]
-                buf_contact['biographies'][0]['value'] =
-                buf_contact['names'] = [{'familyName': familyName,
-                                         'givenName': givenName,
-                                         'middleName': middleName}]
-                buf_contact['urls'] = []
-                buf_contact['urls'].append({'value': url})
-                buf_contact['phoneNumbers'] = []
-                buf_contact['phoneNumbers'].append({'value': fine_phone(phone)})
-                buf_contact['emailAddresses'] = []
-                buf_contact['emailAddresses'].append({'value': email})
-                buf_contact['addresses'] = [{'streetAddress': self.leAddress.text().strip()}]
-                # Можно проще: запросить этот контакт в БдS
-
-
+                buf_contact['resourceName'] = result['resourceName']
+                buf_contact['userDefined'] = result['userDefined']
+                buf_contact['biographies'] = result['biographies']
+                buf_contact['names'] = result['names']
+                buf_contact['urls'] = result['urls']
+                buf_contact['phoneNumbers'] = result['phoneNumbers']
+                buf_contact['emailAddresses'] = result['emailAddresses']
+                buf_contact['addresses'] = result['addresses']
                 # Создаем контакт
                 ok_google = False
                 while not ok_google:
@@ -2570,30 +2565,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 ok_google = False
                 while not ok_google:
                     try:
-                        resultsc = serviceS.people().deleteContact(resourceName='people/' + contact['resourceName']).execute()
+                        resultsc = serviceS.people().deleteContact(resourceName='people/' + contact).execute()
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-
-
-
-
-                if self.contacts_filtered[contact]['main']:
-                    buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
-                else:
-                    buf_contact['etag'] = self.google2db4etagS(cur_id=contact)
-                ok_google = False
-                while not ok_google:
-                    try:
-                        resultsc = service.people().updateContact(
-                            resourceName='people/' + contact,
-                            updatePersonFields='userDefined',
-                            body=buf_contact).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить стадию еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
 
 
 
