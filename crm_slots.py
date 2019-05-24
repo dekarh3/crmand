@@ -2146,7 +2146,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     buf_contact['userDefined'][4]['value'] = ''
                     buf_contact['userDefined'][4]['key'] = 'nameLink'
                     buf_contact['names'] = [{'givenName': str(j)}]
-                    buf_contact['urls'] = {'value': self.avitos[avito]}
+                    buf_contact['urls'] = [{'value': self.avitos[avito]}]
                     buf_contact['biographies'] = [{}]
                     buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() + timedelta(days=14)) \
                                                               + '|0м|\n'
@@ -2218,7 +2218,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     buf_contact['userDefined'][4]['value'] = ''
                     buf_contact['userDefined'][4]['key'] = 'nameLink'
                     buf_contact['names'] = [{'givenName': metabolito}]
-                    buf_contact['urls'] = {'value': 'https://www.instagram.com/' + metabolito + '/'}
+                    buf_contact['urls'] = [{'value': 'https://www.instagram.com/' + metabolito + '/'}]
                     buf_contact['biographies'] = [{}]
                     try:
                         account = Account(metabolito)
@@ -3389,7 +3389,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         buf_contact['userDefined'][2]['value'] = '0'
                         buf_contact['userDefined'][2]['key'] = 'cost'
                         buf_contact['names'] = [{'givenName': str(j)}]
-                        buf_contact['urls'] = {'value': avitos[avito_i]}
+                        buf_contact['urls'] = [{'value': avitos[avito_i]}]
                         buf_contact['biographies'] = [{}]
                         buf_contact['biographies'][0]['value'] = '|пауза|' + str(datetime.now().date() +
                                                                                  timedelta(days=14)) + '|0м|\n'
