@@ -1668,7 +1668,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             buf_contact['userDefined'][2]['key'] = 'cost'
             buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
             buf_contact['userDefined'][3]['key'] = 'changed'
-            buf_contact['userDefined'][4]['value'] = ''
+            buf_contact['userDefined'][4]['value'] = ' '
             buf_contact['userDefined'][4]['key'] = 'nameLink'
             buf_contact['biographies'] = [{}]
             if len(self.teNote.toPlainText()) > 0:
@@ -2143,7 +2143,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     buf_contact['userDefined'][2]['key'] = 'cost'
                     buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
                     buf_contact['userDefined'][3]['key'] = 'changed'
-                    buf_contact['userDefined'][4]['value'] = ''
+                    buf_contact['userDefined'][4]['value'] = ' '
                     buf_contact['userDefined'][4]['key'] = 'nameLink'
                     buf_contact['names'] = [{'givenName': str(j)}]
                     buf_contact['urls'] = [{'value': self.avitos[avito]}]
@@ -2215,7 +2215,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     buf_contact['userDefined'][2]['key'] = 'cost'
                     buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
                     buf_contact['userDefined'][3]['key'] = 'changed'
-                    buf_contact['userDefined'][4]['value'] = ''
+                    buf_contact['userDefined'][4]['value'] = ' '
                     buf_contact['userDefined'][4]['key'] = 'nameLink'
                     buf_contact['names'] = [{'givenName': metabolito}]
                     buf_contact['urls'] = [{'value': 'https://www.instagram.com/' + metabolito + '/'}]
