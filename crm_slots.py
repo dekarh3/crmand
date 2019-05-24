@@ -1950,7 +1950,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             if not self.teNote.toPlainText():
                 self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
                               '|' + self.leCost.text() + 'м|' + '\n')
-            if nameLink and FIOid:
+            if nameLink.strip() and FIOid:
                 self.contacty[FIOid]['nameLink'] = nameLink
             return
 
