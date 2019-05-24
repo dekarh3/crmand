@@ -597,7 +597,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
                 cost = 0
                 changed = QDate().currentDate().toString("dd.MM.yyyy")
-                nameLink = ''
+                nameLink = ' '
                 ostages = connection.get('userDefined', [])
                 if len(ostages) > 0:
                     for ostage in ostages:
@@ -717,7 +717,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
                     changed = QDate().currentDate().toString("dd.MM.yyyy")
                     cost = 0
-                    nameLink = ''
+                    nameLink = ' '
                     ostages = connection.get('userDefined', [])
                     if len(ostages) > 0:
                         for ostage in ostages:
@@ -986,7 +986,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
                 cost = 0
                 changed = QDate().currentDate().toString("dd.MM.yyyy")
-                nameLink = ''
+                nameLink = ' '
                 ostages = connection.get('userDefined', [])
                 if len(ostages) > 0:
                     for ostage in ostages:
@@ -1093,7 +1093,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     calendar = QDate().currentDate().addDays(-1).toString("dd.MM.yyyy")
                     changed = QDate().currentDate().toString("dd.MM.yyyy")
                     cost = 0
-                    nameLink = ''
+                    nameLink = ' '
                     ostages = connection.get('userDefined', [])
                     if len(ostages) > 0:
                         for ostage in ostages:
