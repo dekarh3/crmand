@@ -212,7 +212,21 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.labelAvitos.hide()
         return
 
-    def clickBack(self):  # Отчет по звонкам с FROM_DATE по выбранной группе
+    def clickBack(self):
+        clear_contacts = []
+        contacts = []
+        groups = []
+        for contact in self.contacty:
+            if self.contacty[contact]['iof'] == '':
+                clear_contacts.append([self.contacty[contact]['avito_id'], self.contacty[contact]['fio'],
+                                     self.contacty[contact]['stage']])
+                contacts.append(self.contacty[contact])
+                groups.append(self.contacty[contact]['groups'][0])
+        self.makeDialog(clear_contacts)
+
+        return
+
+    def report(self):  # Отчет по звонкам с FROM_DATE по выбранной группе
         FROM_DATE = datetime(2019, 3, 14)
         calls_group_ids = []
         for i, call in enumerate(self.calls):
@@ -1244,7 +1258,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if format_phone(call.split(']_[')[1]) == format_phone(phone):
                     self.calls_ids.append(i)
         self.leAddress.setText(self.contacty[self.FIO_cur_id]['town'])
-        self.leEmail.setText(' '.join(self.contacty[self.FIO_cur_id]['email']))
+        self.leEmail.setText(' '.join(self.contacty[self.FIO_cur_id].get('email')))
         self.leIOF.setText(self.contacty[self.FIO_cur_id]['iof'])
         urls = ''
         for url in self.contacty[self.FIO_cur_id]['urls']:
@@ -1322,7 +1336,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             for i, email in enumerate(self.leEmail.text().strip().split(' ')):
                 if email.strip() != '' and len(email.split('@')) > 0:
                     emails.append(email)
-        self.contacts_filtered[self.FIO_cur_id]['email'] = emails
+        self.contacts_filtered[self.FIO_cur_id]['email'] = ' '.join(emails)
         urls = []
         if len(self.leUrls.text().strip().split(' ')) > 0:
             for i, url in enumerate(self.leUrls.text().strip().split(' ')):
@@ -2340,15 +2354,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if len(self.avitos) < len(self.contacts_filtered) / 3:
             self.errMessage('Слишком мало контактов в списке авито, всего ' + str(len(self.avitos)))
             return
+        serviceM = discovery.build('people', 'v1', http=self.http_conM,
+                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        service_calM = discovery.build('calendar', 'v3', http=self.http_calM)
+        serviceS = discovery.build('people', 'v1', http=self.http_conS,
+                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        service_calS = discovery.build('calendar', 'v3', http=self.http_calS)
         self.progressBar.setMaximum(len(self.contacts_filtered) - 1)
         self.progressBar.show()
         for i, contact in enumerate(self.contacts_filtered):
-            serviceM = discovery.build('people', 'v1', http=self.http_conM,
-                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            service_calM = discovery.build('calendar', 'v3', http=self.http_calM)
-            serviceS = discovery.build('people', 'v1', http=self.http_conS,
-                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-            service_calS = discovery.build('calendar', 'v3', http=self.http_calS)
             self.progressBar.setValue(i)
             has_in_avito = False
             if str(self.contacts_filtered[contact].keys()).find('avito_id') > -1:
@@ -2414,7 +2428,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                               ee.resp['status'], ee.args[1].decode("utf-8"))
 
 # 3. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдМ) => (дат.now; LOST_STAGES; -event; бдМ)
-            if self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
+            elif self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
                     self.contacty[self.FIO_cur_id]['main']:
                 print(self.contacts_filtered[contact]['iof'], '(стПаузаНед; ав-; тел+; бдМ) => (дат.now; стНетОб; '
                                                               '-event; бдМ) -- Удаляем только событие')
@@ -2546,7 +2560,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 buf_contact['userDefined'][3]['key'] = 'changed'
                 buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
                 buf_contact['userDefined'][4]['key'] = 'nameLink'
-                #buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
+                buf_contact['etag'] = self.google2db4etagM(cur_id=contact)
                 # частично обновляем контакт
                 ok_google = False
                 while not ok_google:
@@ -2629,7 +2643,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 while not ok_google:
                     try:
                         result = serviceS.people().get(
-                            resourceName='people/' + contact, personFields='addresses,biographie,'
+                            resourceName='people/' + contact, personFields='addresses,biographies,'
                                                 'emailAddresses,events,genders,names,nicknames,phoneNumbers,relations,'
                                                 'urls,userDefined').execute()
                         ok_google = True
@@ -2638,13 +2652,34 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                               ee.resp['status'], ee.args[1].decode("utf-8"))
 
                 buf_contact = {}
-                buf_contact['resourceName'] = result['resourceName']
-                buf_contact['biographies'] = result['biographies']
-                buf_contact['names'] = result['names']
-                buf_contact['urls'] = result['urls']
-                buf_contact['phoneNumbers'] = result['phoneNumbers']
-                buf_contact['emailAddresses'] = result['emailAddresses']
-                buf_contact['addresses'] = result['addresses']
+                if len(buf_contact.get('biographies')):
+                    buf_contact['biographies'] = result['biographies']
+                    for j, url in buf_contact['biographies']:
+                        del buf_contact['biographies'][j]['metadata']
+                if len(buf_contact.get('names')):
+                    buf_contact['names'] = result['names']
+                    for j, url in buf_contact['names']:
+                        del buf_contact['names'][j]['metadata']
+                if len(buf_contact.get('urls')):
+                    buf_contact['urls'] = result['urls']
+                    for j, url in buf_contact['urls']:
+                        del buf_contact['urls'][j]['metadata']
+                if len(buf_contact.get('phoneNumbers')):
+                    buf_contact['phoneNumbers'] = result['phoneNumbers']
+                    for j, url in buf_contact['phoneNumbers']:
+                        del buf_contact['phoneNumbers'][j]['metadata']
+                if len(result.get('emailAddresses')):
+                    buf_contact['emailAddresses'] = result['emailAddresses']
+                    for j, url in buf_contact['emailAddresses']:
+                        del buf_contact['emailAddresses'][j]['metadata']
+                if len(buf_contact.get('addresses')):
+                    buf_contact['addresses'] = result['addresses']
+                    for j, url in buf_contact['addresses']:
+                        del buf_contact['addresses'][j]['metadata']
+                if len(buf_contact.get('userDefined')):
+                    buf_contact['addresses'] = result['userDefined']
+                    for j, url in buf_contact['userDefined']:
+                        del buf_contact['addresses'][j]['metadata']
                 buf_contact['userDefined'] = [{}, {}, {}, {}, {}]
                 buf_contact['userDefined'][0]['value'] = PAUSE_STAGES[0]
                 buf_contact['userDefined'][0]['key'] = 'stage'
@@ -2665,6 +2700,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
+                new_resourcename = resultsc['resourceName'].split('/')[1]
                 # Удаляем контакт в бдS
                 ok_google = False
                 while not ok_google:
@@ -2674,7 +2710,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
-
+                # Добавляем/удаляем во внутренних массивах
+                self.contacty[new_resourcename] = self.contacty[contact]
+                self.contacty[new_resourcename]['main'] = True
+                del self.contacty[contact]
 # 6. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
             elif self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
                     not self.contacty[self.FIO_cur_id]['main']:
@@ -2746,7 +2785,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 while not ok_google:
                     try:
                         result = serviceS.people().get(
-                            resourceName='people/' + contact, personFields='addresses,biographie,'
+                            resourceName='people/' + contact, personFields='addresses,biographies,'
                                              'emailAddresses,events,genders,names,nicknames,phoneNumbers,relations,'
                                              'urls,userDefined').execute()
                         ok_google = True
@@ -2755,13 +2794,30 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                               ee.resp['status'], ee.args[1].decode("utf-8"))
 
                 buf_contact = {}
-                buf_contact['resourceName'] = result['resourceName']
-                buf_contact['biographies'] = result['biographies']
-                buf_contact['names'] = result['names']
-                buf_contact['urls'] = result['urls']
-                buf_contact['phoneNumbers'] = result['phoneNumbers']
-                buf_contact['emailAddresses'] = result['emailAddresses']
-                buf_contact['addresses'] = result['addresses']
+                if len(buf_contact.get('biographies')):
+                    buf_contact['biographies'] = result['biographies']
+                    for j, url in buf_contact['biographies']:
+                        del buf_contact['biographies'][j]['metadata']
+                if len(buf_contact.get('names')):
+                    buf_contact['names'] = result['names']
+                    for j, url in buf_contact['names']:
+                        del buf_contact['names'][j]['metadata']
+                if len(buf_contact.get('urls')):
+                    buf_contact['urls'] = result['urls']
+                    for j, url in buf_contact['urls']:
+                        del buf_contact['urls'][j]['metadata']
+                if len(buf_contact.get('phoneNumbers')):
+                    buf_contact['phoneNumbers'] = result['phoneNumbers']
+                    for j, url in buf_contact['phoneNumbers']:
+                        del buf_contact['phoneNumbers'][j]['metadata']
+                if len(result.get('emailAddresses')):
+                    buf_contact['emailAddresses'] = result['emailAddresses']
+                    for j, url in buf_contact['emailAddresses']:
+                        del buf_contact['emailAddresses'][j]['metadata']
+                if len(buf_contact.get('addresses')):
+                    buf_contact['addresses'] = result['addresses']
+                    for j, url in buf_contact['addresses']:
+                        del buf_contact['addresses'][j]['metadata']
                 buf_contact['userDefined'] = [{},{},{},{},{}]
                 buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
                 buf_contact['userDefined'][0]['key'] = 'stage'
@@ -2773,7 +2829,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 buf_contact['userDefined'][3]['key'] = 'changed'
                 buf_contact['userDefined'][4]['value'] = self.contacts_filtered[contact]['nameLink']
                 buf_contact['userDefined'][4]['key'] = 'nameLink'
-
                 # Создаем контакт в бдM
                 ok_google = False
                 while not ok_google:
@@ -2783,6 +2838,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
+                new_resourcename = resultsc['resourceName'].split('/')[1]
                 # Удаляем контакт в бдS
                 ok_google = False
                 while not ok_google:
@@ -2792,7 +2848,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-
+                # Добавляем/удаляем во внутренних массивах
+                self.contacty[new_resourcename] = self.contacty[contact]
+                self.contacty[new_resourcename]['main'] = True
+                del self.contacty[contact]
 # 7. (LOST_STAGES+MINUS_STAGES; has_phone = True; contact_old = True; бдМ) => (бдМ->бдS; -event)
             elif self.contacts_filtered[contact]['stage'] in (LOST_STAGES + MINUS_STAGES) and has_phone and \
                     not has_in_avito and contact_old and self.contacty[self.FIO_cur_id]['main']:
@@ -2825,7 +2884,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 while not ok_google:
                     try:
                         result = serviceM.people().get(
-                            resourceName='people/' + contact, personFields='addresses,biographie,'
+                            resourceName='people/' + contact, personFields='addresses,biographies,'
                                                 'emailAddresses,events,genders,names,nicknames,phoneNumbers,relations,'
                                                 'urls,userDefined').execute()
                         ok_google = True
@@ -2834,14 +2893,35 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                               ee.resp['status'], ee.args[1].decode("utf-8"))
                 # Копируем
                 buf_contact = {}
-                buf_contact['resourceName'] = result['resourceName']
-                buf_contact['biographies'] = result['biographies']
-                buf_contact['names'] = result['names']
-                buf_contact['urls'] = result['urls']
-                buf_contact['phoneNumbers'] = result['phoneNumbers']
-                buf_contact['emailAddresses'] = result['emailAddresses']
-                buf_contact['addresses'] = result['addresses']
-                buf_contact['userDefined'] = result['userDefined']
+                #buf_contact['resourceName'] = result['resourceName']
+                if len(buf_contact.get('biographies')):
+                    buf_contact['biographies'] = result['biographies']
+                    for j, url in buf_contact['biographies']:
+                        del buf_contact['biographies'][j]['metadata']
+                if len(buf_contact.get('names')):
+                    buf_contact['names'] = result['names']
+                    for j, url in buf_contact['names']:
+                        del buf_contact['names'][j]['metadata']
+                if len(buf_contact.get('urls')):
+                    buf_contact['urls'] = result['urls']
+                    for j, url in buf_contact['urls']:
+                        del buf_contact['urls'][j]['metadata']
+                if len(buf_contact.get('phoneNumbers')):
+                    buf_contact['phoneNumbers'] = result['phoneNumbers']
+                    for j, url in buf_contact['phoneNumbers']:
+                        del buf_contact['phoneNumbers'][j]['metadata']
+                if len(result.get('emailAddresses')):
+                    buf_contact['emailAddresses'] = result['emailAddresses']
+                    for j, url in buf_contact['emailAddresses']:
+                        del buf_contact['emailAddresses'][j]['metadata']
+                if len(buf_contact.get('addresses')):
+                    buf_contact['addresses'] = result['addresses']
+                    for j, url in buf_contact['addresses']:
+                        del buf_contact['addresses'][j]['metadata']
+                if len(buf_contact.get('userDefined')):
+                    buf_contact['addresses'] = result['userDefined']
+                    for j, url in buf_contact['userDefined']:
+                        del buf_contact['addresses'][j]['metadata']
                 # Создаем контакт в бдS
                 ok_google = False
                 while not ok_google:
@@ -2851,6 +2931,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
+                new_resourcename = resultsc['resourceName'].split('/')[1]
                 # Удаляем контакт в бдM
                 ok_google = False
                 while not ok_google:
@@ -2860,7 +2941,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
-
+                # Добавляем/удаляем во внутренних массивах
+                self.contacty[new_resourcename] = self.contacty[contact]
+                self.contacty[new_resourcename]['main'] = False
+                del self.contacty[contact]
         self.progressBar.hide()
         # Перезагружаем ВСЕ контакты из gmail
         self.FIO_saved_id = self.FIO_cur_id
