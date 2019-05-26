@@ -613,6 +613,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 changed = QDate().currentDate().toString("dd.MM.yyyy")
                 nameLink = ' '
                 ostages = connection.get('userDefined', [])
+                has_changed = False
                 if len(ostages) > 0:
                     for ostage in ostages:
                         if ostage['key'].lower() == 'stage':
@@ -623,6 +624,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             cost = float(ostage['value'])
                         if ostage['key'].lower() == 'changed':
                             changed = ostage['value']
+                            has_changed = True
                         if ostage['key'].lower() == 'nameLink':
                             nameLink = ostage['value']
                 contact['stage'] = stage
@@ -630,6 +632,49 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 contact['cost'] = cost + random() * 1e-5
                 contact['changed'] = changed
                 contact['nameLink'] = nameLink
+                in_avito_groups = False
+                for group in contact['groups']:
+                    if group in AVITO_GROUPS.keys():
+                        in_avito_groups = True
+                        break
+                if not has_changed and in_avito_groups:
+                    # формируем часть контакта для обновления
+                    buf_contact = {}
+                    buf_contact['userDefined'] = [{}, {}, {}, {}, {}]
+                    buf_contact['userDefined'][0]['value'] = stage
+                    buf_contact['userDefined'][0]['key'] = 'stage'
+                    buf_contact['userDefined'][1]['value'] = calendar
+                    buf_contact['userDefined'][1]['key'] = 'calendar'
+                    buf_contact['userDefined'][2]['value'] = str(cost)
+                    buf_contact['userDefined'][2]['key'] = 'cost'
+                    buf_contact['userDefined'][3]['value'] = QDate().currentDate().toString("dd.MM.yyyy")
+                    buf_contact['userDefined'][3]['key'] = 'changed'
+                    buf_contact['userDefined'][4]['value'] = nameLink
+                    buf_contact['userDefined'][4]['key'] = 'nameLink'
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            result = service.people().get(
+                                resourceName=connection['resourceName'], personFields='metadata').execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                    buf_contact['etag'] = result['etag']
+                    # частично обновляем контакт
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            resultsc = service.people().updateContact(
+                                resourceName=connection['resourceName'],
+                                updatePersonFields='userDefined',
+                                body=buf_contact).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime(
+                                "%H:%M:%S") + ' попробуем обновить userDefined еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+
                 town = ''
                 oaddresses = connection.get('addresses', [])
                 if len(oaddresses) > 0:
@@ -733,6 +778,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     cost = 0
                     nameLink = ' '
                     ostages = connection.get('userDefined', [])
+                    has_changed = False
                     if len(ostages) > 0:
                         for ostage in ostages:
                             if ostage['key'].lower() == 'stage':
@@ -743,6 +789,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 cost = float(ostage['value'])
                             if ostage['key'].lower() == 'changed':
                                 changed = ostage['value']
+                                has_changed = True
                             if ostage['key'].lower() == 'nameLink':
                                 nameLink = ostage['value']
                     contact['stage'] = stage
@@ -2573,7 +2620,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить userDefined еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
-
 # 5. (LOST_STAGES; has_in_avito = True; has_phone = True; бдS) => (PAUSE_STAGES; дат.now; +event=calendar; бдS->бдМ)
             elif self.contacts_filtered[contact]['stage'] in LOST_STAGES and has_in_avito and has_phone and \
                     not self.contacty[self.FIO_cur_id]['main']:
@@ -2652,33 +2698,29 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                               ee.resp['status'], ee.args[1].decode("utf-8"))
 
                 buf_contact = {}
-                if len(buf_contact.get('biographies')):
+                if len(result.get('biographies',[])):
                     buf_contact['biographies'] = result['biographies']
-                    for j, url in buf_contact['biographies']:
+                    for j, url in enumerate(buf_contact['biographies']):
                         del buf_contact['biographies'][j]['metadata']
-                if len(buf_contact.get('names')):
+                if len(result.get('names',[])):
                     buf_contact['names'] = result['names']
-                    for j, url in buf_contact['names']:
+                    for j, url in enumerate(buf_contact['names']):
                         del buf_contact['names'][j]['metadata']
-                if len(buf_contact.get('urls')):
+                if len(result.get('urls',[])):
                     buf_contact['urls'] = result['urls']
-                    for j, url in buf_contact['urls']:
+                    for j, url in enumerate(buf_contact['urls']):
                         del buf_contact['urls'][j]['metadata']
-                if len(buf_contact.get('phoneNumbers')):
+                if len(result.get('phoneNumbers',[])):
                     buf_contact['phoneNumbers'] = result['phoneNumbers']
-                    for j, url in buf_contact['phoneNumbers']:
+                    for j, url in enumerate(buf_contact['phoneNumbers']):
                         del buf_contact['phoneNumbers'][j]['metadata']
-                if len(result.get('emailAddresses')):
+                if len(result.get('emailAddresses',[])):
                     buf_contact['emailAddresses'] = result['emailAddresses']
-                    for j, url in buf_contact['emailAddresses']:
+                    for j, url in enumerate(buf_contact['emailAddresses']):
                         del buf_contact['emailAddresses'][j]['metadata']
-                if len(buf_contact.get('addresses')):
+                if len(result.get('addresses',[])):
                     buf_contact['addresses'] = result['addresses']
-                    for j, url in buf_contact['addresses']:
-                        del buf_contact['addresses'][j]['metadata']
-                if len(buf_contact.get('userDefined')):
-                    buf_contact['addresses'] = result['userDefined']
-                    for j, url in buf_contact['userDefined']:
+                    for j, url in enumerate(buf_contact['addresses']):
                         del buf_contact['addresses'][j]['metadata']
                 buf_contact['userDefined'] = [{}, {}, {}, {}, {}]
                 buf_contact['userDefined'][0]['value'] = PAUSE_STAGES[0]
@@ -2701,6 +2743,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
                 new_resourcename = resultsc['resourceName'].split('/')[1]
+                # Добавляем в текущую группу
+                ok_google = False
+                while not ok_google:
+                    try:
+                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                        # почему-то работает, хотя должен быть как в serviceg
+                        resultsg = serviceM.contactGroups().members().modify(
+                            resourceName='contactGroups/' + self.groups_resourcenames_reversedM[self.group_cur],
+                            body=group_body
+                        ).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
                 # Удаляем контакт в бдS
                 ok_google = False
                 while not ok_google:
@@ -2794,29 +2850,29 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                               ee.resp['status'], ee.args[1].decode("utf-8"))
 
                 buf_contact = {}
-                if len(buf_contact.get('biographies')):
+                if len(result.get('biographies',[])):
                     buf_contact['biographies'] = result['biographies']
-                    for j, url in buf_contact['biographies']:
+                    for j, url in enumerate(buf_contact['biographies']):
                         del buf_contact['biographies'][j]['metadata']
-                if len(buf_contact.get('names')):
+                if len(result.get('names',[])):
                     buf_contact['names'] = result['names']
-                    for j, url in buf_contact['names']:
+                    for j, url in enumerate(buf_contact['names']):
                         del buf_contact['names'][j]['metadata']
-                if len(buf_contact.get('urls')):
+                if len(result.get('urls',[])):
                     buf_contact['urls'] = result['urls']
-                    for j, url in buf_contact['urls']:
+                    for j, url in enumerate(buf_contact['urls']):
                         del buf_contact['urls'][j]['metadata']
-                if len(buf_contact.get('phoneNumbers')):
+                if len(result.get('phoneNumbers',[])):
                     buf_contact['phoneNumbers'] = result['phoneNumbers']
-                    for j, url in buf_contact['phoneNumbers']:
+                    for j, url in enumerate(buf_contact['phoneNumbers']):
                         del buf_contact['phoneNumbers'][j]['metadata']
-                if len(result.get('emailAddresses')):
+                if len(result.get('emailAddresses',[])):
                     buf_contact['emailAddresses'] = result['emailAddresses']
-                    for j, url in buf_contact['emailAddresses']:
+                    for j, url in enumerate(buf_contact['emailAddresses']):
                         del buf_contact['emailAddresses'][j]['metadata']
-                if len(buf_contact.get('addresses')):
+                if len(result.get('addresses',[])):
                     buf_contact['addresses'] = result['addresses']
-                    for j, url in buf_contact['addresses']:
+                    for j, url in enumerate(buf_contact['addresses']):
                         del buf_contact['addresses'][j]['metadata']
                 buf_contact['userDefined'] = [{},{},{},{},{}]
                 buf_contact['userDefined'][0]['value'] = self.contacts_filtered[contact]['stage']
@@ -2839,6 +2895,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
                 new_resourcename = resultsc['resourceName'].split('/')[1]
+                # Добавляем в текущую группу
+                ok_google = False
+                while not ok_google:
+                    try:
+                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                        # почему-то работает, хотя должен быть как в serviceg
+                        resultsg = serviceM.contactGroups().members().modify(
+                            resourceName='contactGroups/' + self.groups_resourcenames_reversedM[self.group_cur],
+                            body=group_body
+                        ).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
                 # Удаляем контакт в бдS
                 ok_google = False
                 while not ok_google:
@@ -2894,34 +2964,34 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 # Копируем
                 buf_contact = {}
                 #buf_contact['resourceName'] = result['resourceName']
-                if len(buf_contact.get('biographies')):
+                if len(result.get('biographies',[])):
                     buf_contact['biographies'] = result['biographies']
-                    for j, url in buf_contact['biographies']:
+                    for j, url in enumerate(buf_contact['biographies']):
                         del buf_contact['biographies'][j]['metadata']
-                if len(buf_contact.get('names')):
+                if len(result.get('names',[])):
                     buf_contact['names'] = result['names']
-                    for j, url in buf_contact['names']:
+                    for j, url in enumerate(buf_contact['names']):
                         del buf_contact['names'][j]['metadata']
-                if len(buf_contact.get('urls')):
+                if len(result.get('urls',[])):
                     buf_contact['urls'] = result['urls']
-                    for j, url in buf_contact['urls']:
+                    for j, url in enumerate(buf_contact['urls']):
                         del buf_contact['urls'][j]['metadata']
-                if len(buf_contact.get('phoneNumbers')):
+                if len(result.get('phoneNumbers',[])):
                     buf_contact['phoneNumbers'] = result['phoneNumbers']
-                    for j, url in buf_contact['phoneNumbers']:
+                    for j, url in enumerate(buf_contact['phoneNumbers']):
                         del buf_contact['phoneNumbers'][j]['metadata']
-                if len(result.get('emailAddresses')):
+                if len(result.get('emailAddresses',[])):
                     buf_contact['emailAddresses'] = result['emailAddresses']
-                    for j, url in buf_contact['emailAddresses']:
+                    for j, url in enumerate(buf_contact['emailAddresses']):
                         del buf_contact['emailAddresses'][j]['metadata']
-                if len(buf_contact.get('addresses')):
+                if len(result.get('addresses',[])):
                     buf_contact['addresses'] = result['addresses']
-                    for j, url in buf_contact['addresses']:
+                    for j, url in enumerate(buf_contact['addresses']):
                         del buf_contact['addresses'][j]['metadata']
-                if len(buf_contact.get('userDefined')):
-                    buf_contact['addresses'] = result['userDefined']
-                    for j, url in buf_contact['userDefined']:
-                        del buf_contact['addresses'][j]['metadata']
+                if len(result.get('userDefined',[])):
+                    buf_contact['userDefined'] = result['userDefined']
+                    for j, url in enumerate(buf_contact['userDefined']):
+                        del buf_contact['userDefined'][j]['metadata']
                 # Создаем контакт в бдS
                 ok_google = False
                 while not ok_google:
@@ -2932,6 +3002,20 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
                 new_resourcename = resultsc['resourceName'].split('/')[1]
+                # Добавляем в текущую группу
+                ok_google = False
+                while not ok_google:
+                    try:
+                        group_body = {'resourceNamesToAdd': [resultsc['resourceName']], 'resourceNamesToRemove': []}
+                        # почему-то работает, хотя должен быть как в serviceg
+                        resultsg = serviceS.contactGroups().members().modify(
+                            resourceName='contactGroups/' + self.groups_resourcenames_reversedS[self.group_cur],
+                            body=group_body
+                        ).execute()
+                        ok_google = True
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
                 # Удаляем контакт в бдM
                 ok_google = False
                 while not ok_google:
