@@ -778,7 +778,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     cost = 0
                     nameLink = ' '
                     ostages = connection.get('userDefined', [])
-                    has_changed = False
                     if len(ostages) > 0:
                         for ostage in ostages:
                             if ostage['key'].lower() == 'stage':
@@ -789,7 +788,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 cost = float(ostage['value'])
                             if ostage['key'].lower() == 'changed':
                                 changed = ostage['value']
-                                has_changed = True
                             if ostage['key'].lower() == 'nameLink':
                                 nameLink = ostage['value']
                     contact['stage'] = stage
@@ -2430,12 +2428,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 if self.contacty[self.FIO_cur_id]['main']:
                     serv_c = service_calM
                     serv = serviceM
-                    print('(ав-;тел-;ст<+;бдM) => (-contact; -event; бдM) -- Удаляем и контакт и событие: ',
+                    print('1. (ав-;тел-;ст<+;бдM) => (-contact; -event; бдM) -- Удаляем и контакт и событие: ',
                           self.contacts_filtered[contact]['iof'])
                 else:
                     serv_c = None
                     serv = serviceS
-                    print('(ав-;тел-;ст<+;бдS) => (-contact; бдS) -- Удаляем контакт (события нет): ',
+                    print('2. (ав-;тел-;ст<+;бдS) => (-contact; бдS) -- Удаляем контакт (события нет): ',
                           self.contacts_filtered[contact]['iof'])
                 ok_google = False
                 if serv_c != None:
@@ -2477,7 +2475,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # 3. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдМ) => (дат.now; LOST_STAGES; -event; бдМ)
             elif self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
                     self.contacty[self.FIO_cur_id]['main']:
-                print(self.contacts_filtered[contact]['iof'], '(стПаузаНед; ав-; тел+; бдМ) => (дат.now; стНетОб; '
+                print(self.contacts_filtered[contact]['iof'], '3. (стПаузаНед; ав-; тел+; бдМ) => (дат.now; стНетОб; '
                                                               '-event; бдМ) -- Удаляем только событие')
                 # "Удаление события" = перемещение на дату 31.12.2012. Сначала запрашиваем имеющееся событие
                 ok_google = False
@@ -2533,11 +2531,14 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # 4. (LOST_STAGES; has_in_avito = True; has_phone = True; бдМ) => (PAUSE_STAGES; дат.now; +event=calendar; бдМ)
             elif self.contacts_filtered[contact]['stage'] in LOST_STAGES and has_in_avito and has_phone and \
                     self.contacty[self.FIO_cur_id]['main']:
+                print(self.contacts_filtered[contact]['iof'],'4. (LOST_STAGES; has_in_avito = True; has_phone = True; '
+                                                             'бдМ) => (PAUSE_STAGES; дат.now; +event=calendar; бдМ)')
                 # Ищем event
                 ok_google = False
                 while not ok_google:
                     try:
-                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact).execute()
+                        my_events = service_calM.events().list(calendarId='primary',
+                                                               iCalUID=contact + '@google.com').execute()
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
@@ -2623,6 +2624,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # 5. (LOST_STAGES; has_in_avito = True; has_phone = True; бдS) => (PAUSE_STAGES; дат.now; +event=calendar; бдS->бдМ)
             elif self.contacts_filtered[contact]['stage'] in LOST_STAGES and has_in_avito and has_phone and \
                     not self.contacty[self.FIO_cur_id]['main']:
+                print(self.contacts_filtered[contact]['iof'], '5. (LOST_STAGES; has_in_avito = True; has_phone = True; '
+                                                          'бдS) => (PAUSE_STAGES; дат.now; +event=calendar; бдS->бдМ)')
                 # Ищем event
                 ok_google = False
                 while not ok_google:
@@ -2773,7 +2776,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # 6. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
             elif self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
                     not self.contacty[self.FIO_cur_id]['main']:
-                print(self.contacts_filtered[contact]['iof'], 'Если в бдS поставить стадию > НетОб -- '
+                print(self.contacts_filtered[contact]['iof'], '6. Если в бдS поставить стадию > НетОб -- '
                                                               'вытаскиваем в бдМ, создаём event')
                 # Ищем event
                 ok_google = False
@@ -2925,6 +2928,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 # 7. (LOST_STAGES+MINUS_STAGES; has_phone = True; contact_old = True; бдМ) => (бдМ->бдS; -event)
             elif self.contacts_filtered[contact]['stage'] in (LOST_STAGES + MINUS_STAGES) and has_phone and \
                     not has_in_avito and contact_old and self.contacty[self.FIO_cur_id]['main']:
+                print(self.contacts_filtered[contact]['iof'], '7. (LOST_STAGES+MINUS_STAGES; has_phone = True; '
+                                                              'contact_old = True; бдМ) => (бдМ->бдS; -event)')
                 # Удаляем event = перемещаем на дату 31.12.2012. Сначала запрашиваем имеющееся событие
                 ok_google = False
                 while not ok_google:
