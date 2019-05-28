@@ -2441,7 +2441,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     ok_google = False
                     while not ok_google:
                         try:
-                            my_events = service_calM.events().list(calendarId='primary', iCalUID=contact).execute()
+                            my_events = service_calM.events().list(calendarId='primary', iCalUID=contact +
+                                                                                                '@google.com').execute()
                             ok_google = True
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
@@ -2491,7 +2492,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 ok_google = False
                 while not ok_google:
                     try:
-                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact).execute()
+                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact +
+                                                                                            '@google.com').execute()
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
@@ -2558,8 +2560,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 ok_google = False
                 while not ok_google:
                     try:
-                        my_events = service_calM.events().list(calendarId='primary',
-                                                               iCalUID=contact + '@google.com').execute()
+                        my_events = service_calM.events().list(calendarId='primary', iCalUID=contact +
+                                                                                             '@google.com').execute()
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
@@ -2651,7 +2653,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 ok_google = False
                 while not ok_google:
                     try:
-                        my_events = service_calM.events().list(calendarId='primary', iCalUID=contact).execute()
+                        my_events = service_calM.events().list(calendarId='primary', iCalUID=contact +
+                                                                                             '@google.com').execute()
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
@@ -2803,7 +2806,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 ok_google = False
                 while not ok_google:
                     try:
-                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact).execute()
+                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact
+                                                                                            + '@google.com').execute()
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
@@ -2955,7 +2959,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 ok_google = False
                 while not ok_google:
                     try:
-                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact).execute()
+                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact +
+                                                                                            '@google.com').execute()
                         ok_google = True
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
