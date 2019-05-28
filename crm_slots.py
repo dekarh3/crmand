@@ -2419,13 +2419,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 continue
             has_phone = len(self.contacts_filtered[contact]['phones']) > 0
             contact_old = datetime.strptime(self.contacts_filtered[contact]['changed'],'%d.%m.%Y') \
-                          < (datetime.now() - timedelta(days=31))
+                          <= (datetime.now() - timedelta(days=1))
 
 # 1. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдM) => (-contact; -event; бдM)
 # 2. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдS) => (-contact; бдS)
             if not has_in_avito and not has_phone and self.contacts_filtered[contact]['stage'] in \
                     (PAUSE_NED_STAGES + LOST_STAGES + MINUS_STAGES):
-                if self.contacty[self.FIO_cur_id]['main']:
+                if self.contacty[contact]['main']:
                     serv_c = service_calM
                     serv = serviceM
                     print('1. (ав-;тел-;ст<+;бдM) => (-contact; -event; бдM) -- Удаляем и контакт и событие: ',
@@ -2437,30 +2437,40 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                           self.contacts_filtered[contact]['iof'])
                 ok_google = False
                 if serv_c != None:
-                    # "Удаление события" = перемещение на дату 31.12.2012. Сначала запрашиваем имеющееся событие
-                    while not ok_google:
-                        try:
-                            event4 = serv_c.events().get(calendarId='primary', eventId=contact) \
-                                .execute()
-                            ok_google = True
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                    # Ставим дату
-                    event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
-                    event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
-                    # Обновляем
+                    # Ищем event
                     ok_google = False
                     while not ok_google:
                         try:
-                            updated_event = serv_c.events().update(calendarId='primary',
-                                                                        eventId=contact,
-                                                                        body=event4).execute()
+                            my_events = service_calM.events().list(calendarId='primary', iCalUID=contact).execute()
                             ok_google = True
                         except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
-
+                    # Если есть event с таким id - Удаляем event = перемещаем на дату 31.12.2012.
+                    if len(my_events['items']):
+                        # Сначала запрашиваем имеющееся событие
+                        while not ok_google:
+                            try:
+                                event4 = serv_c.events().get(calendarId='primary', eventId=contact) \
+                                    .execute()
+                                ok_google = True
+                            except errors.HttpError as ee:
+                                print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                                      ee.resp['status'], ee.args[1].decode("utf-8"))
+                        # Ставим дату
+                        event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                        event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
+                        # Обновляем
+                        ok_google = False
+                        while not ok_google:
+                            try:
+                                updated_event = serv_c.events().update(calendarId='primary',
+                                                                            eventId=contact,
+                                                                            body=event4).execute()
+                                ok_google = True
+                            except errors.HttpError as ee:
+                                print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
+                                      ee.resp['status'], ee.args[1].decode("utf-8"))
                 ok_google = False
                 # Удаляем контакт
                 while not ok_google:
@@ -2474,33 +2484,44 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
 # 3. (PAUSE_NED_STAGES; has_in_avito = False; has_phone = True; бдМ) => (дат.now; LOST_STAGES; -event; бдМ)
             elif self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
-                    self.contacty[self.FIO_cur_id]['main']:
+                    self.contacty[contact]['main']:
                 print(self.contacts_filtered[contact]['iof'], '3. (стПаузаНед; ав-; тел+; бдМ) => (дат.now; стНетОб; '
                                                               '-event; бдМ) -- Удаляем только событие')
-                # "Удаление события" = перемещение на дату 31.12.2012. Сначала запрашиваем имеющееся событие
+                # Ищем event
                 ok_google = False
                 while not ok_google:
                     try:
-                        event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
-                            .execute()
+                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact).execute()
                         ok_google = True
                     except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
-                # Ставим дату
-                event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
-                event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
-                ok_google = False
-                # Обновляем
-                while not ok_google:
-                    try:
-                        updated_event = service_calM.events().update(calendarId='primary',
-                                                                    eventId=contact,
-                                                                    body=event4).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Если есть event с таким id - Удаляем event = перемещаем на дату 31.12.2012.
+                if len(my_events['items']):
+                    # Сначала запрашиваем имеющееся событие
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
+                                .execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                    # Ставим дату
+                    event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                    event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
+                    ok_google = False
+                    # Обновляем
+                    while not ok_google:
+                        try:
+                            updated_event = service_calM.events().update(calendarId='primary',
+                                                                        eventId=contact,
+                                                                        body=event4).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                 # формируем часть контакта для обновления
                 buf_contact = {}
                 buf_contact['userDefined'] = [{},{},{},{},{}]
@@ -2530,7 +2551,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
 # 4. (LOST_STAGES; has_in_avito = True; has_phone = True; бдМ) => (PAUSE_STAGES; дат.now; +event=calendar; бдМ)
             elif self.contacts_filtered[contact]['stage'] in LOST_STAGES and has_in_avito and has_phone and \
-                    self.contacty[self.FIO_cur_id]['main']:
+                    self.contacty[contact]['main']:
                 print(self.contacts_filtered[contact]['iof'],'4. (LOST_STAGES; has_in_avito = True; has_phone = True; '
                                                              'бдМ) => (PAUSE_STAGES; дат.now; +event=calendar; бдМ)')
                 # Ищем event
@@ -2623,7 +2644,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                               ee.resp['status'], ee.args[1].decode("utf-8"))
 # 5. (LOST_STAGES; has_in_avito = True; has_phone = True; бдS) => (PAUSE_STAGES; дат.now; +event=calendar; бдS->бдМ)
             elif self.contacts_filtered[contact]['stage'] in LOST_STAGES and has_in_avito and has_phone and \
-                    not self.contacty[self.FIO_cur_id]['main']:
+                    not self.contacty[contact]['main']:
                 print(self.contacts_filtered[contact]['iof'], '5. (LOST_STAGES; has_in_avito = True; has_phone = True; '
                                                           'бдS) => (PAUSE_STAGES; дат.now; +event=calendar; бдS->бдМ)')
                 # Ищем event
@@ -2775,7 +2796,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 del self.contacty[contact]
 # 6. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
             elif self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
-                    not self.contacty[self.FIO_cur_id]['main']:
+                    not self.contacty[contact]['main']:
                 print(self.contacts_filtered[contact]['iof'], '6. Если в бдS поставить стадию > НетОб -- '
                                                               'вытаскиваем в бдМ, создаём event')
                 # Ищем event
@@ -2927,33 +2948,44 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 del self.contacty[contact]
 # 7. (LOST_STAGES+MINUS_STAGES; has_phone = True; contact_old = True; бдМ) => (бдМ->бдS; -event)
             elif self.contacts_filtered[contact]['stage'] in (LOST_STAGES + MINUS_STAGES) and has_phone and \
-                    not has_in_avito and contact_old and self.contacty[self.FIO_cur_id]['main']:
+                    not has_in_avito and contact_old and self.contacty[contact]['main']:
                 print(self.contacts_filtered[contact]['iof'], '7. (LOST_STAGES+MINUS_STAGES; has_phone = True; '
                                                               'contact_old = True; бдМ) => (бдМ->бдS; -event)')
-                # Удаляем event = перемещаем на дату 31.12.2012. Сначала запрашиваем имеющееся событие
+                # Ищем event
                 ok_google = False
                 while not ok_google:
                     try:
-                        event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
-                            .execute()
+                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact).execute()
                         ok_google = True
                     except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
-                # Ставим дату
-                event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
-                event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
-                ok_google = False
-                # Обновляем event
-                while not ok_google:
-                    try:
-                        updated_event = service_calM.events().update(calendarId='primary',
-                                                                    eventId=contact,
-                                                                    body=event4).execute()
-                        ok_google = True
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Если есть event с таким id - Удаляем event = перемещаем на дату 31.12.2012.
+                if len(my_events['items']):
+                    # Сначала запрашиваем имеющееся событие
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
+                                .execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                    # Ставим дату
+                    event4['start']['dateTime'] = datetime(2012, 12, 31, 15, 0).isoformat() + 'Z'
+                    event4['end']['dateTime'] = datetime(2012, 12, 31, 15, 15).isoformat() + 'Z'
+                    ok_google = False
+                    # Обновляем event
+                    while not ok_google:
+                        try:
+                            updated_event = service_calM.events().update(calendarId='primary',
+                                                                        eventId=contact,
+                                                                        body=event4).execute()
+                            ok_google = True
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
+                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                 # Загружаем контакт из бдM
                 ok_google = False
                 while not ok_google:
