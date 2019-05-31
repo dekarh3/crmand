@@ -2419,7 +2419,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 continue
             has_phone = len(self.contacts_filtered[contact]['phones']) > 0
             contact_old = datetime.strptime(self.contacts_filtered[contact]['changed'],'%d.%m.%Y') \
-                          <= (datetime.now() - timedelta(days=1))
+                          <= (datetime.now() - timedelta(days=31))
 
 # 1. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдM) => (-contact; -event; бдM)
 # 2. (has_in_avito = False; has_phone = False; PAUSE_NED_STAGES+LOST_STAGES+MINUS_STAGES; бдS) => (-contact; бдS)
@@ -2435,7 +2435,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     serv = serviceS
                     print('2. (ав-;тел-;ст<+;бдS) => (-contact; бдS) -- Удаляем контакт (события нет): ',
                           self.contacts_filtered[contact]['iof'])
-                ok_google = False
                 if serv_c != None:
                     # Ищем event
                     ok_google = False
@@ -2450,6 +2449,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     # Если есть event с таким id - Удаляем event = перемещаем на дату 31.12.2012.
                     if len(my_events['items']):
                         # Сначала запрашиваем имеющееся событие
+                        ok_google = False
                         while not ok_google:
                             try:
                                 event4 = serv_c.events().get(calendarId='primary', eventId=contact) \
