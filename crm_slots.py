@@ -57,6 +57,7 @@ WORK_STAGES = ['работаем', 'отработали', 'проводник',
 LOST_STAGES = ['нет объявления']
 PAUSE_STAGES = ['пауза']
 PAUSE_NED_STAGES = ['недозвон', 'пауза'] # Откуда можно изменить на 'нет объявления'
+PLUS_PLUS_STAGES = ['работаем', 'отработали']
 PLUS_STAGES = ['работаем', 'отработали', 'проводник', 'своим скажет', 'доверие', 'услышал', 'нужна встреча',
                     'диагностика', 'перезвонить', 'нужен e-mail', 'секретарь передаст', 'отправил сообщен',
                      'нет на месте']
@@ -1370,7 +1371,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     phones.append(fine_phone(phone))
         self.contacts_filtered[self.FIO_cur_id]['phones'] = phones
         self.contacts_filtered[self.FIO_cur_id]['stage'] = self.cbStage.currentText()
-        self.contacts_filtered[self.FIO_cur_id]['calendar'] = self.deCalendar.date().toString("dd.MM.yyyy")
+        if self.deCalendar.date().toString("dd.MM.yyyy") != '31.12.2012':
+            self.contacts_filtered[self.FIO_cur_id]['calendar'] = self.deCalendar.date().toString("dd.MM.yyyy")
         try:
             self.contacts_filtered[self.FIO_cur_id]['cost'] = float(self.leCost.text()) + random() * 1e-5
         except ValueError:
@@ -1618,22 +1620,27 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.db2www4one()
         self.FIO_saved_id = ''
         has_phone = False
+        has_stage_minus = False
         if len(self.contacts_filtered[self.FIO_cur_id]['phones']):
             if l(self.contacts_filtered[self.FIO_cur_id]['phones'][0]):
                 for contact in self.contacty:
+                    has_in_this_phone = False
                     if len(self.contacty[contact]['phones']):
                         for phone in self.contacty[contact]['phones']:
                             if len(self.contacts_filtered[self.FIO_cur_id]['phones']) and self.FIO_cur_id != contact:
                                 for phone_tek in self.contacts_filtered[self.FIO_cur_id]['phones']:
-                                    if fine_phone(phone) ==  fine_phone(phone_tek):
+                                    if fine_phone(phone) == fine_phone(phone_tek):
                                         has_phone = True
-                                        break
-                            if has_phone:
-                                break
-                        if has_phone:
+                                        has_in_this_phone = True
+                    if has_in_this_phone:
+                        if self.contacty[contact]['stage'] in MINUS_STAGES or \
+                                self.contacty[contact]['stage'] in PLUS_PLUS_STAGES:
+                            has_stage_minus = True
                             break
-        if has_phone:
+        if has_stage_minus:
             self.clbCheckPhone.setIcon(QIcon('phone-red.png'))
+        elif has_phone:
+            self.clbCheckPhone.setIcon(QIcon('phone.png'))
         else:
             self.clbCheckPhone.setIcon(QIcon('phone-green.png'))
         return
