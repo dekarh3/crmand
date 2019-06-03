@@ -262,11 +262,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def google2db4allM(self):                  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
-        service = discovery.build('people', 'v1', http=self.http_conM,
-                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        serviceg = discovery.build('contactGroups', 'v1', http=self.http_conM,
-                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        service_cal = discovery.build('calendar', 'v3', http=self.http_calM)  # Считываем весь календарь
+        ok_google = False
+        while not  ok_google:
+            try:
+                service = discovery.build('people', 'v1', http=self.http_conM,
+                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                serviceg = discovery.build('contactGroups', 'v1', http=self.http_conM,
+                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                service_cal = discovery.build('calendar', 'v3', http=self.http_calM)  # Считываем весь календарь
+                ok_google = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
 
         # Вытаскиваем названия групп
         groups_ok= False
@@ -841,11 +848,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def google2db4allS(self):  # Google -> Внутр БД (все контакты) с полным обновлением
         # Доступы
-        service = discovery.build('people', 'v1', http=self.http_conS,
-                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        serviceg = discovery.build('contactGroups', 'v1', http=self.http_conS,
-                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        #service_cal = discovery.build('calendar', 'v3', http=self.http_calS)  # Считываем весь календарь
+        ok_google = False
+        while not  ok_google:
+            try:
+                service = discovery.build('people', 'v1', http=self.http_conS,
+                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                serviceg = discovery.build('contactGroups', 'v1', http=self.http_conS,
+                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                # service_cal = discovery.build('calendar', 'v3', http=self.http_calS)  # Считываем весь календарь
+                ok_google = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
+
 
         # Вытаскиваем названия групп
         groups_ok = False
@@ -1219,11 +1234,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def google2db4etagM(self, cur_id=None):  # Google -> etag внутр БД (текущий контакт)
         if not cur_id:
             cur_id = self.FIO_cur_id
+        # Доступы
         ok_google = False
         while not ok_google:
             try:
                 service = discovery.build('people', 'v1', http=self.http_conM,
                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                ok_google = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
+        ok_google = False
+        while not ok_google:
+            try:
                 result = service.people().get(
                     resourceName='people/' + cur_id, personFields='metadata').execute()
                 ok_google = True
@@ -1236,11 +1259,19 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
     def google2db4etagS(self, cur_id=None):  # Google -> etag внутр БД (текущий контакт)
         if not cur_id:
             cur_id = self.FIO_cur_id
+        # Доступы
         ok_google = False
         while not ok_google:
             try:
                 service = discovery.build('people', 'v1', http=self.http_conS,
                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                ok_google = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
+        ok_google = False
+        while not ok_google:
+            try:
                 result = service.people().get(
                     resourceName='people/' + cur_id, personFields='metadata').execute()
                 ok_google = True
@@ -1795,9 +1826,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 buf_contact['addresses'] = [{'streetAddress': self.leAddress.text().strip()}]
         # Обновление/создание контакта
         if self.new_contact:
+            # Доступ
+            ok_google = False
+            while not ok_google:
+                try:
+                    service = discovery.build('people', 'v1', http=self.http_conM,
+                                              discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                    ok_google = True
+                except ConnectionResetError:
+                    print("Google отвалился")
+                    time.sleep(1)
             # Создаем контакт
-            service = discovery.build('people', 'v1', http=self.http_conM,
-                                      discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
             ok_google = False
             while not ok_google:
                 try:
@@ -1828,12 +1867,28 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                           ee.resp['status'], ee.args[1].decode("utf-8"))
         else:
             if self.contacty[self.FIO_cur_id]['main']:
-                service = discovery.build('people', 'v1', http=self.http_conM,
-                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                # Доступ
+                ok_google = False
+                while not ok_google:
+                    try:
+                        service = discovery.build('people', 'v1', http=self.http_conM,
+                                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                        ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                 buf_contact['etag'] = self.google2db4etagM()
             else:
-                service = discovery.build('people', 'v1', http=self.http_conS,
-                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                # Доступ
+                ok_google = False
+                while not ok_google:
+                    try:
+                        service = discovery.build('people', 'v1', http=self.http_conS,
+                                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                        ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                 buf_contact['etag'] = self.google2db4etagS()
             ok_google = False
             while not ok_google:
@@ -1929,8 +1984,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 calendar['summary'] = self.contacts_filtered[self.FIO_cur_id]['fio'] + ' - ' +\
                                    self.contacts_filtered[self.FIO_cur_id]['stage']
             self.all_events[self.FIO_cur_id] = event
+            # Доступ
+            ok_google = False
+            while not ok_google:
+                try:
+                    service_cal = discovery.build('calendar', 'v3', http=self.http_calM)
+                    ok_google = True
+                except ConnectionResetError:
+                    print("Google отвалился")
+                    time.sleep(1)
             # Обновляем календарь
-            service_cal = discovery.build('calendar', 'v3', http=self.http_calM)
             ok_google = False
             while not ok_google:
                 try:
@@ -2183,9 +2246,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             return
 
     def click_clbNewAdd(self):                   # Добавляем новые контакты (всегда в main)
-        service_cal = discovery.build('calendar', 'v3', http=self.http_calM)
-        service = discovery.build('people', 'v1', http=self.http_conM,
-                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        # Доступ
+        ok_google = False
+        while not ok_google:
+            try:
+                service_cal = discovery.build('calendar', 'v3', http=self.http_calM)
+                service = discovery.build('people', 'v1', http=self.http_conM,
+                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                ok_google = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
         j = round(random()*1000000)
         self.progressBar.show()
         if self.group_cur in AVITO_GROUPS.keys():   # Если в одной из групп avito
@@ -2406,12 +2477,21 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if len(self.avitos) < len(self.contacts_filtered) / 3:
             self.errMessage('Слишком мало контактов в списке авито, всего ' + str(len(self.avitos)))
             return
-        serviceM = discovery.build('people', 'v1', http=self.http_conM,
-                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        service_calM = discovery.build('calendar', 'v3', http=self.http_calM)
-        serviceS = discovery.build('people', 'v1', http=self.http_conS,
-                                   discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
-        service_calS = discovery.build('calendar', 'v3', http=self.http_calS)
+        # Доступ
+        ok_google = False
+        while not ok_google:
+            try:
+                serviceM = discovery.build('people', 'v1', http=self.http_conM,
+                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                service_calM = discovery.build('calendar', 'v3', http=self.http_calM)
+                serviceS = discovery.build('people', 'v1', http=self.http_conS,
+                                           discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                service_calS = discovery.build('calendar', 'v3', http=self.http_calS)
+                ok_google = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
+
         self.progressBar.setMaximum(len(self.contacts_filtered) - 1)
         self.progressBar.show()
         for i, contact in enumerate(self.contacts_filtered):
@@ -3108,9 +3188,17 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         else:
             self.group_saved_id = self.groups_resourcenames_reversedS[self.group_cur]
         self.FIO_saved_id = self.FIO_cur_id
-        service_cal = discovery.build('calendar', 'v3', http=self.http_calM)
-        service = discovery.build('people', 'v1', http=self.http_conM,
-                                  discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+        # Доступы
+        ok_google = False
+        while not  ok_google:
+            try:
+                service_cal = discovery.build('calendar', 'v3', http=self.http_calM)
+                service = discovery.build('people', 'v1', http=self.http_conM,
+                                          discoveryServiceUrl='https://people.googleapis.com/$discovery/rest')
+                ok_google = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
         print('Всего:', len(self.contacts_filtered))
         number_of_new = 0
         self.progressBar.setMaximum(len(self.contacts_filtered) - 1)
