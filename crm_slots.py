@@ -315,6 +315,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                              'userDefined') \
                                 .execute()
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
                                                             ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -333,6 +337,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                              'userDefined') \
                                 .execute()
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
                                                             ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -360,6 +368,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                              'userDefined') \
                                 .execute()
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -384,6 +396,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                              'userDefined') \
                                 .execute()
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -422,6 +438,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             if token:
                                 self.events_syncToken = token
                                 print('==============',token)
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
                                                             ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -440,6 +460,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             if token:
                                 self.events_syncToken = token
 #                                print('==============',token)
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем считать весь календарь еще раз - ошибка',
                                                              ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -466,6 +490,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             if token:
                                 self.events_syncToken = token
 #                                print('==============',token)
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -491,6 +519,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             if token:
                                 self.events_syncToken = token
 #                                print('==============',token)
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(datetime.now().strftime("%H:%M:%S") + ' нужна полная синхронизация, запускаем')
@@ -665,6 +697,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             result = service.people().get(
                                 resourceName=connection['resourceName'], personFields='metadata').execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -678,6 +713,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 updatePersonFields='userDefined',
                                 body=buf_contact).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime(
                                 "%H:%M:%S") + ' попробуем обновить userDefined еще раз - ошибка',
@@ -1006,6 +1044,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             resultsc = service.people().deleteContact(resourceName=connection['resourceName']).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -1250,6 +1291,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 result = service.people().get(
                     resourceName='people/' + cur_id, personFields='metadata').execute()
                 ok_google = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -1275,6 +1319,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 result = service.people().get(
                     resourceName='people/' + cur_id, personFields='metadata').execute()
                 ok_google = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' попробуем загрузить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -1842,6 +1889,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 try:
                     resultsc = service.people().createContact(body=buf_contact).execute()
                     ok_google = True
+                except ConnectionResetError:
+                    print("Google отвалился")
+                    time.sleep(1)
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                           ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -1862,6 +1912,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         body=group_body
                     ).execute()
                     ok_google = True
+                except ConnectionResetError:
+                    print("Google отвалился")
+                    time.sleep(1)
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
                           ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -1898,6 +1951,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         updatePersonFields='addresses,biographies,emailAddresses,names,phoneNumbers,urls,userDefined',
                         body=buf_contact).execute()
                     ok_google = True
+                except ConnectionResetError:
+                    print("Google отвалился")
+                    time.sleep(1)
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") +' попробуем еще раз - ошибка',
                                       ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2005,6 +2061,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     else:
                         calendar_result = service_cal.events().insert(calendarId='primary', body=calendar).execute()
                     ok_google = True
+                except ConnectionResetError:
+                    print("Google отвалился")
+                    time.sleep(1)
                 except errors.HttpError as ee:
                     print(datetime.now().strftime("%H:%M:%S") +' попробуем добавить/обновить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2294,6 +2353,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             resultsc = service.people().createContact(body=buf_contact).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2309,6 +2371,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 body=group_body
                             ).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2328,6 +2393,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2385,6 +2453,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             resultsc = service.people().createContact(body=buf_contact).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2398,6 +2469,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 body=group_body
                             ).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2417,6 +2491,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             calendar_result = service_cal.events().insert(calendarId='primary', body=event).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2530,6 +2607,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             my_events = service_calM.events().list(calendarId='primary', iCalUID=contact +
                                                                                                 '@google.com').execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2542,6 +2622,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                 event4 = serv_c.events().get(calendarId='primary', eventId=contact) \
                                     .execute()
                                 ok_google = True
+                            except ConnectionResetError:
+                                print("Google отвалился")
+                                time.sleep(1)
                             except errors.HttpError as ee:
                                 print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
                                       ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2556,6 +2639,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                                             eventId=contact,
                                                                             body=event4).execute()
                                 ok_google = True
+                            except ConnectionResetError:
+                                print("Google отвалился")
+                                time.sleep(1)
                             except errors.HttpError as ee:
                                 print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
                                       ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2566,6 +2652,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         resultsc = serv.people().deleteContact(
                             resourceName='people/' + contact).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2582,6 +2671,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         my_events = service_calM.events().list(calendarId='primary',iCalUID=contact +
                                                                                             '@google.com').execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2594,6 +2686,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
                                 .execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2608,6 +2703,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                                         eventId=contact,
                                                                         body=event4).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2634,6 +2732,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             updatePersonFields='userDefined',
                             body=buf_contact).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить userDefined еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2650,6 +2751,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         my_events = service_calM.events().list(calendarId='primary', iCalUID=contact +
                                                                                              '@google.com').execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2661,6 +2765,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
                                 .execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2677,6 +2784,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                                         eventId=contact,
                                                                         body=event4).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2702,6 +2812,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             calendar_result = service_calM.events().insert(calendarId='primary', body=event).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2728,6 +2841,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             updatePersonFields='userDefined',
                             body=buf_contact).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить userDefined еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2743,6 +2859,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         my_events = service_calM.events().list(calendarId='primary', iCalUID=contact +
                                                                                              '@google.com').execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2754,6 +2873,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
                                 .execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2770,6 +2892,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                                          eventId=contact,
                                                                          body=event4).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2795,6 +2920,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             calendar_result = service_calM.events().insert(calendarId='primary', body=event).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2807,6 +2935,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                 'emailAddresses,events,genders,names,nicknames,phoneNumbers,relations,'
                                                 'urls,userDefined').execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем загрузить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2853,6 +2984,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     try:
                         resultsc = serviceM.people().createContact(body=buf_contact).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2868,6 +3002,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             body=group_body
                         ).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2877,6 +3014,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     try:
                         resultsc = serviceS.people().deleteContact(resourceName='people/' + contact).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2896,6 +3036,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         my_events = service_calM.events().list(calendarId='primary',iCalUID=contact
                                                                                             + '@google.com').execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2907,6 +3050,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
                                 .execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2923,6 +3069,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                                         eventId=contact,
                                                                         body=event4).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2948,6 +3097,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         try:
                             calendar_result = service_calM.events().insert(calendarId='primary', body=event).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -2960,6 +3112,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'emailAddresses,events,genders,names,nicknames,phoneNumbers,relations,'
                                              'urls,userDefined').execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем загрузить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3006,6 +3161,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     try:
                         resultsc = serviceM.people().createContact(body=buf_contact).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3021,6 +3179,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             body=group_body
                         ).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3030,6 +3191,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     try:
                         resultsc = serviceS.people().deleteContact(resourceName='people/' + contact).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3049,6 +3213,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         my_events = service_calM.events().list(calendarId='primary',iCalUID=contact +
                                                                                             '@google.com').execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3061,6 +3228,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
                                 .execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3075,6 +3245,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                                         eventId=contact,
                                                                         body=event4).execute()
                             ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3087,6 +3260,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                                 'emailAddresses,events,genders,names,nicknames,phoneNumbers,relations,'
                                                 'urls,userDefined').execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем загрузить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3127,6 +3303,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     try:
                         resultsc = serviceS.people().createContact(body=buf_contact).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем создать контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3142,6 +3321,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                             body=group_body
                         ).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить в группу еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3151,6 +3333,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     try:
                         resultsc = serviceM.people().deleteContact(resourceName='people/' + contact).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить контакт еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3213,6 +3398,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         event4 = service_cal.events().get(calendarId='primary', eventId=contact['resourceName'])\
                                                                                                             .execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем запросить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3224,6 +3412,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                         updated_event = service_cal.events().update(calendarId='primary',
                                                     eventId=contact['resourceName'], body=event4).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить событие еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -3233,6 +3424,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     try:
                         resultsc = service.people().deleteContact(resourceName='people/' + contact['resourceName']).execute()
                         ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") +' попробуем удалить контакт еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
