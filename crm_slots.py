@@ -1450,7 +1450,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts_filtered[self.FIO_cur_id]['phones'] = phones
         self.contacts_filtered[self.FIO_cur_id]['stage'] = self.cbStage.currentText()
         if self.deCalendar.date().toString("dd.MM.yyyy") != '31.12.2012':
-            self.contacts_filtered[self.FIO_cur_id]['calendar'] = self.deCalendar.date().toString("dd.MM.yyyy")
+            calendar_ok = self.deCalendar.date().toString("dd.MM.yyyy")
+        else:
+            calendar_ok = self.contacts_filtered[self.FIO_cur_id]['calendar']
+        self.contacts_filtered[self.FIO_cur_id]['calendar'] = calendar_ok
         try:
             self.contacts_filtered[self.FIO_cur_id]['cost'] = float(self.leCost.text()) + random() * 1e-5
         except ValueError:
@@ -1470,16 +1473,16 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.contacts_filtered[self.FIO_cur_id]['urls'] = urls
         if len(self.teNote.toPlainText()) > 0:
             if self.teNote.toPlainText()[0] != '|':
-                self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
+                self.teNote.setText('|' + self.cbStage.currentText() + '|' + calendar_ok +
                                     '|' + '{0:0g}'.format(round(self.contacts_filtered[self.FIO_cur_id]['cost']*1000)/1000)+
                                     'м|' + '\n' + self.teNote.toPlainText())
             else:
                 txt = self.teNote.toPlainText()
-                self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
+                self.teNote.setText('|' + self.cbStage.currentText() + '|' + calendar_ok +
                                     '|' + '{0:0g}'.format(round(self.contacts_filtered[self.FIO_cur_id]['cost']*1000)/1000)+
                                     'м|' + '\n' + txt[txt.find('\n') + 1:])
         else:
-            self.teNote.setText('|' + self.cbStage.currentText() + '|' + self.deCalendar.date().toString("dd.MM.yyyy") +
+            self.teNote.setText('|' + self.cbStage.currentText() + '|' + calendar_ok +
                                 '|' + '{0:0g}'.format(round(self.contacts_filtered[self.FIO_cur_id]['cost'] * 1000) / 1000) +
                                 'м|' + '\n' + self.teNote.toPlainText())
         self.contacts_filtered[self.FIO_cur_id]['note'] = self.teNote.toPlainText()
