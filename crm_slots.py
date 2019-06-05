@@ -901,14 +901,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             except ConnectionResetError:
                 print("Google отвалился")
                 time.sleep(1)
-
-
         # Вытаскиваем названия групп
         groups_ok = False
         while not groups_ok:
             try:
                 resultsg = serviceg.contactGroups().list(pageSize=200).execute()
                 groups_ok = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") + ' вытаскиваем названия групп еще раз - ошибка',
                       ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -918,7 +919,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             self.groups_resourcenames[contactGroup['resourceName'].split('/')[1]] = contactGroup['name']
             self.groups_resourcenames_main[contactGroup['resourceName'].split('/')[1]] = False
             self.groups_resourcenames_reversedS[contactGroup['name']] = contactGroup['resourceName'].split('/')[1]
-
         # Контакты
         contacts_ok = False
         contacts_full = 'None'
@@ -940,6 +940,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                              'userDefined') \
                                 .execute()
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -958,6 +962,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                              'userDefined') \
                                 .execute()
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             print(datetime.now().strftime("%H:%M:%S") + ' попробуем еще раз - ошибка',
                                   ee.resp['status'], ee.args[1].decode("utf-8"))
@@ -985,6 +993,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                              'userDefined') \
                                 .execute()
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(
@@ -1010,6 +1022,10 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                                              'relationshipInterests,relationshipStatuses,residences,skills,taglines,urls,'
                                              'userDefined') \
                                 .execute()
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                            continue
                         except errors.HttpError as ee:
                             if ee.resp['status'] == '410':
                                 print(
