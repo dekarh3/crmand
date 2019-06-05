@@ -281,6 +281,9 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             try:
                 resultsg = serviceg.contactGroups().list(pageSize=200).execute()
                 groups_ok = True
+            except ConnectionResetError:
+                print("Google отвалился")
+                time.sleep(1)
             except errors.HttpError as ee:
                 print(datetime.now().strftime("%H:%M:%S") +' вытаскиваем названия групп еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
