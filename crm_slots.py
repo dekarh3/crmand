@@ -2874,80 +2874,6 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     not self.contacty[contact]['main']:
                 print(self.contacts_filtered[contact]['iof'], '5. (LOST_STAGES; has_in_avito = True; has_phone = True; '
                                                           'бдS) => (PAUSE_STAGES; дат.now; +event=calendar; бдS->бдМ)')
-                # Ищем event
-                ok_google = False
-                while not ok_google:
-                    try:
-                        my_events = service_calM.events().list(calendarId='primary', iCalUID=contact +
-                                                                                             '@google.com').execute()
-                        ok_google = True
-                    except ConnectionResetError:
-                        print("Google отвалился")
-                        time.sleep(1)
-                    except errors.HttpError as ee:
-                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
-                              ee.resp['status'], ee.args[1].decode("utf-8"))
-                # Если есть event с таким id - запрашиваем и редактируем
-                if len(my_events['items']):
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
-                                .execute()
-                            ok_google = True
-                        except ConnectionResetError:
-                            print("Google отвалился")
-                            time.sleep(1)
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                    event4['start']['dateTime'] = datetime.combine(datetime.strptime(
-                        self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:00',
-                                                                                '%H:%M').time()).isoformat() + '+04:00'
-                    event4['end']['dateTime'] = datetime.combine(datetime.strptime(
-                        self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:15',
-                                                                                '%H:%M').time()).isoformat() + '+04:00'
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            updated_event = service_calM.events().update(calendarId='primary',
-                                                                         eventId=contact,
-                                                                         body=event4).execute()
-                            ok_google = True
-                        except ConnectionResetError:
-                            print("Google отвалился")
-                            time.sleep(1)
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем обновить событие еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                # Если нет - создаём
-                else:
-                    event = {}
-                    event['id'] = contact
-                    event['start'] = {'dateTime': datetime.combine(datetime.strptime(
-                        self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:00',
-                                                                               '%H:%M').time()).isoformat() + '+04:00'}
-                    event['end'] = {'dateTime': datetime.combine(datetime.strptime(
-                        self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:15',
-                                                                               '%H:%M').time()).isoformat() + '+04:00'}
-                    event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-                    event['description'] = '|' + self.contacts_filtered[contact]['stage'] + '|' + \
-                                           self.contacts_filtered[contact]['calendar'] + '|' + \
-                                           str(round(self.contacts_filtered[contact]['cost'], 4)) + '|\n' + \
-                                           self.contacts_filtered[contact]['avito']
-                    event['summary'] = self.contacts_filtered[contact]['fio'] + ' - ' + \
-                                       self.contacts_filtered[contact]['stage']
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            calendar_result = service_calM.events().insert(calendarId='primary', body=event).execute()
-                            ok_google = True
-                        except ConnectionResetError:
-                            print("Google отвалился")
-                            time.sleep(1)
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
                 # Загружаем контакт из бдS
                 ok_google = False
                 while not ok_google:
@@ -3046,17 +2972,12 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.contacty[new_resourcename] = self.contacty[contact]
                 self.contacty[new_resourcename]['main'] = True
                 del self.contacty[contact]
-# 6. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
-            elif self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
-                    not self.contacty[contact]['main']:
-                print(self.contacts_filtered[contact]['iof'], '6. Если в бдS поставить стадию > НетОб -- '
-                                                              'вытаскиваем в бдМ, создаём event')
                 # Ищем event
                 ok_google = False
                 while not ok_google:
                     try:
-                        my_events = service_calM.events().list(calendarId='primary',iCalUID=contact
-                                                                                            + '@google.com').execute()
+                        my_events = service_calM.events().list(calendarId='primary', iCalUID=contact +
+                                                                                             '@google.com').execute()
                         ok_google = True
                     except ConnectionResetError:
                         print("Google отвалился")
@@ -3064,67 +2985,51 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                     except errors.HttpError as ee:
                         print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
                               ee.resp['status'], ee.args[1].decode("utf-8"))
-                # Если есть event с таким id - запрашиваем и редактируем
+                # Если есть event с таким id - удаляем
                 if len(my_events['items']):
                     ok_google = False
                     while not ok_google:
                         try:
-                            event4 = service_calM.events().get(calendarId='primary', eventId=contact) \
-                                .execute()
+                            service_calM.events().delete(calendarId='primary', eventId=contact).execute()
                             ok_google = True
                         except ConnectionResetError:
                             print("Google отвалился")
                             time.sleep(1)
                         except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем запросить событие еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                    event4['start']['dateTime'] = datetime.combine(datetime.strptime(
-                                                     self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(),
-                                                     datetime.strptime('19:00', '%H:%M').time()).isoformat() + '+04:00'
-                    event4['end']['dateTime'] = datetime.combine(datetime.strptime(
-                                                     self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(),
-                                                     datetime.strptime('19:15', '%H:%M').time()).isoformat() + '+04:00'
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            updated_event = service_calM.events().update(calendarId='primary',
-                                                                        eventId=contact,
-                                                                        body=event4).execute()
-                            ok_google = True
-                        except ConnectionResetError:
-                            print("Google отвалился")
-                            time.sleep(1)
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем удалить событие еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
-                # Если нет - создаём
-                else:
-                    event = {}
-                    event['id'] = contact
-                    event['start'] = {'dateTime' : datetime.combine(datetime.strptime(
-                                                     self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(),
-                                                     datetime.strptime('19:00', '%H:%M').time()).isoformat() + '+04:00'}
-                    event['end'] = {'dateTime' : datetime.combine(datetime.strptime(
-                                                     self.contacts_filtered[contact]['calendar'], '%d.%m.%Y').date(),
-                                                     datetime.strptime('19:15', '%H:%M').time()).isoformat() + '+04:00'}
-                    event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-                    event['description'] = '|' + self.contacts_filtered[contact]['stage'] + '|' + \
-                                           self.contacts_filtered[contact]['calendar'] + '|' + \
-                                           str(round(self.contacts_filtered[contact]['cost'], 4)) + '|\n' + \
-                                           self.contacts_filtered[contact]['avito']
-                    event['summary'] = self.contacts_filtered[contact]['fio'] + ' - ' +\
-                                   self.contacts_filtered[contact]['stage']
-                    ok_google = False
-                    while not ok_google:
-                        try:
-                            calendar_result = service_calM.events().insert(calendarId='primary', body=event).execute()
-                            ok_google = True
-                        except ConnectionResetError:
-                            print("Google отвалился")
-                            time.sleep(1)
-                        except errors.HttpError as ee:
-                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
-                                  ee.resp['status'], ee.args[1].decode("utf-8"))
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем полностью удалить событие еще '
+                                    'раз - ошибка', ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Создаём event с новым id
+                event = {}
+                event['id'] = new_resourcename
+                event['start'] = {'dateTime': datetime.combine(datetime.strptime(
+                    self.contacts_filtered[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:00',
+                                                                           '%H:%M').time()).isoformat() + '+04:00'}
+                event['end'] = {'dateTime': datetime.combine(datetime.strptime(
+                    self.contacts_filtered[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:15',
+                                                                           '%H:%M').time()).isoformat() + '+04:00'}
+                event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                event['description'] = '|' + self.contacts_filtered[new_resourcename]['stage'] + '|' + \
+                                       self.contacts_filtered[new_resourcename]['calendar'] + '|' + \
+                                       str(round(self.contacts_filtered[new_resourcename]['cost'], 4)) + '|\n' + \
+                                       self.contacts_filtered[new_resourcename]['avito']
+                event['summary'] = self.contacts_filtered[new_resourcename]['fio'] + ' - ' + \
+                                   self.contacts_filtered[new_resourcename]['stage']
+                ok_google = False
+                while not ok_google:
+                    try:
+                        calendar_result = service_calM.events().insert(calendarId='primary', body=event).execute()
+                        ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+# 6. (PLUS_STAGES+PAUSE_NED_STAGES; has_phone = True; бдS) => (дат.now; +event=calendar; бдS->бдМ)
+            elif self.contacts_filtered[contact]['stage'] in PAUSE_NED_STAGES and not has_in_avito and has_phone and \
+                    not self.contacty[contact]['main']:
+                print(self.contacts_filtered[contact]['iof'], '6. Если в бдS поставить стадию > НетОб -- '
+                                                              'вытаскиваем в бдМ, создаём event')
                 # Загружаем контакт из бдS
                 ok_google = False
                 while not ok_google:
@@ -3223,6 +3128,59 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.contacty[new_resourcename] = self.contacty[contact]
                 self.contacty[new_resourcename]['main'] = True
                 del self.contacty[contact]
+                # Ищем event
+                ok_google = False
+                while not ok_google:
+                    try:
+                        my_events = service_calM.events().list(calendarId='primary', iCalUID=contact +
+                                                                                             '@google.com').execute()
+                        ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем найти событие еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Если есть event с таким id - удаляем
+                if len(my_events['items']):
+                    ok_google = False
+                    while not ok_google:
+                        try:
+                            service_calM.events().delete(calendarId='primary', eventId=contact).execute()
+                            ok_google = True
+                        except ConnectionResetError:
+                            print("Google отвалился")
+                            time.sleep(1)
+                        except errors.HttpError as ee:
+                            print(datetime.now().strftime("%H:%M:%S") + ' попробуем полностью удалить событие еще '
+                                    'раз - ошибка', ee.resp['status'], ee.args[1].decode("utf-8"))
+                # Создаём event с новым id
+                event = {}
+                event['id'] = new_resourcename
+                event['start'] = {'dateTime': datetime.combine(datetime.strptime(
+                    self.contacts_filtered[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:00',
+                                                                           '%H:%M').time()).isoformat() + '+04:00'}
+                event['end'] = {'dateTime': datetime.combine(datetime.strptime(
+                    self.contacts_filtered[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:15',
+                                                                           '%H:%M').time()).isoformat() + '+04:00'}
+                event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
+                event['description'] = '|' + self.contacts_filtered[new_resourcename]['stage'] + '|' + \
+                                       self.contacts_filtered[new_resourcename]['calendar'] + '|' + \
+                                       str(round(self.contacts_filtered[new_resourcename]['cost'], 4)) + '|\n' + \
+                                       self.contacts_filtered[new_resourcename]['avito']
+                event['summary'] = self.contacts_filtered[new_resourcename]['fio'] + ' - ' + \
+                                   self.contacts_filtered[new_resourcename]['stage']
+                ok_google = False
+                while not ok_google:
+                    try:
+                        calendar_result = service_calM.events().insert(calendarId='primary', body=event).execute()
+                        ok_google = True
+                    except ConnectionResetError:
+                        print("Google отвалился")
+                        time.sleep(1)
+                    except errors.HttpError as ee:
+                        print(datetime.now().strftime("%H:%M:%S") + ' попробуем добавить event еще раз - ошибка',
+                              ee.resp['status'], ee.args[1].decode("utf-8"))
 # 7. (LOST_STAGES+MINUS_STAGES; has_phone = True; contact_old = True; бдМ) => (бдМ->бдS; -event)
             elif self.contacts_filtered[contact]['stage'] in (LOST_STAGES + MINUS_STAGES) and has_phone and \
                     not has_in_avito and contact_old and self.contacty[contact]['main']:
