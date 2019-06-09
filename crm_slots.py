@@ -138,11 +138,16 @@ def get_credentials(cr_file, sec_file, scopes):
 #        print('Storing credentials to ' + credential_path)
 #    return credentials
 
+#class twKeyPressEvent(QTableWidget.keyPressEvent()):
+#    pass
+
 
 class MainWindowSlots(Ui_Form):   # Определяем функции, которые будем вызывать в слотах
 
     def setupUi(self, form):
         Ui_Form.setupUi(self,form)
+        self.twFIOkeyPressEventMain = self.twFIO.keyPressEvent
+        self.twFIO.keyPressEvent = self.twFIOkeyPressEvent
         if len(argv):
             print(argv)
         #self.agent = Agent()
@@ -212,6 +217,11 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         self.metabolitos = []
         self.labelAvitos.hide()
         return
+
+    def twFIOkeyPressEvent(self,e):
+        self.twFIOkeyPressEventMain(e)
+        if e.key() == Qt.Key_Down or e.key() == Qt.Key_Up:
+            self.click_twFIO(index=self.twFIO.model().index(self.twFIO.currentRow(), 0))
 
     def clickBack(self):
         clear_contacts = []
@@ -3002,18 +3012,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 event = {}
                 event['id'] = new_resourcename
                 event['start'] = {'dateTime': datetime.combine(datetime.strptime(
-                    self.contacts_filtered[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:00',
+                    self.contacty[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:00',
                                                                            '%H:%M').time()).isoformat() + '+04:00'}
                 event['end'] = {'dateTime': datetime.combine(datetime.strptime(
-                    self.contacts_filtered[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:15',
+                    self.contacty[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:15',
                                                                            '%H:%M').time()).isoformat() + '+04:00'}
                 event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-                event['description'] = '|' + self.contacts_filtered[new_resourcename]['stage'] + '|' + \
-                                       self.contacts_filtered[new_resourcename]['calendar'] + '|' + \
-                                       str(round(self.contacts_filtered[new_resourcename]['cost'], 4)) + '|\n' + \
-                                       self.contacts_filtered[new_resourcename]['avito']
-                event['summary'] = self.contacts_filtered[new_resourcename]['fio'] + ' - ' + \
-                                   self.contacts_filtered[new_resourcename]['stage']
+                event['description'] = '|' + self.contacty[new_resourcename]['stage'] + '|' + \
+                                       self.contacty[new_resourcename]['calendar'] + '|' + \
+                                       str(round(self.contacty[new_resourcename]['cost'], 4)) + '|\n' + \
+                                       self.contacty[new_resourcename]['avito']
+                event['summary'] = self.contacty[new_resourcename]['fio'] + ' - ' + \
+                                   self.contacty[new_resourcename]['stage']
                 ok_google = False
                 while not ok_google:
                     try:
@@ -3158,18 +3168,18 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 event = {}
                 event['id'] = new_resourcename
                 event['start'] = {'dateTime': datetime.combine(datetime.strptime(
-                    self.contacts_filtered[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:00',
+                    self.contacty[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:00',
                                                                            '%H:%M').time()).isoformat() + '+04:00'}
                 event['end'] = {'dateTime': datetime.combine(datetime.strptime(
-                    self.contacts_filtered[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:15',
+                    self.contacty[new_resourcename]['calendar'], '%d.%m.%Y').date(), datetime.strptime('19:15',
                                                                            '%H:%M').time()).isoformat() + '+04:00'}
                 event['reminders'] = {'overrides': [{'method': 'popup', 'minutes': 0}], 'useDefault': False}
-                event['description'] = '|' + self.contacts_filtered[new_resourcename]['stage'] + '|' + \
-                                       self.contacts_filtered[new_resourcename]['calendar'] + '|' + \
-                                       str(round(self.contacts_filtered[new_resourcename]['cost'], 4)) + '|\n' + \
-                                       self.contacts_filtered[new_resourcename]['avito']
-                event['summary'] = self.contacts_filtered[new_resourcename]['fio'] + ' - ' + \
-                                   self.contacts_filtered[new_resourcename]['stage']
+                event['description'] = '|' + self.contacty[new_resourcename]['stage'] + '|' + \
+                                       self.contacty[new_resourcename]['calendar'] + '|' + \
+                                       str(round(self.contacty[new_resourcename]['cost'], 4)) + '|\n' + \
+                                       self.contacty[new_resourcename]['avito']
+                event['summary'] = self.contacty[new_resourcename]['fio'] + ' - ' + \
+                                   self.contacty[new_resourcename]['stage']
                 ok_google = False
                 while not ok_google:
                     try:
