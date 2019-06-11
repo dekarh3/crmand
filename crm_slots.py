@@ -2129,16 +2129,15 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 self.preview.show()
         return
 
-    def click_clbGoURL2(self):
-        if len(self.contacts_filtered[self.FIO_cur_id]['urls']) > 1:
-            if len(self.contacts_filtered[self.FIO_cur_id]['urls'][1]) > 5:
-                proc = Popen('firefox --new-tab ' + self.contacts_filtered[self.FIO_cur_id]['urls'][1],
-                             shell=True, stdout=PIPE, stderr=PIPE)
-                proc.wait()  # дождаться выполнения
-                res = proc.communicate()  # получить tuple('stdout', 'stderr')
-                if proc.returncode:
-                    print(res[1])
-                    print('result:', res[0])
+    def click_clbGoUser(self):
+        if len(self.contacts_filtered[self.FIO_cur_id]['nameLink'].strip()) > 5:
+            profile = QWebEngineProfile(self.preview)
+            profile.setHttpUserAgent(USER_AGENT)
+            page = QWebEnginePage(profile, self.preview)
+            page.setUrl(QUrl('https://www.avito.ru' + self.contacts_filtered[self.FIO_cur_id]['nameLink']))
+            self.preview.setPage(page)
+            self.preview.show()
+        return
 
     def leIOF_changed(self, text):
         self.leIOF.setText(self.filter_addres(text))

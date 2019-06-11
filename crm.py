@@ -34,7 +34,7 @@ class MainWindow(MainWindowSlots):
         self.twCalls.clicked.connect(self.click_twCalls)
 #        self.cbStage.activated[str].connect(self.click_cbStage)
         self.clbGoURL1.clicked.connect(self.click_clbGoURL1)
-        self.clbGoURL2.clicked.connect(self.click_clbGoURL2)
+        self.clbGoUser.clicked.connect(self.click_clbGoUser)
         self.clbAddDate.clicked.connect(self.click_clbAddDate)
         self.clbStageRefresh.clicked.connect(self.click_clbStageRefresh)
         self.leIOF.textChanged[str].connect(self.leIOF_changed)
