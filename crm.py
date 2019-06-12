@@ -2,11 +2,11 @@
 __author__ = 'Denis'
 
 import sys
+from datetime import datetime
 
-from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import (QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox, QTableWidgetItem, QComboBox)
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QDate
+from PyQt5.QtCore import Qt
 
 from crm_slots import MainWindowSlots
 
@@ -44,14 +44,48 @@ class MainWindow(MainWindowSlots):
 #        self.clbPreviewLoading.clicked.connect(self.click_clbPreviewLoading)
 #        self.deCalendar.dateChanged.connect(self.change_deCalendar)
 #        self.twCalls.customContextMenuRequested.connect(self.click_label_3)
-
         return None
+
+
+class MyQWidget(QWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.previewPlusKeys = 0
+        self.previewMinusKeys = 0
+
+    def keyPressEvent(self, e):
+        super().keyPressEvent(e)
+        if e.key() == Qt.Key_Plus:
+            if int(datetime.now().timestamp()) == self.previewPlusKeys:
+                ui.preview.setZoomFactor(ui.preview.zoomFactor() + 0.1)
+                self.previewPlusKeys = int(datetime.now().timestamp()) - 1
+            else:
+                self.previewPlusKeys = -int(datetime.now().timestamp())
+        elif e.key() == Qt.Key_Minus:
+            if int(datetime.now().timestamp()) == self.previewMinusKeys:
+                ui.preview.setZoomFactor(ui.preview.zoomFactor() - 0.1)
+                self.previewMinusKeys = int(datetime.now().timestamp()) - 1
+            else:
+                self.previewMinusKeys = -int(datetime.now().timestamp())
+        elif e.key() == Qt.Key_Control:
+            if int(datetime.now().timestamp()) == -self.previewPlusKeys:
+                ui.preview.setZoomFactor(ui.preview.zoomFactor() + 0.1)
+                self.previewPlusKeys = int(datetime.now().timestamp()) - 1
+            else:
+                self.previewPlusKeys = int(datetime.now().timestamp())
+            if int(datetime.now().timestamp()) == -self.previewMinusKeys:
+                ui.preview.setZoomFactor(ui.preview.zoomFactor() - 0.1)
+                self.previewMinusKeys = int(datetime.now().timestamp()) - 1
+            else:
+                self.previewMinusKeys = int(datetime.now().timestamp())
+
 
 if __name__ == '__main__':
     # Создаём экземпляр приложения
     app = QApplication(sys.argv)
     # Создаём базовое окно, в котором будет отображаться наш UI
-    window = QWidget()
+    window = MyQWidget()
     window.setWindowIcon(QIcon('avito1.png'))
     # Создаём экземпляр нашего UI
     ui = MainWindow(window)
