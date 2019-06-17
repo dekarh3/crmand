@@ -146,6 +146,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
     def setupUi(self, form):
         Ui_Form.setupUi(self,form)
+        self.preview_koef = 1
         self.twFIOkeyPressEventMain = self.twFIO.keyPressEvent
         self.twFIO.keyPressEvent = self.twFIOkeyPressEvent
         if len(argv):
@@ -1430,6 +1431,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             page.setUrl(QUrl(self.contacty[self.FIO_cur_id]['avito']))
             self.preview.setPage(page)
             self.preview.load(QUrl(self.contacty[self.FIO_cur_id]['avito']))
+            self.preview.setZoomFactor(self.preview_koef)
             self.preview.show()
         #            avito_x = self.contacts_filtered[self.FIO_cur_id]['avito'].strip()
         #            for i in range(len(avito_x)-1,0,-1):
@@ -1450,6 +1452,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             page = QWebEnginePage(profile, self.preview)
             page.setUrl(QUrl('https://www.instagram.com/' + self.contacty[self.FIO_cur_id]['instagram'] + '/'))
             self.preview.setPage(page)
+            self.preview.setZoomFactor(self.preview_koef)
             self.preview.show()
 
     def form2db4one(self):      #  Форма -> внутр. БД
@@ -2126,6 +2129,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 page = QWebEnginePage(profile, self.preview)
                 page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['urls'][0]))
                 self.preview.setPage(page)
+                self.preview.setZoomFactor(self.preview_koef)
                 self.preview.show()
         return
 
@@ -2136,6 +2140,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
             page = QWebEnginePage(profile, self.preview)
             page.setUrl(QUrl('https://www.avito.ru' + self.contacts_filtered[self.FIO_cur_id]['nameLink']))
             self.preview.setPage(page)
+            self.preview.setZoomFactor(self.preview_koef)
             self.preview.show()
         return
 
@@ -2225,6 +2230,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 page.setUrl(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
                 self.preview.setPage(page)
                 self.preview.load(QUrl(self.contacts_filtered[self.FIO_cur_id]['avito']))
+                self.preview.setZoomFactor(self.preview_koef)
                 self.preview.show()
         elif self.show_site == 'calendar':
             self.clbAvito.setIcon(QIcon('instagram.png'))
@@ -2236,11 +2242,13 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
                 page.setUrl(QUrl('https://www.instagram.com/' + self.contacts_filtered[self.FIO_cur_id]['instagram']
                                  + '/'))
                 self.preview.setPage(page)
+                self.preview.setZoomFactor(self.preview_koef)
                 self.preview.show()
         else:
             self.clbAvito.setIcon(QIcon('gcal.png'))
             self.show_site = 'calendar'
             self.preview.load(QUrl('https://calendar.google.com'))
+            self.preview.setZoomFactor(self.preview_koef)
             self.preview.show()
 
     def click_clbGCal(self):
