@@ -224,7 +224,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if e.key() == Qt.Key_Down or e.key() == Qt.Key_Up:
             self.click_twFIO(index=self.twFIO.model().index(self.twFIO.currentRow(), 0))
 
-    def clickBack(self):
+    def findClearIOF(self): # Поиск контактов без iof
         clear_contacts = []
         contacts = []
         groups = []
@@ -238,8 +238,8 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
 
         return
 
-    def report(self):  # Отчет по звонкам с FROM_DATE по выбранной группе
-        FROM_DATE = datetime(2019, 3, 14)
+    def clickBack(self):  # Отчет по звонкам с FROM_DATE по выбранной группе
+        FROM_DATE = datetime(2019, 4, 1)
         calls_group_ids = []
         for i, call in enumerate(self.calls):
             for contact in self.contacts_filtered:
@@ -2590,7 +2590,7 @@ class MainWindowSlots(Ui_Form):   # Определяем функции, кот�
         if self.leFIO.text() or self.leNote.text() or self.lePhone.text():
             self.errMessage('!!!! С фильтрами - нельзя !!!')
             return
-        if len(self.avitos) < len(self.contacts_filtered) / 3:
+        if len(self.avitos) < len(self.contacts_filtered) / 10:
             self.errMessage('Слишком мало контактов в списке авито, всего ' + str(len(self.avitos)))
             return
         # Доступ
