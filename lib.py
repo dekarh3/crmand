@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
 # Общая библиотека функций
-# ver 1.11
+# ver 1.15
 
 import string
 import re
 from configparser import ConfigParser
+
+def make_defices(q):
+    q = str(q)
+    if len(q) == 32:
+        return q[0:8] + '-' + q[8:12] + '-' + q[12:16] + '-' + q[16:20] + '-' + q[20:32]
+    else:
+        return
 
 def lenl(a):            # длинна белиберды переведнной в цифры или 0
     try:
@@ -31,10 +38,21 @@ def l(a):               # белиберду в цифры или 0
     except TypeError:
         return 0
 
+def fl(a):               # белиберду в float или строку (заменяем , на . и пробелы на '')
+    if a == None:
+        return ''
+    elif s(a).find(',') > -1 or s(a).find('.') > -1:
+        try:
+            return float(str(a).replace(',','.').replace(' ',''))
+        except ValueError:
+            return a
+    else:
+        return a
+
 def s(a):                   # белиберду в строку
     try:
         if a != None:
-            return str(a).strip().replace(u"\xa0", u" ").replace('\n','')
+            return str(a).replace(u"\xa0", u" ").replace('\n','').strip()
         return ''
     except TypeError:
         return ''
@@ -70,6 +88,9 @@ def unique(lst):            # сделать список уникальным
                 break
             seen.add(x.lower())
     return lst
+
+def flt(a):
+    return re.sub(r'[^a-zA-Zа-яА-ЯёЁ0-9_+:@~$%^&?*()=<>\{\}\[\]\\\-\.\/\(\)\s]', '', a)
 
 def filter_rus_sp(a):
     if not a:
@@ -118,23 +139,31 @@ def format_phone(tel):
                 return None
         elif len(tel) == 10:
             return int('7' + tel)
-        elif len(tel) == 6:
-            return int('78512' + tel)
-        elif len(tel) == 5:
-            if tel[:1] == '2':
-                return int('7851231' + tel[1:])
-            if tel[:1] == '3':
-                return int('7851223' + tel[1:])
+        #elif len(tel) == 6:
+        #    return int('78512' + tel)
+        #elif len(tel) == 5:
+        #    if tel[:1] == '2':
+        #        return int('7851231' + tel[1:])
+        #    if tel[:1] == '3':
+        #        return int('7851223' + tel[1:])
         else:
             return None
 
 def fine_phone(t):
-    t = str(format_phone(t))
-    return '+' + t[0] + '(' + t[1:4] + ')' + t[4:7] + '-' + t[7:9] + '-' + t[9:]
+    if format_phone(t):
+        t = str(format_phone(t))
+        return '+' + t[0] + '(' + t[1:4] + ')' + t[4:7] + '-' + t[7:9] + '-' + t[9:]
+    else:
+        return '0'
 
 def fine_snils(t):
     s = '{:=011d}'.format(l(t))
     return s[:3]+'-'+s[3:6]+'-'+s[6:9]+' '+s[9:11]
+
+def fine_snils_(t):
+    s = '{:=011d}'.format(l(t))
+    return s[:3]+'-'+s[3:6]+'-'+s[6:9]+'_'+s[9:11]
+
 
 def read_config(filename='config.ini', section='mysql'):
     """ Read database configuration file and return a dictionary object
